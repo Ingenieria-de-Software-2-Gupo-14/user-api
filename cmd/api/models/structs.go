@@ -1,12 +1,24 @@
 package models
 
 type CreateUserRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	Id       int    `json:"id"`
+	Username string `json:"username"`
+	Name     string `json:"name"`
+	Surname  string `json:"surname"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
 }
 
 type User struct {
-	Id          int    `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	Id           int    `json:"id"`
+	Username     string `json:"username"`
+	Name         string `json:"name"`
+	Surname      string `json:"surname"`
+	Password     string `json:"password"`
+	Email        string `json:"email"`
+	Location     string `json:"location"`
+	Admin        bool   `json:"admin"`
+	BlockedUser  bool   `json:"blocked-user"`
+	ProfilePhoto int    `json:"profile-photo"` //reference key to mongodb with profile pic
+	Description  string `json:"description"`
 }

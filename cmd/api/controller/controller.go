@@ -54,14 +54,8 @@ func (controller Controller) UsersPost(context *gin.Context) {
 	if err := context.Bind(&createUserRequest); err != nil {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(StatusBadRequest, context.Request.URL.Path))
 		return
-	} else if createUserRequest.Title == "" {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(StatusMissingTitle, context.Request.URL.Path))
-		return
-	} else if createUserRequest.Description == "" {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(StatusMissingDescription, context.Request.URL.Path))
-		return
 	}
-	user := services.CreateUser(controller.dataBaseLength(), createUserRequest.Title, createUserRequest.Description)
+	user := services.CreateUser(controller.dataBaseLength(), createUserRequest.Username, createUserRequest.Password)
 	controller.addUser(user)
 	response := ResponseUser{User: user}
 	context.JSON(201, response)
@@ -114,4 +108,18 @@ func (controller Controller) UserDeleteById(context *gin.Context) {
 	}
 	controller.removeUser(id)
 	context.JSON(http.StatusNoContent, nil)
+}
+
+func (controller Controller) AdminsPost(context *gin.Context) {
+	var createUserRequest CreateUserRequest
+
+	if err := context.Bind(&createUserRequest); err != nil {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+	user := services.CreateAdminUser(controller.dataBaseLength(), createUserRequest.Username, createUserRequest.Password)
+	controller.addUser(user)
+	response := ResponseUser{User: user}
+	context.JSON(201, response)
+
 }

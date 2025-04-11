@@ -9,15 +9,15 @@ import (
 func CreateErrorResponse(statusCode int, instance string) ErrorResponse {
 	switch statusCode {
 	case StatusMissingTitle:
-		return ErrorResponse{ErrorTypeBlank, ErrorTitleMissingTitle, http.StatusBadRequest, ErrorDescriptionMissingTitle, instance}
+		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleMissingTitle, Status: http.StatusBadRequest, Detail: ErrorDescriptionMissingTitle, Instance: instance}
 	case StatusMissingDescription:
-		return ErrorResponse{ErrorTypeBlank, ErrorTitleMissingDescription, http.StatusBadRequest, ErrorDescriptionMissingDescription, instance}
+		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleMissingDescription, Status: http.StatusBadRequest, Detail: ErrorDescriptionMissingDescription, Instance: instance}
 	case StatusUserNotFound:
-		return ErrorResponse{ErrorTypeBlank, ErrorTitleUserNotFound, http.StatusNotFound, ErrorDescriptionUserNotFound, instance}
+		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleUserNotFound, Status: http.StatusNotFound, Detail: ErrorDescriptionUserNotFound, Instance: instance}
 	case StatusInternalServerError:
-		return ErrorResponse{ErrorTypeBlank, ErrorTitleInternalServerError, http.StatusInternalServerError, ErrorDescriptionInternalServerError, instance}
+		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleInternalServerError, Status: http.StatusInternalServerError, Detail: ErrorDescriptionInternalServerError, Instance: instance}
 	case StatusBadRequest:
-		return ErrorResponse{ErrorTypeBlank, ErrorTitleBadRequest, http.StatusBadRequest, ErrorDescriptionBadRequest, instance}
+		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleBadRequest, Status: http.StatusBadRequest, Detail: ErrorDescriptionBadRequest, Instance: instance}
 	}
-	return ErrorResponse{ErrorTypeBlank, ErrorTitleInternalServerError, http.StatusInternalServerError, ErrorDescriptionInternalServerError, instance}
+	return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleInternalServerError, Status: http.StatusInternalServerError, Detail: ErrorDescriptionInternalServerError, Instance: instance}
 }

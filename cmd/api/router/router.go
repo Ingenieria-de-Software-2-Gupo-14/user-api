@@ -10,6 +10,7 @@ func CreateRouter() *gin.Engine {
 	r := gin.Default()
 	cont := controller.CreateController()
 	r.POST("/users", cont.UsersPost)
+	r.POST("/admins", cont.AdminsPost)
 	r.GET("/users", cont.UsersGet)
 	r.GET("/users/:id", cont.UserGetById)
 	r.DELETE("/users/:id", cont.UserDeleteById)
