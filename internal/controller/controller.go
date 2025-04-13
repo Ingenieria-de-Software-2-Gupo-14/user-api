@@ -2,33 +2,21 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
-	"ing-soft-2-tp1/cmd/api/database"
-	. "ing-soft-2-tp1/cmd/api/models"
-	"ing-soft-2-tp1/cmd/api/services"
+	. "ing-soft-2-tp1/internal/database"
+	. "ing-soft-2-tp1/internal/models"
+	services "ing-soft-2-tp1/internal/services"
 	"net/http"
 	"strconv"
 )
 
-type ControllerInterface interface {
-	UserPost(context *gin.Context)
-	UsersGet(context *gin.Context)
-	UserGetById(context *gin.Context)
-	UserDeleteById(context *gin.Context)
-	dataBaseLength()
-	addUser(user User)
-	getUsers()
-	getUser(id int)
-	removeUser(id int)
-}
-
 // Controller struct that contains a database with users
 type Controller struct {
-	db database.Database[User]
+	db Database[User]
 }
 
 // CreateController creates a controller
 func CreateController() (controller Controller) {
-	controller.db = database.CreateDatabase[User]()
+	controller.db = CreateDatabase[User]()
 	return controller
 }
 
@@ -37,7 +25,7 @@ func (controller Controller) dataBaseLength() (length int) {
 	return controller.db.GetLen()
 }
 
-// addUser adds a user to the controller's database
+// addUser adds a user to the Controller's database
 func (controller Controller) addUser(user User) {
 	controller.db.AddUser(user)
 }
@@ -52,18 +40,18 @@ func (controller Controller) UsersPost(context *gin.Context) {
 	var createUserRequest CreateUserRequest
 
 	if err := context.Bind(&createUserRequest); err != nil {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(StatusBadRequest, context.Request.URL.Path))
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
 	user := services.CreateUser(controller.dataBaseLength(), createUserRequest.Username, createUserRequest.Password)
-	controller.addUser(user)
+	services.AddUserToDatabase(&controller.db, user)
 	response := ResponseUser{User: user}
 	context.JSON(201, response)
 }
 
 // UsersGet sends all users to the API context, even if there are none
 func (controller Controller) UsersGet(context *gin.Context) {
-	response := ResponseUsers{Users: controller.getUsers()}
+	response := ResponseUsers{Users: services.GetAllUsersFromDatabase(&controller.db)}
 	context.JSON(201, response)
 }
 
@@ -77,10 +65,10 @@ func (controller Controller) getUser(id int) (user User, ok bool) {
 func (controller Controller) UserGetById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(StatusInternalServerError, context.Request.URL.Path))
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
-	user, ok := controller.getUser(id)
+	user, ok := services.GetUserFromDatabase(&controller.db, id)
 	if ok == false {
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
 		return
@@ -98,15 +86,15 @@ func (controller Controller) removeUser(id int) {
 func (controller Controller) UserDeleteById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(StatusInternalServerError, context.Request.URL.Path))
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
-	_, ok := controller.getUser(id)
+	_, ok := services.GetUserFromDatabase(&controller.db, id)
 	if ok == false {
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
 		return
 	}
-	controller.removeUser(id)
+	services.RemoveUserFromDatabase(&controller.db, id)
 	context.JSON(http.StatusNoContent, nil)
 }
 
@@ -114,11 +102,11 @@ func (controller Controller) AdminsPost(context *gin.Context) {
 	var createUserRequest CreateUserRequest
 
 	if err := context.Bind(&createUserRequest); err != nil {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(StatusBadRequest, context.Request.URL.Path))
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
 	user := services.CreateAdminUser(controller.dataBaseLength(), createUserRequest.Username, createUserRequest.Password)
-	controller.addUser(user)
+	services.AddUserToDatabase(&controller.db, user)
 	response := ResponseUser{User: user}
 	context.JSON(201, response)
 
