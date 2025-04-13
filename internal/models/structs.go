@@ -1,12 +1,8 @@
 package models
 
 type CreateUserRequest struct {
-	Id       int    `json:"id"`
-	Username string `json:"username"`
-	Name     string `json:"name"`
-	Surname  string `json:"surname"`
-	Password string `json:"password"`
 	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type User struct {

@@ -33,7 +33,7 @@ func (controller Controller) UsersPost(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
-	user := services.CreateUser(controller.dataBaseLength(), createUserRequest.Username, createUserRequest.Password)
+	user := services.CreateUser(controller.dataBaseLength(), createUserRequest.Email, createUserRequest.Password)
 	services.AddUserToDatabase(&controller.db, user)
 	response := ResponseUser{User: user}
 	context.JSON(201, response)
@@ -84,7 +84,7 @@ func (controller Controller) AdminsPost(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
-	user := services.CreateAdminUser(controller.dataBaseLength(), createUserRequest.Username, createUserRequest.Password)
+	user := services.CreateAdminUser(controller.dataBaseLength(), createUserRequest.Email, createUserRequest.Password)
 	services.AddUserToDatabase(&controller.db, user)
 	response := ResponseUser{User: user}
 	context.JSON(201, response)

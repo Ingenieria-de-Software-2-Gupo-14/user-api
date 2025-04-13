@@ -6,13 +6,13 @@ import (
 )
 
 // CreateUser creates and returns a User Struct
-func CreateUser(id int, username string, password string) User {
+func CreateUser(id int, email string, password string) User {
 	user := User{
 		Id:          id,
-		Username:    username,
+		Username:    email,
 		Name:        "",
 		Surname:     "",
-		Email:       "",
+		Email:       email,
 		Password:    password,
 		Description: "",
 	}
