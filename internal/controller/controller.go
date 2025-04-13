@@ -25,16 +25,6 @@ func (controller Controller) dataBaseLength() (length int) {
 	return controller.db.GetLen()
 }
 
-// addUser adds a user to the Controller's database
-func (controller Controller) addUser(user User) {
-	controller.db.AddUser(user)
-}
-
-// getUsers return all elements of the database in List
-func (controller Controller) getUsers() (users []User) {
-	return controller.db.GetAllUsers()
-}
-
 // UsersPost adds the context's body as user in the database and sends a response to the api context. sends a 201 status code if its succesful and 400 if the title or description are missing
 func (controller Controller) UsersPost(context *gin.Context) {
 	var createUserRequest CreateUserRequest
@@ -55,12 +45,6 @@ func (controller Controller) UsersGet(context *gin.Context) {
 	context.JSON(201, response)
 }
 
-// getUser return user from the database and "ok" bool value true in case that user was in database false in case it wasn't
-func (controller Controller) getUser(id int) (user User, ok bool) {
-	user, ok = controller.db.GetUser(id)
-	return user, ok
-}
-
 // UserGetById sends response with the corresponding user with a status code 200, if the user isn't in the database it'll send a status code 404 not found
 func (controller Controller) UserGetById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
@@ -75,11 +59,6 @@ func (controller Controller) UserGetById(context *gin.Context) {
 	}
 	response := ResponseUser{User: user}
 	context.JSON(http.StatusOK, response)
-}
-
-// removeUser removes user from database
-func (controller Controller) removeUser(id int) {
-	controller.db.DeleteUser(id)
 }
 
 // UserDeleteById removes user from database corresponding to id receive in context body, responds with code 204 "no content" in case of successful and 404 in case of user not found
