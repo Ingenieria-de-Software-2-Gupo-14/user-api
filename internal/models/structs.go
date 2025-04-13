@@ -19,6 +19,6 @@ type User struct {
 	Location     string `json:"location"`
 	Admin        bool   `json:"admin"`
 	BlockedUser  bool   `json:"blocked-user"`
-	ProfilePhoto int    `json:"profile-photo"` //reference key to mongodb with profile pic
+	ProfilePhoto int    `json:"profile-photo"` //Foreign key to mongodb with profile pic
 	Description  string `json:"description"`
 }

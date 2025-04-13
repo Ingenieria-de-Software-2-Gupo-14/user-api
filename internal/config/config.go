@@ -12,7 +12,7 @@ type Config struct {
 	Environment string
 }
 
-// LoadConfig loads environment variables and returns a true is succeeded and false if not
+// LoadConfig loads environment variables a Config Struct containing relevant variables
 func LoadConfig() Config {
 	currentWorkDirectory, _ := os.Getwd()
 	split := strings.Split(currentWorkDirectory, "/")

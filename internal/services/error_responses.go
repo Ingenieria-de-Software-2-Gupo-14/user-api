@@ -1,7 +1,7 @@
 package services
 
 import (
-	. "ing-soft-2-tp1/cmd/api/models"
+	. "ing-soft-2-tp1/internal/models"
 	"net/http"
 )
 
@@ -14,9 +14,9 @@ func CreateErrorResponse(statusCode int, instance string) ErrorResponse {
 		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleMissingDescription, Status: http.StatusBadRequest, Detail: ErrorDescriptionMissingDescription, Instance: instance}
 	case StatusUserNotFound:
 		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleUserNotFound, Status: http.StatusNotFound, Detail: ErrorDescriptionUserNotFound, Instance: instance}
-	case StatusInternalServerError:
+	case http.StatusInternalServerError:
 		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleInternalServerError, Status: http.StatusInternalServerError, Detail: ErrorDescriptionInternalServerError, Instance: instance}
-	case StatusBadRequest:
+	case http.StatusBadRequest:
 		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleBadRequest, Status: http.StatusBadRequest, Detail: ErrorDescriptionBadRequest, Instance: instance}
 	}
 	return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleInternalServerError, Status: http.StatusInternalServerError, Detail: ErrorDescriptionInternalServerError, Instance: instance}

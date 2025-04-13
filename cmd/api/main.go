@@ -1,8 +1,8 @@
 package main
 
 import (
-	apiconfig "ing-soft-2-tp1/cmd/api/config"
-	"ing-soft-2-tp1/cmd/api/router"
+	apiconfig "ing-soft-2-tp1/internal/config"
+	"ing-soft-2-tp1/internal/router"
 )
 
 func main() {

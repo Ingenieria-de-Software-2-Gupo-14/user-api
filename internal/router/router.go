@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"ing-soft-2-tp1/cmd/api/controller"
+	"ing-soft-2-tp1/internal/controller"
 )
 
 // CreateRouter creates and return a Router with its corresponding end points
