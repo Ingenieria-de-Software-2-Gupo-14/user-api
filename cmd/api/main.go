@@ -1,35 +1,15 @@
 package main
 
 import (
-	"log"
-	"os"
-
-	"github.com/gin-gonic/gin"
+	apiconfig "ing-soft-2-tp1/internal/config"
+	"ing-soft-2-tp1/internal/router"
 )
 
 func main() {
-	// Leer variables de entorno
-	host := os.Getenv("HOST")
-	if host == "" {
-		host = "0.0.0.0"
+	config := apiconfig.LoadConfig() // lee las variables de entorno
+	router.SetEnviroment(config.Environment)
+	r := router.CreateRouter()
+	if err := r.Run(config.Host + ":" + config.Port); err != nil {
+		panic(err.Error())
 	}
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	environment := os.Getenv("ENVIRONMENT")
-	if environment == "" {
-		environment = "local"
-	}
-
-	log.Printf("INFO: Starting server in %s mode on %s:%s", environment, host, port)
-
-	// Configurar Gin
-	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) { c.String(200, "pong") })
-
-	// Iniciar el servidor
-	r.Run(host + ":" + port)
 }
