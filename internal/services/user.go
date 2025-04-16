@@ -8,13 +8,10 @@ import (
 // CreateUser creates and returns a User Struct
 func CreateUser(id int, email string, password string) User {
 	user := User{
-		Id:          id,
-		Username:    email,
-		Name:        "",
-		Surname:     "",
-		Email:       email,
-		Password:    password,
-		Description: "",
+		Id:       id,
+		Username: email,
+		Email:    email,
+		Password: password,
 	}
 	return user
 }
@@ -26,19 +23,24 @@ func CreateAdminUser(id int, username string, password string) User {
 }
 
 // RemoveUserFromDatabase removes user from database
-func RemoveUserFromDatabase(db *Database[User], id int) {
+func RemoveUserFromDatabase(db *Database, id int) {
 	db.DeleteUser(id)
 }
 
-func AddUserToDatabase(db *Database[User], user User) {
+func AddUserToDatabase(db *Database, user *User) {
 	db.AddUser(user)
 }
 
-func GetUserFromDatabase(db *Database[User], id int) (user User, ok bool) {
+func GetUserFromDatabase(db *Database, id int) (user *User, ok error) {
 	user, ok = db.GetUser(id)
 	return user, ok
 }
 
-func GetAllUsersFromDatabase(db *Database[User]) (users []User) {
+func GetUserFromDatabaseByEmailAndPassword(db *Database, email string, password string) (user *User, ok error) {
+	user, ok = db.GetUserByEmailAndPassword(email, password)
+	return user, ok
+}
+
+func GetAllUsersFromDatabase(db *Database) (users []User, err error) {
 	return db.GetAllUsers()
 }
