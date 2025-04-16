@@ -74,11 +74,11 @@ func (db Database) AddUser(user *User) error {
 
 func (db Database) GetUserByEmailAndPassword(email string, password string) (*User, error) {
 	println(email + password)
-	row := db.DB.QueryRow("SELECT * FROM users WHERE (email ILIKE $1) AND (password ILKE $2)", email, password)
+	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
 	var user User
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
-	if err != nil {
-		if err == sql.ErrNoRows {
+	if err != nil || user.Password != password {
+		if err == sql.ErrNoRows || user.Password != password {
 			return nil, errors.New("user not found") //TODO Make custom error
 		}
 		return nil, err
