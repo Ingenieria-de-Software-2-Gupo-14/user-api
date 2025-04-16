@@ -74,8 +74,7 @@ func (db Database) AddUser(user *User) error {
 }
 
 func (db Database) GetUserByEmailAndPassword(email string, password string) (*User, error) {
-	row := db.DB.QueryRow("SELECT * FROM users WHERE (email = $1, password = $2)", email, password)
-
+	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
 	var user User
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {

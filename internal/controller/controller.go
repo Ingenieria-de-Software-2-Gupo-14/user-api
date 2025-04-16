@@ -91,17 +91,18 @@ func (controller Controller) AdminsPost(context *gin.Context) {
 
 }
 
-func (controller Controller) UserGetByEmailAndPassword(context *gin.Context) *User {
-	var email = context.Param("email")
-	var password = context.Param("password")
-	if password != "" || email != "" {
+func (controller Controller) UserGetByLogin(context *gin.Context) {
+	var loginRequest LoginRequest
+
+	if err := context.Bind(&loginRequest); err != nil {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
-		return nil
+		return
 	}
-	user, ok := services.GetUserFromDatabaseByEmailAndPassword(controller.db, email, password)
+	user, ok := services.GetUserFromDatabaseByEmailAndPassword(controller.db, loginRequest.Email, loginRequest.Password)
 	if ok != nil {
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
-		return nil
+		return
 	}
-	return user
+	response := ResponseUser{User: *user}
+	context.JSON(http.StatusOK, response)
 }
