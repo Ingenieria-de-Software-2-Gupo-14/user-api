@@ -68,11 +68,6 @@ func (controller Controller) UserDeleteById(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
-	_, ok := services.GetUserFromDatabase(controller.db, id)
-	if ok != nil {
-		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
-		return
-	}
 	services.RemoveUserFromDatabase(controller.db, id)
 	context.JSON(http.StatusNoContent, nil)
 }
@@ -92,13 +87,14 @@ func (controller Controller) AdminsPost(context *gin.Context) {
 }
 
 func (controller Controller) UserGetByLogin(context *gin.Context) {
-	var loginRequest LoginRequest
+	var email = context.Param("email")
+	var password = context.Param("password")
 
-	if err := context.Bind(&loginRequest); err != nil {
+	if email == "" || password == "" {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
-	user, ok := services.GetUserFromDatabaseByEmailAndPassword(controller.db, loginRequest.Email, loginRequest.Password)
+	user, ok := services.GetUserFromDatabaseByEmailAndPassword(controller.db, email, password)
 	if ok != nil {
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
 		return

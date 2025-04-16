@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"errors"
-	_ "github.com/jackc/pgx"
 	_ "github.com/lib/pq"
 	. "ing-soft-2-tp1/internal/models"
 )
@@ -19,7 +18,7 @@ func CreateDatabase(db *sql.DB) *Database {
 
 // GetUser returns User corresponding to id and ok bool value, if ok true, the User was in the database, if ok false then the User wasn't in the database
 func (db Database) GetUser(id int) (*User, error) {
-	row := db.DB.QueryRow("SELECT id, first_name, last_name, position, department, hire_date, salary FROM users WHERE id = $1", id)
+	row := db.DB.QueryRow("SELECT * FROM users WHERE id = $1", id)
 
 	var user User
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
@@ -74,7 +73,8 @@ func (db Database) AddUser(user *User) error {
 }
 
 func (db Database) GetUserByEmailAndPassword(email string, password string) (*User, error) {
-	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
+	println(email + password)
+	row := db.DB.QueryRow("SELECT * FROM users WHERE (email ILIKE $1) AND (password ILKE $2)", email, password)
 	var user User
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {
@@ -86,3 +86,5 @@ func (db Database) GetUserByEmailAndPassword(email string, password string) (*Us
 
 	return &user, nil
 }
+
+//id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description
