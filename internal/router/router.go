@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"ing-soft-2-tp1/internal/controller"
 	"ing-soft-2-tp1/internal/database"
@@ -10,6 +11,12 @@ import (
 func CreateRouter(db *database.Database) *gin.Engine {
 	r := gin.Default()
 	cont := controller.CreateController(db)
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:8081"}, // frontend address here
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowCredentials: true, // if you need cookies or auth headers
+	}))
 	r.POST("/users", cont.UsersPost)
 	r.POST("/admins", cont.AdminsPost)
 	r.GET("/users", cont.UsersGet)
