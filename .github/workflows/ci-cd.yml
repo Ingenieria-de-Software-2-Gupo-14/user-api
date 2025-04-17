@@ -29,6 +29,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: build compose
-        uses: docker-compose up --build
+        run: docker-compose up --build
       - name: Stop Docker
-        uses: docker-compose stop
+        run: docker-compose stop
