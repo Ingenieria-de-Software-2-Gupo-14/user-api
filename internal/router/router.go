@@ -13,7 +13,7 @@ func CreateRouter(db *database.Database) *gin.Engine {
 	r.POST("/users", cont.UsersPost)
 	r.POST("/admins", cont.AdminsPost)
 	r.GET("/users", cont.UsersGet)
-	r.GET("/login/:email/:password", cont.UserGetByLogin)
+	r.GET("/login/", cont.UserGetByLogin)
 	r.GET("/users/:id", cont.UserGetById)
 	r.DELETE("/users/:id", cont.UserDeleteById)
 	return r
