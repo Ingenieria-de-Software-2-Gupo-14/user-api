@@ -17,6 +17,7 @@ func CreateRouter(db *database.Database) *gin.Engine {
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowCredentials: true, // if you need cookies or auth headers
 	}))
+	r.GET("/health", cont.Health)
 	r.POST("/users", cont.UsersPost)
 	r.POST("/admins", cont.AdminsPost)
 	r.GET("/users", cont.UsersGet)

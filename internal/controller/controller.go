@@ -147,3 +147,7 @@ func (controller Controller) ModifyUser(context *gin.Context) {
 	}
 	context.JSON(http.StatusNoContent, nil)
 }
+
+func (controller Controller) Health(context *gin.Context) {
+	context.JSON(http.StatusOK, nil)
+}
