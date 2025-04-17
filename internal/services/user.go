@@ -10,6 +10,7 @@ type Database interface {
 	DeleteUser(id int) error
 	AddUser(user *User) error
 	GetUserByEmailAndPassword(email string, password string) (*User, error)
+	ContainsUserByEmail(email string) bool
 }
 
 // CreateUser creates and returns a User Struct
@@ -34,8 +35,8 @@ func RemoveUserFromDatabase(db Database, id int) {
 	db.DeleteUser(id)
 }
 
-func AddUserToDatabase(db Database, user *User) {
-	db.AddUser(user)
+func AddUserToDatabase(db Database, user *User) error {
+	return db.AddUser(user)
 }
 
 func GetUserFromDatabase(db Database, id int) (user *User, ok error) {
@@ -50,4 +51,8 @@ func GetUserFromDatabaseByEmailAndPassword(db Database, email string, password s
 
 func GetAllUsersFromDatabase(db Database) (users []User, err error) {
 	return db.GetAllUsers()
+}
+
+func ContainsUserByEmail(db Database, email string) bool {
+	return db.ContainsUserByEmail(email)
 }

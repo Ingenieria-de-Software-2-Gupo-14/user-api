@@ -73,7 +73,6 @@ func (db Database) AddUser(user *User) error {
 }
 
 func (db Database) GetUserByEmailAndPassword(email string, password string) (*User, error) {
-	println(email + password)
 	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
 	var user User
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
@@ -85,6 +84,18 @@ func (db Database) GetUserByEmailAndPassword(email string, password string) (*Us
 	}
 
 	return &user, nil
+}
+
+func (db Database) ContainsUserByEmail(email string) bool {
+	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
+	var user User
+	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false
+		} //TODO Make custom error
+	}
+	return true
 }
 
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description

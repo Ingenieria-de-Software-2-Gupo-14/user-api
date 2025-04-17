@@ -14,6 +14,7 @@ type Database interface {
 	DeleteUser(id int) error
 	AddUser(user *User) error
 	GetUserByEmailAndPassword(email string, password string) (*User, error)
+	ContainsUserByEmail(email string) bool
 }
 
 // Controller struct that contains a database with users
@@ -35,8 +36,15 @@ func (controller Controller) UsersPost(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
+	if services.ContainsUserByEmail(controller.db, createUserRequest.Email) {
+		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
+	}
 	user := services.CreateUser(0, createUserRequest.Email, createUserRequest.Password)
-	services.AddUserToDatabase(controller.db, &user)
+	err := services.AddUserToDatabase(controller.db, &user)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
 	response := ResponseUser{User: user}
 	context.JSON(201, response)
 }
@@ -86,8 +94,15 @@ func (controller Controller) AdminsPost(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
+	if services.ContainsUserByEmail(controller.db, createUserRequest.Email) {
+		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
+	}
 	user := services.CreateAdminUser(0, createUserRequest.Email, createUserRequest.Password)
-	services.AddUserToDatabase(controller.db, &user)
+	err := services.AddUserToDatabase(controller.db, &user)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
 	response := ResponseUser{User: user}
 	context.JSON(201, response)
 
