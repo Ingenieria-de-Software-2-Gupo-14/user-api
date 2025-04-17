@@ -12,9 +12,10 @@ type Database interface {
 	GetUser(id int) (*User, error)
 	GetAllUsers() ([]User, error)
 	DeleteUser(id int) error
-	AddUser(user *User) error
+	AddUser(user *User) (int, error)
 	GetUserByEmailAndPassword(email string, password string) (*User, error)
 	ContainsUserByEmail(email string) bool
+	ModifyUser(user *User) error
 }
 
 // Controller struct that contains a database with users
@@ -40,7 +41,7 @@ func (controller Controller) UsersPost(context *gin.Context) {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
 	}
 	user := services.CreateUser(0, createUserRequest.Email, createUserRequest.Password)
-	err := services.AddUserToDatabase(controller.db, &user)
+	_, err := services.AddUserToDatabase(controller.db, &user)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
@@ -98,11 +99,13 @@ func (controller Controller) AdminsPost(context *gin.Context) {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
 	}
 	user := services.CreateAdminUser(0, createUserRequest.Email, createUserRequest.Password)
-	err := services.AddUserToDatabase(controller.db, &user)
+	id, err := services.AddUserToDatabase(controller.db, &user)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
+	println(id)
+	user.Id = id
 	response := ResponseUser{User: user}
 	context.JSON(201, response)
 
@@ -127,4 +130,20 @@ func (controller Controller) UserLogin(context *gin.Context) {
 	}
 	response := ResponseUser{User: *user}
 	context.JSON(http.StatusOK, response)
+}
+
+func (controller Controller) ModifyUser(context *gin.Context) {
+	var user User
+
+	if err := context.ShouldBindJSON(&user); err != nil {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+
+	ok := services.ModifyUser(controller.db, &user)
+	if ok != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	context.JSON(http.StatusNoContent, nil)
 }
