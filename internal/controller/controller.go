@@ -2,20 +2,27 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
-	. "ing-soft-2-tp1/internal/database"
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
 	"net/http"
 	"strconv"
 )
 
+type Database interface {
+	GetUser(id int) (*User, error)
+	GetAllUsers() ([]User, error)
+	DeleteUser(id int) error
+	AddUser(user *User) error
+	GetUserByEmailAndPassword(email string, password string) (*User, error)
+}
+
 // Controller struct that contains a database with users
 type Controller struct {
-	db *Database
+	db Database
 }
 
 // CreateController creates a controller
-func CreateController(db *Database) (controller Controller) {
+func CreateController(db Database) (controller Controller) {
 	controller.db = db
 	return controller
 }
@@ -87,8 +94,8 @@ func (controller Controller) AdminsPost(context *gin.Context) {
 }
 
 func (controller Controller) UserGetByLogin(context *gin.Context) {
-	var email = context.Param("email")
-	var password = context.Param("password")
+	email := context.Query("email")
+	password := context.Query("password")
 
 	if email == "" || password == "" {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))

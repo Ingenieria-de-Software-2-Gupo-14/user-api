@@ -1,9 +1,16 @@
 package services
 
 import (
-	. "ing-soft-2-tp1/internal/database"
 	. "ing-soft-2-tp1/internal/models"
 )
+
+type Database interface {
+	GetUser(id int) (*User, error)
+	GetAllUsers() ([]User, error)
+	DeleteUser(id int) error
+	AddUser(user *User) error
+	GetUserByEmailAndPassword(email string, password string) (*User, error)
+}
 
 // CreateUser creates and returns a User Struct
 func CreateUser(id int, email string, password string) User {
@@ -23,24 +30,24 @@ func CreateAdminUser(id int, username string, password string) User {
 }
 
 // RemoveUserFromDatabase removes user from database
-func RemoveUserFromDatabase(db *Database, id int) {
+func RemoveUserFromDatabase(db Database, id int) {
 	db.DeleteUser(id)
 }
 
-func AddUserToDatabase(db *Database, user *User) {
+func AddUserToDatabase(db Database, user *User) {
 	db.AddUser(user)
 }
 
-func GetUserFromDatabase(db *Database, id int) (user *User, ok error) {
+func GetUserFromDatabase(db Database, id int) (user *User, ok error) {
 	user, ok = db.GetUser(id)
 	return user, ok
 }
 
-func GetUserFromDatabaseByEmailAndPassword(db *Database, email string, password string) (user *User, ok error) {
+func GetUserFromDatabaseByEmailAndPassword(db Database, email string, password string) (user *User, ok error) {
 	user, ok = db.GetUserByEmailAndPassword(email, password)
 	return user, ok
 }
 
-func GetAllUsersFromDatabase(db *Database) (users []User, err error) {
+func GetAllUsersFromDatabase(db Database) (users []User, err error) {
 	return db.GetAllUsers()
 }
