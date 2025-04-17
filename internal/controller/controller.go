@@ -15,6 +15,7 @@ type Database interface {
 	AddUser(user *User) (int, error)
 	GetUserByEmailAndPassword(email string, password string) (*User, error)
 	ContainsUserByEmail(email string) bool
+	ModifyUser(user *User) error
 }
 
 // Controller struct that contains a database with users
@@ -129,4 +130,20 @@ func (controller Controller) UserLogin(context *gin.Context) {
 	}
 	response := ResponseUser{User: *user}
 	context.JSON(http.StatusOK, response)
+}
+
+func (controller Controller) ModifyUser(context *gin.Context) {
+	var user User
+
+	if err := context.ShouldBindJSON(&user); err != nil {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+
+	ok := services.ModifyUser(controller.db, &user)
+	if ok != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	context.JSON(http.StatusNoContent, nil)
 }

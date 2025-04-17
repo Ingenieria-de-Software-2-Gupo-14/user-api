@@ -102,4 +102,9 @@ func (db Database) ContainsUserByEmail(email string) bool {
 	return true
 }
 
+func (db Database) ModifyUser(user *User) error {
+	_, err := db.DB.Exec("UPDATE users SET username = $1, name= $2, surname=$3,  password=$4, email=$5, location=$6, admin=$7, blocked_user=$8, profile_photo=$9,description=$10 WHERE id = $11", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description, &user.Id)
+	return err
+}
+
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description
