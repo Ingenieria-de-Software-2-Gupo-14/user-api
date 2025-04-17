@@ -63,13 +63,17 @@ func (db Database) DeleteUser(id int) error {
 }
 
 // AddUser adds an elements to the database
-func (db Database) AddUser(user *User) error {
+func (db Database) AddUser(user *User) (int, error) {
 	_, err := db.DB.Exec("INSERT INTO users (username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {
-		return err
+		return 0, err
 	}
-
-	return nil
+	newUser, err2 := db.GetUserByEmailAndPassword(user.Email, user.Password)
+	if err2 != nil {
+		return 0, err
+	}
+	user.Id = newUser.Id
+	return newUser.Id, err2
 }
 
 func (db Database) GetUserByEmailAndPassword(email string, password string) (*User, error) {

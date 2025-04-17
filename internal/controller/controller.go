@@ -12,7 +12,7 @@ type Database interface {
 	GetUser(id int) (*User, error)
 	GetAllUsers() ([]User, error)
 	DeleteUser(id int) error
-	AddUser(user *User) error
+	AddUser(user *User) (int, error)
 	GetUserByEmailAndPassword(email string, password string) (*User, error)
 	ContainsUserByEmail(email string) bool
 }
@@ -40,7 +40,7 @@ func (controller Controller) UsersPost(context *gin.Context) {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
 	}
 	user := services.CreateUser(0, createUserRequest.Email, createUserRequest.Password)
-	err := services.AddUserToDatabase(controller.db, &user)
+	_, err := services.AddUserToDatabase(controller.db, &user)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
@@ -98,11 +98,13 @@ func (controller Controller) AdminsPost(context *gin.Context) {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
 	}
 	user := services.CreateAdminUser(0, createUserRequest.Email, createUserRequest.Password)
-	err := services.AddUserToDatabase(controller.db, &user)
+	id, err := services.AddUserToDatabase(controller.db, &user)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
+	println(id)
+	user.Id = id
 	response := ResponseUser{User: user}
 	context.JSON(201, response)
 
