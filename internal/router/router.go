@@ -13,14 +13,14 @@ func CreateRouter(db *database.Database) *gin.Engine {
 	cont := controller.CreateController(db)
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:8081"}, // frontend address here
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		AllowCredentials: true, // if you need cookies or auth headers
 	}))
 	r.POST("/users", cont.UsersPost)
 	r.POST("/admins", cont.AdminsPost)
 	r.GET("/users", cont.UsersGet)
-	r.GET("/login/", cont.UserGetByLogin)
+	r.POST("/login", cont.UserLogin)
 	r.GET("/users/:id", cont.UserGetById)
 	r.DELETE("/users/:id", cont.UserDeleteById)
 	return r
