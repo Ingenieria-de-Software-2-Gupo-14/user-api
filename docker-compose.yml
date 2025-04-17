@@ -12,3 +12,42 @@ services:
     container_name: api-container
     env_file:
       - .env
+    restart: always
+    volumes:
+      - api_volume:/usr/src/app/
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fullstack
+  postgres:
+    image: postgres:latest
+    container_name: postgres_dockerizing
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - database_dockerizing:/var/lib/postgresql/data
+      - ./commands:/docker-entrypoint-initdb.d/
+    networks:
+      - fullstack
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+
+
+volumes:
+  api_volume:
+  database_dockerizing:
+
+networks:
+  fullstack:
+    driver: bridge

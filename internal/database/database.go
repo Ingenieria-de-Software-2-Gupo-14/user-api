@@ -1,49 +1,101 @@
 package database
 
-type Database[T any] struct {
-	Map map[int]T
+import (
+	"database/sql"
+	"errors"
+	_ "github.com/lib/pq"
+	. "ing-soft-2-tp1/internal/models"
+)
+
+type Database struct {
+	DB *sql.DB
 }
 
-type database[T any] interface {
-	CreateDatabase()
-	GetUser(id int)
-	GetAllUsers()
-	DeleteUser(id int)
-	GetLen()
-	AddUser(User T)
-}
-
-// CreateDatabase creates and returns a database that contains type T
-func CreateDatabase[T any]() Database[T] {
-	return Database[T]{make(map[int]T, 0)}
+// CreateDatabase creates and returns a database
+func CreateDatabase(db *sql.DB) *Database {
+	return &Database{DB: db}
 }
 
 // GetUser returns User corresponding to id and ok bool value, if ok true, the User was in the database, if ok false then the User wasn't in the database
-func (db Database[T]) GetUser(id int) (T, bool) {
-	User, ok := db.Map[id]
-	return User, ok
+func (db Database) GetUser(id int) (*User, error) {
+	row := db.DB.QueryRow("SELECT * FROM users WHERE id = $1", id)
+
+	var user User
+	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("user not found") //TODO Make custom error
+		}
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 // GetAllUsers returns a slices containing all elements of the database, if the database is empty then it returns an empty slice
-func (db Database[T]) GetAllUsers() (Users []T) {
-	Users = make([]T, 0)
-	for i := range db.Map {
-		Users = append(Users, db.Map[i])
+func (db Database) GetAllUsers() ([]User, error) {
+	rows, err := db.DB.Query("SELECT id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description FROM users")
+	if err != nil {
+		return nil, err
 	}
-	return Users
+	defer rows.Close()
+	var users []User
+	for rows.Next() {
+		var user User
+		err := rows.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }
 
 // DeleteUser deletes a User from the database corresponding to the id
-func (db Database[T]) DeleteUser(id int) {
-	delete(db.Map, id)
-}
+func (db Database) DeleteUser(id int) error {
+	_, err := db.DB.Exec("DELETE FROM users WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
 
-// GetLen return the amount of elements in the database
-func (db Database[T]) GetLen() int {
-	return len(db.Map)
+	return nil
 }
 
 // AddUser adds an elements to the database
-func (db Database[T]) AddUser(user T) {
-	db.Map[db.GetLen()] = user
+func (db Database) AddUser(user *User) error {
+	_, err := db.DB.Exec("INSERT INTO users (username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
+
+func (db Database) GetUserByEmailAndPassword(email string, password string) (*User, error) {
+	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
+	var user User
+	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
+	if err != nil || user.Password != password {
+		if err == sql.ErrNoRows || user.Password != password {
+			return nil, errors.New("user not found") //TODO Make custom error
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (db Database) ContainsUserByEmail(email string) bool {
+	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
+	var user User
+	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false
+		} //TODO Make custom error
+	}
+	return true
+}
+
+//id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description

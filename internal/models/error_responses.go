@@ -10,11 +10,13 @@ const (
 	ErrorTitleUserNotFound              = "User not Found"
 	ErrorTitleInternalServerError       = "Internal Server Error"
 	ErrorTitleBadRequest                = "Bad request"
+	ErrorTitleConflict                  = "Conflict: Email already on use"
 	ErrorDescriptionMissingTitle        = "Request sent is missing a title. please provide a title"
 	ErrorDescriptionMissingDescription  = "Request sent is missing a description. please provide a description"
 	ErrorDescriptionUserNotFound        = "User Requested doesn't exits please try another"
 	ErrorDescriptionInternalServerError = "Internal server Error please try again later"
 	ErrorDescriptionBadRequest          = "Something's gone wrong with the request please check again"
+	ErrorDescriptionConflict            = "User already exists"
 )
 
 type ErrorResponse struct {
