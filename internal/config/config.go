@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/jackc/pgx"
+	_ "github.com/jackc/pgx/v5"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose"
 )
@@ -29,8 +29,10 @@ func SetupPostgresConnection() *repositories.Database {
 	dbUser := os.Getenv("POSTGRES_USER")
 	dbName := os.Getenv("POSTGRES_DB")
 	dbHost := os.Getenv("POSTGRES_HOST")
+	dbPort := os.Getenv("POSTGRES_PORT")
+	dbQuery := os.Getenv("POSTGRES_QUERY")
 
-	db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbName))
+	db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s:%s/%s?%s", dbUser, dbPassword, dbHost, dbPort, dbName, dbQuery))
 	if err != nil {
 		log.Fatalf("Error opening database: %v", err)
 	}
@@ -40,6 +42,7 @@ func SetupPostgresConnection() *repositories.Database {
 		log.Fatalf("Error running migrations: %v", err)
 	}
 
+	log.Println("Connected to database", db.Ping())
 	userDatabase := repositories.CreateDatabase(db)
 	return userDatabase
 }
