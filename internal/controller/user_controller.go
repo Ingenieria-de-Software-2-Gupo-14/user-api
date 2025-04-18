@@ -14,7 +14,7 @@ import (
 
 type UserService interface {
 	DeleteUser(ctx context.Context, id int) error
-	CreateUser(ctx context.Context, email string, password string, admin bool) (*User, error)
+	CreateUser(ctx context.Context, request CreateUserRequest, admin bool) (*User, error)
 	GetUserById(ctx context.Context, id int) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetAllUsers(ctx context.Context) (users []User, err error)
@@ -44,7 +44,7 @@ func (c UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 
-	user, err := c.service.CreateUser(context.Request.Context(), request.Email, request.Password, false)
+	user, err := c.service.CreateUser(context.Request.Context(), request, false)
 	if err != nil {
 		log.Println("Error creating user: ", err)
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
@@ -110,7 +110,7 @@ func (controller UserController) AdminsPost(context *gin.Context) {
 		return
 	}
 
-	user, err := controller.service.CreateUser(context.Request.Context(), createUserRequest.Email, createUserRequest.Password, true)
+	user, err := controller.service.CreateUser(context.Request.Context(), createUserRequest, true)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
