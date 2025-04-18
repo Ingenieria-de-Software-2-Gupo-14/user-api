@@ -47,22 +47,7 @@ jobs:
             echo "❌ API failed to start."
             docker compose logs
             exit 1
-
-  test-api:
-    needs: docker-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
       - name: Run tests
         run: go test -v ./...
-
-
-  docker-stop:
-    needs: test-api
-    runs-on:  ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
       - name: Stop Docker
         run: docker compose stop
