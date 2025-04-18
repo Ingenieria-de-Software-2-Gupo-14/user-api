@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"ing-soft-2-tp1/internal/models"
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
 	"ing-soft-2-tp1/internal/utils"
@@ -13,9 +12,10 @@ import (
 
 type UserService interface {
 	DeleteUser(id int) error
-	AddUser(user *User) (int, error)
-	GetUserByEmailAndPassword(email string, password string) (*User, error)
-	ContainsUserByEmail(email string) bool
+	CreateUser(email string, password string, admin bool) (*User, error)
+	GetUserById(id int) (*User, error)
+	GetUserByEmail(email string) (*User, error)
+	GetAllUsers() (users []User, err error)
 	ModifyUser(user *User) error
 }
 

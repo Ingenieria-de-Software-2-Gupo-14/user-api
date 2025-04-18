@@ -30,7 +30,6 @@ func CreateRouter(db *repositories.Database) *gin.Engine {
 	r.POST("/login", cont.UserLogin)
 	r.GET("/users/:id", cont.UserGetById)
 	r.DELETE("/users/:id", cont.UserDeleteById)
-	r.GET("/clear", cont.ClearDb)
 	return r
 }
 
