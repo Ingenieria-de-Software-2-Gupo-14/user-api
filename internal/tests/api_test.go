@@ -43,7 +43,7 @@ func TestAPIUserPostEndopint(t *testing.T) {
 	}
 	var expectedBody = ResponseUser{
 		User: User{
-			Id:           0,
+			Id:           1,
 			Username:     "test@test.com",
 			Name:         "",
 			Surname:      "",
