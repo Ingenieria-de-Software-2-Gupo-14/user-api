@@ -16,7 +16,6 @@ func CreateDatabase(db *sql.DB) *Database {
 	return &Database{DB: db}
 }
 
-// GetUser returns User corresponding to id and ok bool value, if ok true, the User was in the database, if ok false then the User wasn't in the database
 func (db Database) GetUser(id int) (*models.User, error) {
 	row := db.DB.QueryRow("SELECT * FROM users WHERE id = $1", id)
 
@@ -32,7 +31,6 @@ func (db Database) GetUser(id int) (*models.User, error) {
 	return &user, nil
 }
 
-// GetAllUsers returns a slices containing all elements of the database, if the database is empty then it returns an empty slice
 func (db Database) GetAllUsers() ([]models.User, error) {
 	rows, err := db.DB.Query("SELECT id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description FROM users")
 	if err != nil {
@@ -52,7 +50,6 @@ func (db Database) GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
-// DeleteUser deletes a User from the database corresponding to the id
 func (db Database) DeleteUser(id int) error {
 	_, err := db.DB.Exec("DELETE FROM users WHERE id = $1", id)
 	if err != nil {
@@ -62,44 +59,31 @@ func (db Database) DeleteUser(id int) error {
 	return nil
 }
 
-// AddUser adds an elements to the database
 func (db Database) AddUser(user *models.User) (int, error) {
-	_, err := db.DB.Exec("INSERT INTO users (username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
+	r, err := db.DB.Exec("INSERT INTO users (username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {
 		return 0, err
 	}
-	newUser, err2 := db.GetUserByEmailAndPassword(user.Email, user.Password)
-	if err2 != nil {
+
+	if id, err := r.LastInsertId(); err != nil {
 		return 0, err
+	} else {
+		return int(id), nil
 	}
-	user.Id = newUser.Id
-	return newUser.Id, err2
 }
 
-func (db Database) GetUserByEmailAndPassword(email string, password string) (*models.User, error) {
+func (db Database) GetUserByEmail(email string) (*models.User, error) {
 	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
 	var user models.User
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
-	if err != nil || user.Password != password {
-		if err == sql.ErrNoRows || user.Password != password {
+	if err != nil {
+		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
 		}
 		return nil, err
 	}
 
 	return &user, nil
-}
-
-func (db Database) ContainsUserByEmail(email string) bool {
-	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
-	var user models.User
-	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false
-		} //TODO Make custom error
-	}
-	return true
 }
 
 func (db Database) ModifyUser(user *models.User) error {
