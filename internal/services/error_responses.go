@@ -20,6 +20,8 @@ func CreateErrorResponse(statusCode int, instance string) ErrorResponse {
 		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleBadRequest, Status: http.StatusBadRequest, Detail: ErrorDescriptionBadRequest, Instance: instance}
 	case http.StatusConflict:
 		return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleConflict, Status: http.StatusConflict, Detail: ErrorDescriptionConflict, Instance: instance}
+	case http.StatusUnauthorized:
+		return ErrorResponse{Type: ErrorTypeBlank, Title: "error", Status: http.StatusUnauthorized, Detail: "error", Instance: instance}
 	}
 	return ErrorResponse{Type: ErrorTypeBlank, Title: ErrorTitleInternalServerError, Status: http.StatusInternalServerError, Detail: ErrorDescriptionInternalServerError, Instance: instance}
 }

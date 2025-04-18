@@ -1,16 +1,20 @@
 package router
 
 import (
+	"ing-soft-2-tp1/internal/controller"
+	"ing-soft-2-tp1/internal/repositories"
+	"ing-soft-2-tp1/internal/services"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"ing-soft-2-tp1/internal/controller"
-	"ing-soft-2-tp1/internal/database"
 )
 
 // CreateRouter creates and return a Router with its corresponding end points
-func CreateRouter(db *database.Database) *gin.Engine {
+func CreateRouter(db *repositories.Database) *gin.Engine {
 	r := gin.Default()
-	cont := controller.CreateController(db)
+	userService := services.NewUserService(db)
+	cont := controller.CreateController(userService)
+
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:8081"}, // frontend address here
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -19,14 +23,13 @@ func CreateRouter(db *database.Database) *gin.Engine {
 		AllowCredentials: true, // if you need cookies or auth headers
 	}))
 	r.GET("/health", cont.Health)
-	r.POST("/users", cont.UsersPost)
+	r.POST("/users", cont.RegisterUser)
 	r.POST("/admins", cont.AdminsPost)
 	r.GET("/users", cont.UsersGet)
 	r.POST("/users/modify", cont.ModifyUser)
 	r.POST("/login", cont.UserLogin)
 	r.GET("/users/:id", cont.UserGetById)
 	r.DELETE("/users/:id", cont.UserDeleteById)
-	r.GET("/clear", cont.ClearDb)
 	return r
 }
 

@@ -3,12 +3,13 @@ package config
 import (
 	"database/sql"
 	"fmt"
+	"ing-soft-2-tp1/internal/repositories"
+	"log"
+	"os"
+
 	_ "github.com/jackc/pgx"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose"
-	"ing-soft-2-tp1/internal/database"
-	"log"
-	"os"
 )
 
 type Config struct {
@@ -23,7 +24,7 @@ func LoadConfig() Config {
 	return Config{os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("ENVIROMENT")}
 }
 
-func SetupPostgresConnection() *database.Database {
+func SetupPostgresConnection() *repositories.Database {
 	dbPassword := os.Getenv("POSTGRES_PASSWORD")
 	dbUser := os.Getenv("POSTGRES_USER")
 	dbName := os.Getenv("POSTGRES_DB")
@@ -39,6 +40,6 @@ func SetupPostgresConnection() *database.Database {
 		log.Fatalf("Error running migrations: %v", err)
 	}
 
-	userDatabase := database.CreateDatabase(db)
+	userDatabase := repositories.CreateDatabase(db)
 	return userDatabase
 }

@@ -1,118 +1,124 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
+	"ing-soft-2-tp1/internal/utils"
+	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
-type Database interface {
-	GetUser(id int) (*User, error)
-	GetAllUsers() ([]User, error)
+type UserService interface {
 	DeleteUser(id int) error
-	AddUser(user *User) (int, error)
-	GetUserByEmailAndPassword(email string, password string) (*User, error)
-	ContainsUserByEmail(email string) bool
+	CreateUser(email string, password string, admin bool) (*User, error)
+	GetUserById(id int) (*User, error)
+	GetUserByEmail(email string) (*User, error)
+	GetAllUsers() (users []User, err error)
 	ModifyUser(user *User) error
-	ClearDb() error
 }
 
-// Controller struct that contains a database with users
-type Controller struct {
-	db Database
+// UserController struct that contains a database with users
+type UserController struct {
+	service UserService
 }
 
 // CreateController creates a controller
-func CreateController(db Database) (controller Controller) {
-	controller.db = db
-	return controller
+func CreateController(service UserService) UserController {
+	return UserController{service: service}
 }
 
-// UsersPost adds the context's body as user in the database and sends a response to the api context. sends a 201 status code if its succesful and 400 if the title or description are missing
-func (controller Controller) UsersPost(context *gin.Context) {
-	var createUserRequest CreateUserRequest
+func (c UserController) RegisterUser(context *gin.Context) {
+	var request CreateUserRequest
 
-	if err := context.Bind(&createUserRequest); err != nil {
+	if err := context.Bind(&request); err != nil {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
-	if services.ContainsUserByEmail(controller.db, createUserRequest.Email) {
+
+	if _, err := c.service.GetUserByEmail(request.Email); err == nil {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
+		return
 	}
-	user := services.CreateUser(0, createUserRequest.Email, createUserRequest.Password)
-	_, err := services.AddUserToDatabase(controller.db, &user)
+
+	user, err := c.service.CreateUser(request.Email, request.Password, false)
 	if err != nil {
+		log.Println("Error creating user: ", err)
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
-	response := ResponseUser{User: user}
-	context.JSON(201, response)
+
+	context.JSON(http.StatusCreated, ResponseUser{User: *user})
 }
 
 // UsersGet sends all users to the API context, even if there are none
-func (controller Controller) UsersGet(context *gin.Context) {
-	users, err := services.GetAllUsersFromDatabase(controller.db)
+func (c UserController) UsersGet(context *gin.Context) {
+	users, err := c.service.GetAllUsers()
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
 	response := ResponseUsers{Users: users}
-	context.JSON(201, response)
+	context.JSON(http.StatusOK, response)
 }
 
 // UserGetById sends response with the corresponding user with a status code 200, if the user isn't in the database it'll send a status code 404 not found
-func (controller Controller) UserGetById(context *gin.Context) {
+func (c UserController) UserGetById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
-	user, ok := services.GetUserFromDatabase(controller.db, id)
+
+	user, ok := c.service.GetUserById(id)
 	if ok != nil {
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
 		return
 	}
-	response := ResponseUser{User: *user}
-	context.JSON(http.StatusOK, response)
+
+	context.JSON(http.StatusOK, ResponseUser{User: *user})
 }
 
 // UserDeleteById removes user from database corresponding to id receive in context body, responds with code 204 "no content" in case of successful and 404 in case of user not found
-func (controller Controller) UserDeleteById(context *gin.Context) {
+func (controller UserController) UserDeleteById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
-	services.RemoveUserFromDatabase(controller.db, id)
+
+	if err := controller.service.DeleteUser(id); err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
 	context.JSON(http.StatusNoContent, nil)
 }
 
-func (controller Controller) AdminsPost(context *gin.Context) {
+func (controller UserController) AdminsPost(context *gin.Context) {
 	var createUserRequest CreateUserRequest
 
 	if err := context.Bind(&createUserRequest); err != nil {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
-	if services.ContainsUserByEmail(controller.db, createUserRequest.Email) {
+
+	if _, err := controller.service.GetUserByEmail(createUserRequest.Email); err == nil {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
+		return
 	}
-	user := services.CreateAdminUser(0, createUserRequest.Email, createUserRequest.Password)
-	id, err := services.AddUserToDatabase(controller.db, &user)
+
+	user, err := controller.service.CreateUser(createUserRequest.Email, createUserRequest.Password, true)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
-	println(id)
-	user.Id = id
-	response := ResponseUser{User: user}
-	context.JSON(201, response)
 
+	context.JSON(http.StatusCreated, ResponseUser{User: *user})
 }
 
-func (controller Controller) UserLogin(context *gin.Context) {
+func (controller UserController) UserLogin(context *gin.Context) {
 	var loginRequest LoginRequest
 
 	if err := context.ShouldBindJSON(&loginRequest); err != nil {
@@ -120,20 +126,31 @@ func (controller Controller) UserLogin(context *gin.Context) {
 		return
 	}
 
-	if loginRequest.Email == "" || loginRequest.Password == "" {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+	user, err := controller.service.GetUserByEmail(loginRequest.Email)
+	if err != nil {
+		log.Println("Error getting user by email: ", err)
+		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
 		return
 	}
-	user, ok := services.GetUserFromDatabaseByEmailAndPassword(controller.db, loginRequest.Email, loginRequest.Password)
-	if ok != nil {
-		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
+
+	log.Println("User found: ", user)
+	if err := utils.CompareHashPassword(user.Password, loginRequest.Password); err != nil {
+		log.Println("Error comparing password: ", err)
+		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
 		return
 	}
-	response := ResponseUser{User: *user}
-	context.JSON(http.StatusOK, response)
+
+	// Generar token JWT para la sesión
+	token, err := utils.GenerateToken(user.Id)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"token": token})
 }
 
-func (controller Controller) ModifyUser(context *gin.Context) {
+func (c UserController) ModifyUser(context *gin.Context) {
 	var user User
 
 	if err := context.ShouldBindJSON(&user); err != nil {
@@ -141,23 +158,14 @@ func (controller Controller) ModifyUser(context *gin.Context) {
 		return
 	}
 
-	ok := services.ModifyUser(controller.db, &user)
-	if ok != nil {
+	if err := c.service.ModifyUser(&user); err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
-	context.JSON(http.StatusNoContent, nil)
+
+	context.JSON(http.StatusOK, ResponseUser{User: user})
 }
 
-func (controller Controller) Health(context *gin.Context) {
-	context.JSON(http.StatusOK, nil)
-}
-
-func (controller Controller) ClearDb(context *gin.Context) {
-	err := services.ClearDb(controller.db)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, nil)
-		return
-	}
+func (controller UserController) Health(context *gin.Context) {
 	context.JSON(http.StatusOK, nil)
 }
