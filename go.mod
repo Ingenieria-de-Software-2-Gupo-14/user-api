@@ -9,6 +9,7 @@ require (
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/lib/pq v1.10.9
+	github.com/pressly/goose v2.7.0+incompatible
 	golang.org/x/crypto v0.36.0
 )
 
