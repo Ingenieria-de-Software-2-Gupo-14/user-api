@@ -21,17 +21,14 @@ jobs:
 
       - name: Install dependencies
         run: go mod tidy
-  docker-build:
-    needs: code-check
-    runs-on:  ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: build compose
         run: docker compose up --build -d
+
       - name: Wait for API to become healthy
         run: |
             echo "Checking API health..."
@@ -47,7 +44,9 @@ jobs:
             echo "❌ API failed to start."
             docker compose logs
             exit 1
+
       - name: Run tests
         run: go test -v ./...
+
       - name: Stop Docker
         run: docker compose stop
