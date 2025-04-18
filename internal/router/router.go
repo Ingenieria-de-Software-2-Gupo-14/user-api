@@ -1,14 +1,15 @@
 package router
 
 import (
+	"ing-soft-2-tp1/internal/controller"
+	"ing-soft-2-tp1/internal/repositories"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"ing-soft-2-tp1/internal/controller"
-	"ing-soft-2-tp1/internal/database"
 )
 
 // CreateRouter creates and return a Router with its corresponding end points
-func CreateRouter(db *database.Database) *gin.Engine {
+func CreateRouter(db *repositories.Database) *gin.Engine {
 	r := gin.Default()
 	cont := controller.CreateController(db)
 	r.Use(cors.New(cors.Config{

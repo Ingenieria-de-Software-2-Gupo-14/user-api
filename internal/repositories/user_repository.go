@@ -1,10 +1,10 @@
-package database
+package repositories
 
 import (
 	"database/sql"
-	"errors"
+	"ing-soft-2-tp1/internal/models"
+
 	_ "github.com/lib/pq"
-	. "ing-soft-2-tp1/internal/models"
 )
 
 type Database struct {
@@ -17,14 +17,14 @@ func CreateDatabase(db *sql.DB) *Database {
 }
 
 // GetUser returns User corresponding to id and ok bool value, if ok true, the User was in the database, if ok false then the User wasn't in the database
-func (db Database) GetUser(id int) (*User, error) {
+func (db Database) GetUser(id int) (*models.User, error) {
 	row := db.DB.QueryRow("SELECT * FROM users WHERE id = $1", id)
 
-	var user User
+	var user models.User
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.New("user not found") //TODO Make custom error
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -33,15 +33,15 @@ func (db Database) GetUser(id int) (*User, error) {
 }
 
 // GetAllUsers returns a slices containing all elements of the database, if the database is empty then it returns an empty slice
-func (db Database) GetAllUsers() ([]User, error) {
+func (db Database) GetAllUsers() ([]models.User, error) {
 	rows, err := db.DB.Query("SELECT id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description FROM users")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var users []User
+	var users []models.User
 	for rows.Next() {
-		var user User
+		var user models.User
 		err := rows.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 		if err != nil {
 			return nil, err
@@ -63,7 +63,7 @@ func (db Database) DeleteUser(id int) error {
 }
 
 // AddUser adds an elements to the database
-func (db Database) AddUser(user *User) (int, error) {
+func (db Database) AddUser(user *models.User) (int, error) {
 	_, err := db.DB.Exec("INSERT INTO users (username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {
 		return 0, err
@@ -76,13 +76,13 @@ func (db Database) AddUser(user *User) (int, error) {
 	return newUser.Id, err2
 }
 
-func (db Database) GetUserByEmailAndPassword(email string, password string) (*User, error) {
+func (db Database) GetUserByEmailAndPassword(email string, password string) (*models.User, error) {
 	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
-	var user User
+	var user models.User
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil || user.Password != password {
 		if err == sql.ErrNoRows || user.Password != password {
-			return nil, errors.New("user not found") //TODO Make custom error
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (db Database) GetUserByEmailAndPassword(email string, password string) (*Us
 
 func (db Database) ContainsUserByEmail(email string) bool {
 	row := db.DB.QueryRow("SELECT * FROM users WHERE email ILIKE $1", email)
-	var user User
+	var user models.User
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -102,7 +102,7 @@ func (db Database) ContainsUserByEmail(email string) bool {
 	return true
 }
 
-func (db Database) ModifyUser(user *User) error {
+func (db Database) ModifyUser(user *models.User) error {
 	_, err := db.DB.Exec("UPDATE users SET username = $1, name= $2, surname=$3,  password=$4, email=$5, location=$6, admin=$7, blocked_user=$8, profile_photo=$9,description=$10 WHERE id = $11", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description, &user.Id)
 	return err
 }
