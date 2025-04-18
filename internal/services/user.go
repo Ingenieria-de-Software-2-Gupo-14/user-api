@@ -12,6 +12,7 @@ type Database interface {
 	GetUserByEmailAndPassword(email string, password string) (*User, error)
 	ContainsUserByEmail(email string) bool
 	ModifyUser(user *User) error
+	ClearDb() error
 }
 
 // CreateUser creates and returns a User Struct
@@ -61,4 +62,8 @@ func ContainsUserByEmail(db Database, email string) bool {
 func ModifyUser(db Database, user *User) error {
 	return db.ModifyUser(user)
 
+}
+
+func ClearDb(db Database) error {
+	return db.ClearDb()
 }

@@ -16,6 +16,7 @@ type Database interface {
 	GetUserByEmailAndPassword(email string, password string) (*User, error)
 	ContainsUserByEmail(email string) bool
 	ModifyUser(user *User) error
+	ClearDb() error
 }
 
 // Controller struct that contains a database with users
@@ -149,5 +150,14 @@ func (controller Controller) ModifyUser(context *gin.Context) {
 }
 
 func (controller Controller) Health(context *gin.Context) {
+	context.JSON(http.StatusOK, nil)
+}
+
+func (controller Controller) ClearDb(context *gin.Context) {
+	err := services.ClearDb(controller.db)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, nil)
+		return
+	}
 	context.JSON(http.StatusOK, nil)
 }
