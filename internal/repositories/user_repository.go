@@ -60,16 +60,18 @@ func (db Database) DeleteUser(id int) error {
 }
 
 func (db Database) AddUser(user *models.User) (int, error) {
-	r, err := db.DB.Exec("INSERT INTO users (username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
+	_, err := db.DB.Exec("INSERT INTO users (username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {
 		return 0, err
 	}
 
-	if id, err := r.LastInsertId(); err != nil {
+	var id int
+	err = db.DB.QueryRow("SELECT id FROM users WHERE email = $1", user.Email).Scan(&id)
+	if err != nil {
 		return 0, err
-	} else {
-		return int(id), nil
 	}
+
+	return id, nil
 }
 
 func (db Database) GetUserByEmail(email string) (*models.User, error) {

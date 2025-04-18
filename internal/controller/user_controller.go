@@ -4,6 +4,7 @@ import (
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
 	"ing-soft-2-tp1/internal/utils"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -39,10 +40,12 @@ func (c UserController) RegisterUser(context *gin.Context) {
 
 	if _, err := c.service.GetUserByEmail(request.Email); err == nil {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
+		return
 	}
 
 	user, err := c.service.CreateUser(request.Email, request.Password, false)
 	if err != nil {
+		log.Println("Error creating user: ", err)
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
@@ -125,11 +128,14 @@ func (controller UserController) UserLogin(context *gin.Context) {
 
 	user, err := controller.service.GetUserByEmail(loginRequest.Email)
 	if err != nil {
+		log.Println("Error getting user by email: ", err)
 		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
 		return
 	}
 
-	if err := utils.CompareHashPassword(loginRequest.Password, user.Password); err != nil {
+	log.Println("User found: ", user)
+	if err := utils.CompareHashPassword(user.Password, loginRequest.Password); err != nil {
+		log.Println("Error comparing password: ", err)
 		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
 		return
 	}

@@ -2,11 +2,11 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
+    username VARCHAR(50) NOT NULL, -- TODO: check if we need username and if it should be unique
     name VARCHAR(50) NOT NULL,
     surname VARCHAR(50) NOT NULL,
     password VARCHAR(50) NOT NULL,
-    email VARCHAR(50) NOT NULL,
+    email VARCHAR(50) NOT NULL, -- TODO: make it larger and unique
     location VARCHAR(50) NOT NULL,
     admin BOOLEAN NOT NULL,
     blocked_user BOOLEAN NOT NULL,
