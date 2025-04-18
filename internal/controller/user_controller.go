@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
 	"ing-soft-2-tp1/internal/utils"
@@ -12,12 +13,12 @@ import (
 )
 
 type UserService interface {
-	DeleteUser(id int) error
-	CreateUser(email string, password string, admin bool) (*User, error)
-	GetUserById(id int) (*User, error)
-	GetUserByEmail(email string) (*User, error)
-	GetAllUsers() (users []User, err error)
-	ModifyUser(user *User) error
+	DeleteUser(ctx context.Context, id int) error
+	CreateUser(ctx context.Context, email string, password string, admin bool) (*User, error)
+	GetUserById(ctx context.Context, id int) (*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	GetAllUsers(ctx context.Context) (users []User, err error)
+	ModifyUser(ctx context.Context, user *User) error
 }
 
 // UserController struct that contains a database with users
@@ -38,12 +39,12 @@ func (c UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 
-	if _, err := c.service.GetUserByEmail(request.Email); err == nil {
+	if _, err := c.service.GetUserByEmail(context.Request.Context(), request.Email); err == nil {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
 		return
 	}
 
-	user, err := c.service.CreateUser(request.Email, request.Password, false)
+	user, err := c.service.CreateUser(context.Request.Context(), request.Email, request.Password, false)
 	if err != nil {
 		log.Println("Error creating user: ", err)
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
@@ -55,7 +56,7 @@ func (c UserController) RegisterUser(context *gin.Context) {
 
 // UsersGet sends all users to the API context, even if there are none
 func (c UserController) UsersGet(context *gin.Context) {
-	users, err := c.service.GetAllUsers()
+	users, err := c.service.GetAllUsers(context.Request.Context())
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
@@ -72,7 +73,7 @@ func (c UserController) UserGetById(context *gin.Context) {
 		return
 	}
 
-	user, ok := c.service.GetUserById(id)
+	user, ok := c.service.GetUserById(context.Request.Context(), id)
 	if ok != nil {
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
 		return
@@ -89,7 +90,7 @@ func (controller UserController) UserDeleteById(context *gin.Context) {
 		return
 	}
 
-	if err := controller.service.DeleteUser(id); err != nil {
+	if err := controller.service.DeleteUser(context.Request.Context(), id); err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
@@ -104,12 +105,12 @@ func (controller UserController) AdminsPost(context *gin.Context) {
 		return
 	}
 
-	if _, err := controller.service.GetUserByEmail(createUserRequest.Email); err == nil {
+	if _, err := controller.service.GetUserByEmail(context.Request.Context(), createUserRequest.Email); err == nil {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
 		return
 	}
 
-	user, err := controller.service.CreateUser(createUserRequest.Email, createUserRequest.Password, true)
+	user, err := controller.service.CreateUser(context.Request.Context(), createUserRequest.Email, createUserRequest.Password, true)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
@@ -126,7 +127,7 @@ func (controller UserController) UserLogin(context *gin.Context) {
 		return
 	}
 
-	user, err := controller.service.GetUserByEmail(loginRequest.Email)
+	user, err := controller.service.GetUserByEmail(context.Request.Context(), loginRequest.Email)
 	if err != nil {
 		log.Println("Error getting user by email: ", err)
 		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
@@ -147,6 +148,10 @@ func (controller UserController) UserLogin(context *gin.Context) {
 		return
 	}
 
+	//Set cookie
+	context.SetSameSite(http.SameSiteLaxMode)
+	context.SetCookie("Authorization", token, 3600, "/", "", false, true)
+
 	context.JSON(http.StatusOK, gin.H{"token": token})
 }
 
@@ -158,7 +163,7 @@ func (c UserController) ModifyUser(context *gin.Context) {
 		return
 	}
 
-	if err := c.service.ModifyUser(&user); err != nil {
+	if err := c.service.ModifyUser(context.Request.Context(), &user); err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}

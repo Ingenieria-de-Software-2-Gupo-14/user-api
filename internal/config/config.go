@@ -1,15 +1,13 @@
 package config
 
 import (
-	"database/sql"
-	"fmt"
+	"context"
 	"ing-soft-2-tp1/internal/repositories"
 	"log"
 	"os"
 
-	_ "github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
 	_ "github.com/lib/pq"
-	"github.com/pressly/goose"
 )
 
 type Config struct {
@@ -25,21 +23,19 @@ func LoadConfig() Config {
 }
 
 func SetupPostgresConnection() *repositories.Database {
-	dbPassword := os.Getenv("POSTGRES_PASSWORD")
-	dbUser := os.Getenv("POSTGRES_USER")
-	dbName := os.Getenv("POSTGRES_DB")
-	dbHost := os.Getenv("POSTGRES_HOST")
-
-	db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbName))
+	db, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL")) //fmt.Sprintf("postgres://%s:%s@%s:5432/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbName))
 	if err != nil {
 		log.Fatalf("Error opening database: %v", err)
 	}
 
-	// Run migrations
-	if err := goose.Up(db, "internal/migrations"); err != nil {
-		log.Fatalf("Error running migrations: %v", err)
-	}
+	/*
+		// Run migrations
+		if err := goose.Up(db, "internal/migrations"); err != nil {
+			log.Fatalf("Error running migrations: %v", err)
+		}
+	*/
 
-	userDatabase := repositories.CreateDatabase(db)
+	log.Println("Connected to database", db.Ping(context.Background()))
+	userDatabase := repositories.CreateDatabase(nil)
 	return userDatabase
 }
