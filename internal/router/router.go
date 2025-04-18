@@ -18,7 +18,8 @@ func CreateRouter(db *repositories.Database) *gin.Engine {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:8081"}, // frontend address here
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true, // if you need cookies or auth headers
 	}))
 	r.GET("/health", cont.Health)
@@ -29,6 +30,7 @@ func CreateRouter(db *repositories.Database) *gin.Engine {
 	r.POST("/login", cont.UserLogin)
 	r.GET("/users/:id", cont.UserGetById)
 	r.DELETE("/users/:id", cont.UserDeleteById)
+	r.GET("/clear", cont.ClearDb)
 	return r
 }
 

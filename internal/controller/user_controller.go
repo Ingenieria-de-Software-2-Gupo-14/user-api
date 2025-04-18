@@ -13,11 +13,10 @@ import (
 
 type UserService interface {
 	DeleteUser(id int) error
-	CreateUser(email string, password string, admin bool) (*User, error)
-	GetUserById(id int) (*models.User, error)
-	GetUserByEmail(email string) (*models.User, error)
-	GetAllUsers() (users []models.User, err error)
-	ModifyUser(user *models.User) error
+	AddUser(user *User) (int, error)
+	GetUserByEmailAndPassword(email string, password string) (*User, error)
+	ContainsUserByEmail(email string) bool
+	ModifyUser(user *User) error
 }
 
 // UserController struct that contains a database with users

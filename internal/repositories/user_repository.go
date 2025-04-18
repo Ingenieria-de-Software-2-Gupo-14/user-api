@@ -91,4 +91,9 @@ func (db Database) ModifyUser(user *models.User) error {
 	return err
 }
 
+func (db Database) ClearDb() error {
+	_, err := db.DB.Exec("TRUNCATE TABLE users RESTART IDENTITY CASCADE;")
+	return err
+}
+
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description
