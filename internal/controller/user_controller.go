@@ -19,6 +19,7 @@ type UserService interface {
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetAllUsers(ctx context.Context) (users []User, err error)
 	ModifyUser(ctx context.Context, user *User) error
+	BlockUser(ctx context.Context, id int) error
 }
 
 // UserController struct that contains a database with users
@@ -141,6 +142,11 @@ func (controller UserController) UserLogin(context *gin.Context) {
 		return
 	}
 
+	if user.BlockedUser == true {
+		context.JSON(http.StatusForbidden, services.CreateErrorResponse(http.StatusForbidden, context.Request.URL.Path))
+		return
+	}
+
 	// Generar token JWT para la sesión
 	token, err := utils.GenerateToken(user.Id)
 	if err != nil {
@@ -172,5 +178,18 @@ func (c UserController) ModifyUser(context *gin.Context) {
 }
 
 func (controller UserController) Health(context *gin.Context) {
+	context.JSON(http.StatusOK, nil)
+}
+
+func (c UserController) BlockUserById(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	if c.service.BlockUser(context, id) != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
 	context.JSON(http.StatusOK, nil)
 }

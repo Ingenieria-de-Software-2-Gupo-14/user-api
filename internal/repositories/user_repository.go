@@ -94,4 +94,9 @@ func (db Database) ModifyUser(ctx context.Context, user *models.User) error {
 	return err
 }
 
+func (db Database) BlockUser(ctx context.Context, id int) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE users SET blocked_user = true where id = $1", id)
+	return err
+}
+
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description
