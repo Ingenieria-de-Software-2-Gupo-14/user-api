@@ -94,6 +94,11 @@ func (db Database) ModifyUser(ctx context.Context, user *models.User) error {
 	return err
 }
 
+func (db Database) ModifyLocation(ctx context.Context, id int, newLocation string) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE users SET location = $1 where id = $2", newLocation, id)
+	return err
+}
+
 func (db Database) BlockUser(ctx context.Context, id int) error {
 	_, err := db.DB.ExecContext(ctx, "UPDATE users SET blocked_user = true where id = $1", id)
 	return err

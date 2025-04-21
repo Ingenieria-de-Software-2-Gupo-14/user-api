@@ -14,6 +14,7 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	ModifyUser(ctx context.Context, user *models.User) error
 	BlockUser(ctx context.Context, id int) error
+	ModifyLocation(ctx context.Context, id int, newLocation string) error
 }
 
 type userService struct {
@@ -71,6 +72,10 @@ func (s *userService) ModifyUser(ctx context.Context, user *models.User) error {
 	user.Password = hashPassword
 	return s.db.ModifyUser(ctx, user)
 
+}
+
+func (s *userService) ModifyLocation(ctx context.Context, id int, newLocation string) error {
+	return s.db.ModifyLocation(ctx, id, newLocation)
 }
 
 func (s *userService) BlockUser(ctx context.Context, id int) error {
