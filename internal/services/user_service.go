@@ -64,6 +64,11 @@ func (s *userService) GetAllUsers(ctx context.Context) (users []models.User, err
 }
 
 func (s *userService) ModifyUser(ctx context.Context, user *models.User) error {
+	hashPassword, err := utils.HashPassword(user.Password)
+	if err != nil {
+		return err
+	}
+	user.Password = hashPassword
 	return s.db.ModifyUser(ctx, user)
 
 }
