@@ -21,7 +21,7 @@ type UserService interface {
 	ModifyUser(ctx context.Context, user *User) error
 	BlockUser(ctx context.Context, id int) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
-	UnblockUser(ctx *gin.Context, id int) error
+	UnblockUser(ctx context.Context, id int) error
 }
 
 // UserController struct that contains a database with users
