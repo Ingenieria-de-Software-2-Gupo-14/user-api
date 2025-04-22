@@ -21,6 +21,7 @@ type UserService interface {
 	ModifyUser(ctx context.Context, user *User) error
 	BlockUser(ctx context.Context, id int) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
+	ModifyPassword(ctx *gin.Context, id int, password string) error
 }
 
 // UserController struct that contains a database with users
@@ -211,4 +212,22 @@ func (c UserController) BlockUserById(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, nil)
+}
+
+func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
+	var id, err = strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, ctx.Request.URL.Path))
+		return
+	}
+	var user User
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		ctx.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, ctx.Request.URL.Path))
+		return
+	}
+	if c.service.ModifyPassword(ctx, id, user.Password) != nil {
+		ctx.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, ctx.Request.URL.Path))
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
 }
