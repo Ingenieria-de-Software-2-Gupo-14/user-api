@@ -13,6 +13,7 @@ type UserRepository interface {
 	AddUser(ctx context.Context, user *models.User) (int, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	ModifyUser(ctx context.Context, user *models.User) error
+	BlockUser(ctx context.Context, id int) error
 }
 
 type userService struct {
@@ -64,5 +65,9 @@ func (s *userService) GetAllUsers(ctx context.Context) (users []models.User, err
 
 func (s *userService) ModifyUser(ctx context.Context, user *models.User) error {
 	return s.db.ModifyUser(ctx, user)
+}
+
+func (s *userService) BlockUser(ctx context.Context, id int) error {
+	return s.db.BlockUser(ctx, id)
 
 }
