@@ -90,7 +90,7 @@ func (db Database) GetUserByEmail(ctx context.Context, email string) (*models.Us
 }
 
 func (db Database) ModifyUser(ctx context.Context, user *models.User) error {
-	_, err := db.DB.ExecContext(ctx, "UPDATE users SET username = $1, name= $2, surname=$3,  password=$4, email=$5, location=$6, admin=$7, blocked_user=$8, profile_photo=$9,description=$10 WHERE id = $11", &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description, &user.Id)
+	_, err := db.DB.ExecContext(ctx, "UPDATE users SET username = $1, name= $2, surname=$3,  location=$4, profile_photo=$5,description=$6 WHERE id = $7", &user.Username, &user.Name, &user.Surname, &user.Location, &user.ProfilePhoto, &user.Description, &user.Id)
 	return err
 }
 
