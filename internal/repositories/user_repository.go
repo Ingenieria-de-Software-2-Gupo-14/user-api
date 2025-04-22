@@ -104,4 +104,9 @@ func (db Database) BlockUser(ctx context.Context, id int) error {
 	return err
 }
 
+func (db Database) UnblockUser(ctx context.Context, id int) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE users SET blocked_user = false where id = $1", id)
+	return err
+}
+
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description

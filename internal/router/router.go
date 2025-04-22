@@ -32,6 +32,7 @@ func CreateRouter(db *repositories.Database) *gin.Engine {
 	r.DELETE("/users/:id", cont.UserDeleteById)
 	r.PUT("/users/block/:id", cont.BlockUserById)
 	r.PUT("/users/:id/location", cont.ModifyUserLocation)
+	r.PUT("/admins/unblock/:id", cont.UnblockUserById)
 	return r
 }
 

@@ -15,6 +15,7 @@ type UserRepository interface {
 	ModifyUser(ctx context.Context, user *models.User) error
 	BlockUser(ctx context.Context, id int) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
+	UnblockUser(ctx context.Context, id int) error
 }
 
 type userService struct {
@@ -75,4 +76,8 @@ func (s *userService) ModifyLocation(ctx context.Context, id int, newLocation st
 func (s *userService) BlockUser(ctx context.Context, id int) error {
 	return s.db.BlockUser(ctx, id)
 
+}
+
+func (s *userService) UnblockUser(ctx context.Context, id int) error {
+	return s.db.UnblockUser(ctx, id)
 }

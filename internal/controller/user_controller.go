@@ -21,6 +21,7 @@ type UserService interface {
 	ModifyUser(ctx context.Context, user *User) error
 	BlockUser(ctx context.Context, id int) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
+	UnblockUser(ctx *gin.Context, id int) error
 }
 
 // UserController struct that contains a database with users
@@ -211,4 +212,17 @@ func (c UserController) BlockUserById(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, nil)
+}
+
+func (c UserController) UnblockUserById(ctx *gin.Context) {
+	var id, err = strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, ctx.Request.URL.Path))
+		return
+	}
+	if c.service.UnblockUser(ctx, id) != nil {
+		ctx.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, ctx.Request.URL.Path))
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
 }
