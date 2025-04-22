@@ -20,6 +20,7 @@ type UserService interface {
 	GetAllUsers(ctx context.Context) (users []User, err error)
 	ModifyUser(ctx context.Context, user *User) error
 	BlockUser(ctx context.Context, id int) error
+	ModifyLocation(ctx context.Context, id int, newLocation string) error
 }
 
 // UserController struct that contains a database with users
@@ -30,6 +31,10 @@ type UserController struct {
 // CreateController creates a controller
 func CreateController(service UserService) UserController {
 	return UserController{service: service}
+}
+
+func (controller UserController) Health(context *gin.Context) {
+	context.JSON(http.StatusOK, nil)
 }
 
 func (c UserController) RegisterUser(context *gin.Context) {
@@ -177,7 +182,21 @@ func (c UserController) ModifyUser(context *gin.Context) {
 	context.JSON(http.StatusOK, ResponseUser{User: user})
 }
 
-func (controller UserController) Health(context *gin.Context) {
+func (c UserController) ModifyUserLocation(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	var user User
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	if err := context.ShouldBindJSON(&user); err != nil {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+	if c.service.ModifyLocation(context, id, user.Location) != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
 	context.JSON(http.StatusOK, nil)
 }
 
