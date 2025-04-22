@@ -2,7 +2,6 @@ package config
 
 import (
 	"database/sql"
-	"fmt"
 	"ing-soft-2-tp1/internal/repositories"
 	"log"
 	"os"
@@ -25,14 +24,14 @@ func LoadConfig() Config {
 }
 
 func SetupPostgresConnection() *repositories.Database {
-	dbPassword := os.Getenv("POSTGRES_PASSWORD")
+	/*dbPassword := os.Getenv("POSTGRES_PASSWORD")
 	dbUser := os.Getenv("POSTGRES_USER")
 	dbName := os.Getenv("POSTGRES_DB")
 	dbHost := os.Getenv("POSTGRES_HOST")
 	dbPort := os.Getenv("POSTGRES_PORT")
-	dbQuery := os.Getenv("POSTGRES_QUERY")
+	dbQuery := os.Getenv("POSTGRES_QUERY")*/
 
-	db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s:%s/%s?%s", dbUser, dbPassword, dbHost, dbPort, dbName, dbQuery))
+	db, err := sql.Open("postgres", "postgresql://ing_soft_2_free_user:U5OiNn8V7Gd2oZTdiz4Of2n5vhHWTdPc@dpg-d019chvgi27c73fqn2i0-a.virginia-postgres.render.com/ing_soft_2_free") //fmt.Sprintf("postgres://%s:%s@%s:%s/%s?%s", dbUser, dbPassword, dbHost, dbPort, dbName, dbQuery))
 	if err != nil {
 		log.Fatalf("Error opening database: %v", err)
 	}

@@ -5,7 +5,6 @@ import (
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
 	"ing-soft-2-tp1/internal/utils"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -33,20 +32,19 @@ func CreateController(service UserService) UserController {
 
 func (c UserController) RegisterUser(context *gin.Context) {
 	var request CreateUserRequest
-
+	ctx := context.Request.Context()
 	if err := context.Bind(&request); err != nil {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
 
-	if _, err := c.service.GetUserByEmail(context.Request.Context(), request.Email); err == nil {
+	if _, err := c.service.GetUserByEmail(ctx, request.Email); err == nil {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
 		return
 	}
 
-	user, err := c.service.CreateUser(context.Request.Context(), request.Email, request.Password, false)
+	user, err := c.service.CreateUser(ctx, request.Email, request.Password, false)
 	if err != nil {
-		log.Println("Error creating user: ", err)
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
@@ -97,7 +95,7 @@ func (controller UserController) UserDeleteById(context *gin.Context) {
 	context.JSON(http.StatusNoContent, nil)
 }
 
-func (controller UserController) AdminsPost(context *gin.Context) {
+func (controller UserController) RegisterAdmin(context *gin.Context) {
 	var createUserRequest CreateUserRequest
 
 	if err := context.Bind(&createUserRequest); err != nil {
@@ -121,7 +119,6 @@ func (controller UserController) AdminsPost(context *gin.Context) {
 
 func (controller UserController) UserLogin(context *gin.Context) {
 	var loginRequest LoginRequest
-
 	if err := context.ShouldBindJSON(&loginRequest); err != nil {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
@@ -129,20 +126,16 @@ func (controller UserController) UserLogin(context *gin.Context) {
 
 	user, err := controller.service.GetUserByEmail(context.Request.Context(), loginRequest.Email)
 	if err != nil {
-		log.Println("Error getting user by email: ", err)
 		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
 		return
 	}
 
-	log.Println("User found: ", user)
 	if err := utils.CompareHashPassword(user.Password, loginRequest.Password); err != nil {
-		log.Println("Error comparing password: ", err)
 		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
 		return
 	}
 
-	// Generar token JWT para la sesión
-	token, err := utils.GenerateToken(user.Id)
+	token, err := GenerateToken(user.Id, user.Admin)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
@@ -151,7 +144,6 @@ func (controller UserController) UserLogin(context *gin.Context) {
 	//Set cookie
 	context.SetSameSite(http.SameSiteLaxMode)
 	context.SetCookie("Authorization", token, 3600, "/", "", false, true)
-
 	context.JSON(http.StatusOK, gin.H{"token": token})
 }
 
@@ -173,4 +165,8 @@ func (c UserController) ModifyUser(context *gin.Context) {
 
 func (controller UserController) Health(context *gin.Context) {
 	context.JSON(http.StatusOK, nil)
+}
+
+func (ct UserController) ValidateToken(c *gin.Context) {
+	c.JSON(http.StatusOK, c.Request.Context().Value("jwt_info"))
 }
