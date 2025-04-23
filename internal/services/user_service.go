@@ -13,6 +13,8 @@ type UserRepository interface {
 	AddUser(ctx context.Context, user *models.User) (int, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	ModifyUser(ctx context.Context, user *models.User) error
+	BlockUser(ctx context.Context, id int) error
+	ModifyLocation(ctx context.Context, id int, newLocation string) error
 }
 
 type userService struct {
@@ -27,15 +29,17 @@ func (s *userService) DeleteUser(ctx context.Context, id int) error {
 	return s.db.DeleteUser(ctx, id)
 }
 
-func (s *userService) CreateUser(ctx context.Context, email string, password string, admin bool) (*models.User, error) {
-	hashPassword, err := utils.HashPassword(password)
+func (s *userService) CreateUser(ctx context.Context, request models.CreateUserRequest, admin bool) (*models.User, error) {
+	hashPassword, err := utils.HashPassword(request.Password)
 	if err != nil {
 		return nil, err
 	}
 
 	user := &models.User{
-		Email:    email,
+		Email:    request.Email,
 		Password: hashPassword,
+		Name:     request.Name,
+		Surname:  request.Surname,
 		Admin:    admin,
 	}
 
@@ -62,5 +66,13 @@ func (s *userService) GetAllUsers(ctx context.Context) (users []models.User, err
 
 func (s *userService) ModifyUser(ctx context.Context, user *models.User) error {
 	return s.db.ModifyUser(ctx, user)
+}
+
+func (s *userService) ModifyLocation(ctx context.Context, id int, newLocation string) error {
+	return s.db.ModifyLocation(ctx, id, newLocation)
+}
+
+func (s *userService) BlockUser(ctx context.Context, id int) error {
+	return s.db.BlockUser(ctx, id)
 
 }

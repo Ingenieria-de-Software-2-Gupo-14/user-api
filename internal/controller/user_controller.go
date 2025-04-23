@@ -13,11 +13,13 @@ import (
 
 type UserService interface {
 	DeleteUser(ctx context.Context, id int) error
-	CreateUser(ctx context.Context, email string, password string, admin bool) (*User, error)
+	CreateUser(ctx context.Context, request CreateUserRequest, admin bool) (*User, error)
 	GetUserById(ctx context.Context, id int) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetAllUsers(ctx context.Context) (users []User, err error)
 	ModifyUser(ctx context.Context, user *User) error
+	BlockUser(ctx context.Context, id int) error
+	ModifyLocation(ctx context.Context, id int, newLocation string) error
 }
 
 // UserController struct that contains a database with users
@@ -28,6 +30,10 @@ type UserController struct {
 // CreateController creates a controller
 func CreateController(service UserService) UserController {
 	return UserController{service: service}
+}
+
+func (controller UserController) Health(context *gin.Context) {
+	context.JSON(http.StatusOK, nil)
 }
 
 func (c UserController) RegisterUser(context *gin.Context) {
@@ -43,7 +49,7 @@ func (c UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 
-	user, err := c.service.CreateUser(ctx, request.Email, request.Password, false)
+	user, err := c.service.CreateUser(context.Request.Context(), request, false)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
@@ -108,7 +114,7 @@ func (controller UserController) RegisterAdmin(context *gin.Context) {
 		return
 	}
 
-	user, err := controller.service.CreateUser(context.Request.Context(), createUserRequest.Email, createUserRequest.Password, true)
+	user, err := controller.service.CreateUser(context.Request.Context(), createUserRequest, true)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
@@ -132,6 +138,12 @@ func (controller UserController) UserLogin(context *gin.Context) {
 
 	if err := utils.CompareHashPassword(user.Password, loginRequest.Password); err != nil {
 		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
+		return
+	}
+
+
+	if user.BlockedUser == true {
+		context.JSON(http.StatusForbidden, services.CreateErrorResponse(http.StatusForbidden, context.Request.URL.Path))
 		return
 	}
 
@@ -163,7 +175,34 @@ func (c UserController) ModifyUser(context *gin.Context) {
 	context.JSON(http.StatusOK, ResponseUser{User: user})
 }
 
-func (controller UserController) Health(context *gin.Context) {
+func (c UserController) ModifyUserLocation(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	var user User
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	if err := context.ShouldBindJSON(&user); err != nil {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+	if c.service.ModifyLocation(context, id, user.Location) != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	context.JSON(http.StatusOK, nil)
+}
+
+func (c UserController) BlockUserById(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	if c.service.BlockUser(context, id) != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
 	context.JSON(http.StatusOK, nil)
 }
 
