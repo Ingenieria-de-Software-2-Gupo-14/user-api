@@ -13,7 +13,7 @@ func main() {
 	userDatabase := apiconfig.SetupPostgresConnection()
 	router.SetEnviroment(config.Environment)
 	r := router.CreateRouter(userDatabase)
-	if err := r.Run(config.Host + ":" + config.Port); err != nil {
+	if err := r.Run(":" + config.Port); err != nil {
 		panic(err.Error())
 	}
 }
