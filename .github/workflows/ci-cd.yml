@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
     - '**'
+env:
+  DATABASE_URL: "postgres://postgres:postgres123@postgres:5432/postgres?sslmode=disable"
 jobs:
   code-check:
     runs-on:  ubuntu-latest
