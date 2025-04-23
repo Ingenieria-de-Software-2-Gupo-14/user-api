@@ -142,7 +142,6 @@ func (controller UserController) UserLogin(context *gin.Context) {
 		return
 	}
 
-
 	if user.BlockedUser == true {
 		context.JSON(http.StatusForbidden, services.CreateErrorResponse(http.StatusForbidden, context.Request.URL.Path))
 		return
@@ -224,7 +223,8 @@ func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, nil)
 
- 
+}
+
 func (ct UserController) ValidateToken(c *gin.Context) {
 	c.JSON(http.StatusOK, c.Request.Context().Value("jwt_info"))
 }
