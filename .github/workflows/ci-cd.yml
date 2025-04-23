@@ -27,6 +27,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: update LOCAL_TESTING in .env
+        run: |
+          grep -q '^LOCAL_TESTING=' .env && \
+            sed -i 's|^LOCAL_TESTING=.*|LOCAL_TESTING=true|' .env || \
+            echo 'LOCAL_TESTING=true' >> .env
+
       - name: build compose
         run: docker compose up --build -d
 
