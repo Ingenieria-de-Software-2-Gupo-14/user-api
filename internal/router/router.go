@@ -17,7 +17,7 @@ func CreateRouter(db *repositories.Database) *gin.Engine {
 	cont := controller.CreateController(userService)
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:8081"}, // frontend address here
+		AllowOrigins:     []string{"*"}, // frontend address here
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
