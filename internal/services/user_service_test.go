@@ -4,9 +4,9 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"ing-soft-2-tp1/internal/mocks"
 	"ing-soft-2-tp1/internal/models"
 	"ing-soft-2-tp1/internal/utils"
+	"ing-soft-2-tp1/mocks"
 	"testing"
 )
 
