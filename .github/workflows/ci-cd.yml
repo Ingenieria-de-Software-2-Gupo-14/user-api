@@ -7,8 +7,6 @@ on:
   pull_request:
     branches:
     - '**'
-env:
-  DATABASE_URL: "postgres://postgres:postgres123@postgres:5432/postgres?sslmode=disable"
 jobs:
   code-check:
     runs-on:  ubuntu-latest
@@ -24,36 +22,15 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Run tests with coverage
+        run: go test ./... -coverprofile=coverage.out
 
-      - name: update LOCAL_TESTING in .env
+      - name: Show coverage summary
+        run: go tool cover -func=coverage.out
+
+      - name: Fail if coverage is below threshold
         run: |
-          grep -q '^LOCAL_TESTING=' .env && \
-            sed -i 's|^LOCAL_TESTING=.*|LOCAL_TESTING=true|' .env || \
-            echo 'LOCAL_TESTING=true' >> .env
-
-      - name: build compose
-        run: docker compose up --build -d
-
-      - name: Wait for API to become healthy
-        run: |
-            echo "Checking API health..."
-            for i in {1..10}; do
-              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
-              if [ "$STATUS" -eq 200 ]; then
-                echo "✅ API is healthy!"
-                exit 0
-              fi
-              echo "Waiting for API... ($i/10)"
-              sleep 2
-            done
-            echo "❌ API failed to start."
-            docker compose logs
-            exit 1
-
-      - name: Run tests
-        run: go test -v ./...
-
-      - name: Stop Docker
-        run: docker compose stop
+          total=$(go tool cover -func=coverage.out | grep total: | awk '{print substr($3, 1, length($3)-1)}')
+          threshold=80.0
+          echo "Total coverage: $total%"
+          awk -v t=$threshold -v c=$total 'BEGIN {exit (c < t) ? 1 : 0}'
