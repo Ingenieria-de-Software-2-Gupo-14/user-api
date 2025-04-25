@@ -30,14 +30,8 @@ func SetupPostgresConnection() *repositories.Database {
 	dbHost := os.Getenv("POSTGRES_HOST")
 	dbPort := os.Getenv("POSTGRES_PORT")
 	dbQuery := os.Getenv("POSTGRES_QUERY")*/
-	var url string
-	if os.Getenv("LOCAL_TESTING") == "false" {
-		url = os.Getenv("DATABASE_URL_DEPLOYED")
-	} else {
-		url = os.Getenv("DATABASE_URL_LOCAL")
-	}
 
-	db, err := sql.Open("postgres", url) //fmt.Sprintf("postgres://%s:%s@%s:%s/%s?%s", dbUser, dbPassword, dbHost, dbPort, dbName, dbQuery))
+	db, err := sql.Open("postgres", "postgres://ing_soft_2_free_user:U5OiNn8V7Gd2oZTdiz4Of2n5vhHWTdPc@dpg-d019chvgi27c73fqn2i0-a.virginia-postgres.render.com/ing_soft_2_free") //fmt.Sprintf("postgres://%s:%s@%s:%s/%s?%s", dbUser, dbPassword, dbHost, dbPort, dbName, dbQuery))
 	if err != nil {
 		log.Fatalf("Error opening database: %v", err)
 	}

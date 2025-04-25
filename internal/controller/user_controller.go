@@ -132,7 +132,7 @@ func (controller UserController) UserLogin(context *gin.Context) {
 
 	user, err := controller.service.GetUserByEmail(context.Request.Context(), loginRequest.Email)
 	if err != nil {
-		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
+		context.JSON(http.StatusNotFound, services.CreateErrorResponse(http.StatusNotFound, context.Request.URL.Path))
 		return
 	}
 
@@ -140,7 +140,6 @@ func (controller UserController) UserLogin(context *gin.Context) {
 		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
 		return
 	}
-
 
 	if user.BlockedUser == true {
 		context.JSON(http.StatusForbidden, services.CreateErrorResponse(http.StatusForbidden, context.Request.URL.Path))
