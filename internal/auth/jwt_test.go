@@ -1,15 +1,17 @@
-package models
+package auth
 
 import (
-	"github.com/dgrijalva/jwt-go"
-	"github.com/stretchr/testify/assert"
+	"ing-soft-2-tp1/internal/models"
 	"testing"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateToken(t *testing.T) {
 
-	tokenStr, err := GenerateToken(1, false)
+	tokenStr, err := GenerateToken(models.User{})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, tokenStr)
 

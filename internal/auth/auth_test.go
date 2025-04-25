@@ -1,12 +1,13 @@
-package middleware
+package auth
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 	"ing-soft-2-tp1/internal/models"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAuthMiddleware(t *testing.T) {
@@ -17,7 +18,7 @@ func TestAuthMiddleware(t *testing.T) {
 		c.JSON(http.StatusOK, "Authenticated")
 	})
 
-	token, err := models.GenerateToken(1, true)
+	token, err := GenerateToken(models.User{})
 	assert.NoError(t, err)
 
 	req, _ := http.NewRequest("GET", "/test", nil)
