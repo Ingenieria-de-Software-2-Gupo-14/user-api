@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"ing-soft-2-tp1/internal/models"
@@ -96,6 +97,26 @@ func TestUserService_CreateUser(t *testing.T) {
 	assert.Equal(t, expectedUser.BlockedUser, user.BlockedUser)
 	assert.Equal(t, expectedUser.ProfilePhoto, user.ProfilePhoto)
 	assert.Equal(t, expectedUser.Description, user.Description)
+}
+
+func TestUserService_CreateUser_InternalError(t *testing.T) {
+	mockRepo := new(mocks.UserRepository)
+
+	service := NewUserService(mockRepo)
+
+	ctx := context.Background()
+
+	request := models.CreateUserRequest{
+		Email:    TEST_EMAIL,
+		Password: TEST_PASSWORD,
+		Name:     TEST_NAME,
+		Surname:  TEST_SURNAME,
+	}
+
+	mockRepo.On("AddUser", ctx, mock.Anything).Return(1, sql.ErrConnDone)
+
+	_, err := service.CreateUser(ctx, request, false)
+	assert.NotNil(t, err)
 }
 
 func TestUserService_GetUserByEmail(t *testing.T) {

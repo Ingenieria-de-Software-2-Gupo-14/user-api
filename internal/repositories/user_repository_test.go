@@ -2,8 +2,10 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
+	"ing-soft-2-tp1/internal/errors"
 	"ing-soft-2-tp1/internal/models"
 	"testing"
 )
@@ -98,6 +100,21 @@ func TestDatabase_GetUser(t *testing.T) {
 	assert.Equal(t, expectedUser, *user)
 }
 
+func TestDatabase_GetUser_NoRows(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery(`SELECT \* FROM users WHERE id = \$1`).WithArgs(1).WillReturnError(sql.ErrNoRows)
+
+	ctx := context.Background()
+
+	database := CreateDatabase(db)
+
+	_, err = database.GetUser(ctx, 1)
+	assert.Error(t, err, errors.ErrNotFound)
+}
+
 func TestDatabase_GetAllUsers(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -163,6 +180,21 @@ func TestDatabase_GetUserByEmail(t *testing.T) {
 	user, err := database.GetUserByEmail(ctx, TEST_EMAIL)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedUser, *user)
+}
+
+func TestDatabase_GetUserByEmail_NoRows(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery(`SELECT \* FROM users WHERE email ILIKE \$1`).WithArgs(TEST_EMAIL).WillReturnError(sql.ErrNoRows)
+
+	ctx := context.Background()
+
+	database := CreateDatabase(db)
+
+	_, err = database.GetUserByEmail(ctx, TEST_EMAIL)
+	assert.Error(t, errors.ErrNotFound)
 }
 
 func TestDatabase_DeleteUser(t *testing.T) {
