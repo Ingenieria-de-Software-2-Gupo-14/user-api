@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"ing-soft-2-tp1/internal/errors"
 	"ing-soft-2-tp1/internal/models"
+	"ing-soft-2-tp1/internal/repositories"
 	"ing-soft-2-tp1/internal/utils"
 	"ing-soft-2-tp1/mocks"
 	"net/http"
@@ -91,7 +91,7 @@ func TestUserController_RegisterUser(t *testing.T) {
 		Description:  "",
 	}
 
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, errors.ErrNotFound)
+	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
 	mockService.On("CreateUser", c.Request.Context(), request, false).Return(&expectedUser, nil)
 
 	controller.RegisterUser(c)
@@ -188,7 +188,7 @@ func TestUserController_RegisterUser_InternalError(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
 
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, errors.ErrNotFound)
+	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
 	mockService.On("CreateUser", c.Request.Context(), request, false).Return(nil, sql.ErrConnDone)
 
 	controller.RegisterUser(c)
@@ -271,7 +271,7 @@ func TestUserController_UserGetById_NotFound(t *testing.T) {
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	c.Request = req
 
-	mockService.On("GetUserById", c.Request.Context(), 1).Return(nil, errors.ErrNotFound)
+	mockService.On("GetUserById", c.Request.Context(), 1).Return(nil, repositories.ErrNotFound)
 
 	controller.UserGetById(c)
 
@@ -466,7 +466,7 @@ func TestUserController_RegisterAdmin(t *testing.T) {
 		Description:  "",
 	}
 
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, errors.ErrNotFound)
+	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
 	mockService.On("CreateUser", c.Request.Context(), request, true).Return(&expectedUser, nil)
 
 	controller.RegisterAdmin(c)
@@ -659,7 +659,7 @@ func TestUserController_UserLogin_NoUser(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
 
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, errors.ErrNotFound)
+	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
 
 	controller.UserLogin(c)
 	var result models.ErrorResponse
@@ -677,6 +677,45 @@ func TestUserController_UserLogin_NoUser(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, expectedResponse, result)
+}
+
+func TestUserController_UserLogin_NoEmail(t *testing.T) {
+	mockService := new(mocks.UserService)
+
+	controller := CreateController(mockService)
+
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+
+	request := models.LoginRequest{
+		Email:    "",
+		Password: TEST_PASSWORD,
+	}
+	jsonBody, _ := json.Marshal(request)
+	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	controller.UserLogin(c)
+	var result models.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	if err != nil {
+		return
+	}
+
+	expectedResponse := models.ErrorResponse{
+		Type:     models.ErrorTypeBlank,
+		Title:    models.ErrorTitleBadRequest,
+		Status:   http.StatusBadRequest,
+		Detail:   models.ErrorDescriptionBadRequest,
+		Instance: "/login",
+	}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, expectedResponse, result)
 }
 

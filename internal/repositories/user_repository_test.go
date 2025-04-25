@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
-	"ing-soft-2-tp1/internal/errors"
 	"ing-soft-2-tp1/internal/models"
 	"testing"
 )
@@ -112,7 +111,7 @@ func TestDatabase_GetUser_NoRows(t *testing.T) {
 	database := CreateDatabase(db)
 
 	_, err = database.GetUser(ctx, 1)
-	assert.Error(t, err, errors.ErrNotFound)
+	assert.Error(t, err, ErrNotFound)
 }
 
 func TestDatabase_GetAllUsers(t *testing.T) {
@@ -194,7 +193,7 @@ func TestDatabase_GetUserByEmail_NoRows(t *testing.T) {
 	database := CreateDatabase(db)
 
 	_, err = database.GetUserByEmail(ctx, TEST_EMAIL)
-	assert.Error(t, errors.ErrNotFound)
+	assert.Error(t, ErrNotFound)
 }
 
 func TestDatabase_DeleteUser(t *testing.T) {
