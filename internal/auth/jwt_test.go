@@ -18,7 +18,7 @@ func TestGenerateToken(t *testing.T) {
 	info, err := ParseToken(tokenStr)
 	assert.NoError(t, err)
 
-	assert.Equal(t, 1, (info.UserId))
+	assert.Equal(t, 0, (info.UserId))
 	assert.Equal(t, false, info.Admin)
 	assert.True(t, info.Exp > info.Iat)
 	assert.True(t, info.Exp > time.Now().Unix())

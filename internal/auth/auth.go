@@ -83,13 +83,31 @@ func getAuthToken(c *gin.Context) string {
 	return auth
 }
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(userRepo services.UserRepository) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		tokenStr := getAuthToken(ctx)
 
 		jwt, err := ParseToken(tokenStr)
 		if err != nil {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "message": err.Error()})
+			ctx.Abort()
+			return
+		}
+
+		user, err := userRepo.GetUserByEmail(ctx.Request.Context(), jwt.Email)
+		if err != nil {
+			if errors.Is(err, e.ErrNotFound) {
+				ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "message": "User not found"})
+				ctx.Abort()
+				return
+			}
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error", "message": err.Error()})
+			ctx.Abort()
+			return
+		}
+
+		if user.BlockedUser {
+			ctx.JSON(http.StatusForbidden, gin.H{"error": "Forbidden", "message": "User is blocked"})
 			ctx.Abort()
 			return
 		}
