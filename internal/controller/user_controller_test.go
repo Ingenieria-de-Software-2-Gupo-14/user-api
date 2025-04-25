@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 	"ing-soft-2-tp1/internal/errors"
 	"ing-soft-2-tp1/internal/models"
 	"ing-soft-2-tp1/internal/utils"
@@ -13,6 +11,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -35,24 +36,6 @@ func TestCreateController(t *testing.T) {
 	result := CreateController(mockService)
 
 	assert.NotNil(t, result)
-}
-
-func TestUserController_Health(t *testing.T) {
-	mockService := new(mocks.UserService)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodPost, "/health", nil)
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	controller.Health(c)
-	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestUserController_RegisterUser(t *testing.T) {

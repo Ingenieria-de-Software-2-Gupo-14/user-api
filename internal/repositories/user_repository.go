@@ -13,8 +13,8 @@ type Database struct {
 	DB *sql.DB
 }
 
-// CreateDatabase creates and returns a database
-func CreateDatabase(db *sql.DB) *Database {
+// CreateUserRepo creates and returns a database
+func CreateUserRepo(db *sql.DB) *Database {
 	return &Database{DB: db}
 }
 

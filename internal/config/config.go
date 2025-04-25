@@ -2,11 +2,12 @@ package config
 
 import (
 	"database/sql"
-	"ing-soft-2-tp1/internal/repositories"
+	"fmt"
 	"log"
 	"os"
 
 	_ "github.com/jackc/pgx/v5"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose"
 )
@@ -15,33 +16,63 @@ type Config struct {
 	Host        string
 	Port        string
 	Environment string
+
+	// Database configuration
+	DatabaseURL string
+
+	// Secrets
+	GoogleKey    string
+	GoogleSecret string
+	// JWT
+	JWTSecret string
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }
 
 // LoadConfig loads environment variables a Config Struct containing relevant variables
 func LoadConfig() Config {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, loading environment variables from the system")
+	}
 
-	return Config{os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("ENVIROMENT")}
+	dbUrl := os.Getenv("DATABASE_URL")
+	if dbUrl == "" {
+		dbUrl = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?%s",
+			os.Getenv("DB_USER"),
+			os.Getenv("DB_PASSWORD"),
+			os.Getenv("DB_HOST"),
+			os.Getenv("DB_PORT"),
+			os.Getenv("DB_NAME"),
+			os.Getenv("DB_QUERY"),
+		)
+	}
+
+	return Config{
+		Host:         getEnvOrDefault("HOST", "localhost"),
+		Port:         getEnvOrDefault("PORT", "8080"),
+		Environment:  getEnvOrDefault("ENVIRONMENT", "development"),
+		DatabaseURL:  dbUrl,
+		GoogleKey:    os.Getenv("GOOGLE_KEY"),
+		GoogleSecret: os.Getenv("GOOGLE_SECRET"),
+	}
 }
 
-func SetupPostgresConnection() *repositories.Database {
-	/*dbPassword := os.Getenv("POSTGRES_PASSWORD")
-	dbUser := os.Getenv("POSTGRES_USER")
-	dbName := os.Getenv("POSTGRES_DB")
-	dbHost := os.Getenv("POSTGRES_HOST")
-	dbPort := os.Getenv("POSTGRES_PORT")
-	dbQuery := os.Getenv("POSTGRES_QUERY")*/
-
-	db, err := sql.Open("postgres", "postgres://ing_soft_2_free_user:U5OiNn8V7Gd2oZTdiz4Of2n5vhHWTdPc@dpg-d019chvgi27c73fqn2i0-a.virginia-postgres.render.com/ing_soft_2_free") //fmt.Sprintf("postgres://%s:%s@%s:%s/%s?%s", dbUser, dbPassword, dbHost, dbPort, dbName, dbQuery))
+func CreateDatabase(config Config) (*sql.DB, error) {
+	db, err := sql.Open("postgres", config.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Error opening database: %v", err)
+		return nil, err
 	}
 
 	// Run migrations
 	if err := goose.Up(db, "internal/migrations"); err != nil {
-		log.Fatalf("Error running migrations: %v", err)
+		return nil, err
 	}
 
-	log.Println("Connected to database", db.Ping())
-	userDatabase := repositories.CreateDatabase(db)
-	return userDatabase
+	return db, nil
 }

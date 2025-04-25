@@ -1,8 +1,9 @@
-package models
+package auth
 
 import (
 	"errors"
 	"fmt"
+	"ing-soft-2-tp1/internal/models"
 	"os"
 	"time"
 
@@ -17,10 +18,11 @@ var (
 )
 
 type JWTInfo struct {
-	UserId int   `json:"user_id"`
-	Admin  bool  `json:"admin"`
-	Exp    int64 `json:"exp"`
-	Iat    int64 `json:"iat"`
+	UserId int    `json:"user_id"`
+	Email  string `json:"email"`
+	Admin  bool   `json:"admin"`
+	Exp    int64  `json:"exp"`
+	Iat    int64  `json:"iat"`
 }
 
 func NewJWTInfoFromClaims(claims jwt.MapClaims) (JWTInfo, error) {
@@ -61,12 +63,13 @@ func GetJWTSecret() string {
 }
 
 // GenerateToken genera un token JWT para el usuario.
-func GenerateToken(userId int, admin bool) (string, error) {
+func GenerateToken(user models.User) (string, error) {
 	secret := GetJWTSecret()
 
 	claims := jwt.MapClaims{
-		"user_id": userId,
-		"admin":   admin,
+		"user_id": user.Id,
+		"email":   user.Email,
+		"admin":   user.Admin,
 		"iat":     time.Now().Unix(),
 		"exp":     time.Now().Add(time.Hour).Unix(),
 	}
