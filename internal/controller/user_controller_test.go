@@ -9,7 +9,6 @@ import (
 	"ing-soft-2-tp1/internal/models"
 	"ing-soft-2-tp1/internal/repositories"
 	"ing-soft-2-tp1/internal/utils"
-	"ing-soft-2-tp1/mocks"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,7 +29,7 @@ const (
 )
 
 func TestCreateController(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	result := CreateController(mockService)
 
@@ -38,7 +37,7 @@ func TestCreateController(t *testing.T) {
 }
 
 func TestUserController_Health(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -56,7 +55,7 @@ func TestUserController_Health(t *testing.T) {
 }
 
 func TestUserController_RegisterUser(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -109,7 +108,7 @@ func TestUserController_RegisterUser(t *testing.T) {
 }
 
 func TestUserController_RegisterUser_UserAlreadyExists(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -167,7 +166,7 @@ func TestUserController_RegisterUser_UserAlreadyExists(t *testing.T) {
 }
 
 func TestUserController_RegisterUser_InternalError(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -212,7 +211,7 @@ func TestUserController_RegisterUser_InternalError(t *testing.T) {
 }
 
 func TestUserController_UsersGet(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -258,7 +257,7 @@ func TestUserController_UsersGet(t *testing.T) {
 }
 
 func TestUserController_UserGetById_NotFound(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -294,7 +293,7 @@ func TestUserController_UserGetById_NotFound(t *testing.T) {
 }
 
 func TestUserController_UserGetById(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -338,7 +337,7 @@ func TestUserController_UserGetById(t *testing.T) {
 }
 
 func TestUserController_UserDeleteById(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -359,7 +358,7 @@ func TestUserController_UserDeleteById(t *testing.T) {
 }
 
 func TestUserController_UserDeleteById_InternalError(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -395,7 +394,7 @@ func TestUserController_UserDeleteById_InternalError(t *testing.T) {
 }
 
 func TestUserController_UserDeleteById_WrongParams(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -407,8 +406,6 @@ func TestUserController_UserDeleteById_WrongParams(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "a"}}
 	c.Request = req
-
-	mockService.On("DeleteUser", c.Request.Context(), 1).Return(sql.ErrConnDone)
 
 	controller.UserDeleteById(c)
 
@@ -431,7 +428,7 @@ func TestUserController_UserDeleteById_WrongParams(t *testing.T) {
 }
 
 func TestUserController_RegisterAdmin(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -485,7 +482,7 @@ func TestUserController_RegisterAdmin(t *testing.T) {
 }
 
 func TestUserController_RegisterAdmin_UserAlreadyExists(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -543,7 +540,7 @@ func TestUserController_RegisterAdmin_UserAlreadyExists(t *testing.T) {
 }
 
 func TestUserController_UserLogin(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -585,7 +582,7 @@ func TestUserController_UserLogin(t *testing.T) {
 }
 
 func TestUserController_UserLogin_WrongPassword(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -640,7 +637,7 @@ func TestUserController_UserLogin_WrongPassword(t *testing.T) {
 }
 
 func TestUserController_UserLogin_NoUser(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -681,7 +678,7 @@ func TestUserController_UserLogin_NoUser(t *testing.T) {
 }
 
 func TestUserController_UserLogin_NoEmail(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -720,7 +717,7 @@ func TestUserController_UserLogin_NoEmail(t *testing.T) {
 }
 
 func TestUserController_ModifyUser(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -767,7 +764,7 @@ func TestUserController_ModifyUser(t *testing.T) {
 }
 
 func TestUserController_ModifyUser_InternalError(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -820,7 +817,7 @@ func TestUserController_ModifyUser_InternalError(t *testing.T) {
 }
 
 func TestUserController_ModifyUserLocation(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -847,7 +844,7 @@ func TestUserController_ModifyUserLocation(t *testing.T) {
 }
 
 func TestUserController_ModifyUserLocation_InternalError(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -889,7 +886,7 @@ func TestUserController_ModifyUserLocation_InternalError(t *testing.T) {
 }
 
 func TestUserController_ModifyUserLocation_WrongParams(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -929,7 +926,7 @@ func TestUserController_ModifyUserLocation_WrongParams(t *testing.T) {
 }
 
 func TestUserController_BlockUserById(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -950,7 +947,7 @@ func TestUserController_BlockUserById(t *testing.T) {
 }
 
 func TestUserController_BlockUserById_InternalError(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -986,7 +983,7 @@ func TestUserController_BlockUserById_InternalError(t *testing.T) {
 }
 
 func TestUserController_BlockUserById_WrongParam(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 
@@ -1020,7 +1017,7 @@ func TestUserController_BlockUserById_WrongParam(t *testing.T) {
 }
 
 func TestUserController_ValidateToken(t *testing.T) {
-	mockService := new(mocks.UserService)
+	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
 

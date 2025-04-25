@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"ing-soft-2-tp1/internal/models"
 	"ing-soft-2-tp1/internal/utils"
-	"ing-soft-2-tp1/mocks"
 	"testing"
 )
 
@@ -39,7 +38,7 @@ var ExpectedUser = models.User{
 }
 
 func TestNewUserService(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	result := NewUserService(mockRepo)
 
@@ -47,7 +46,7 @@ func TestNewUserService(t *testing.T) {
 }
 
 func TestUserService_DeleteUser(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	service := NewUserService(mockRepo)
 
@@ -60,7 +59,7 @@ func TestUserService_DeleteUser(t *testing.T) {
 }
 
 func TestUserService_CreateUser(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	service := NewUserService(mockRepo)
 
@@ -100,7 +99,7 @@ func TestUserService_CreateUser(t *testing.T) {
 }
 
 func TestUserService_CreateUser_InternalError(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	service := NewUserService(mockRepo)
 
@@ -120,7 +119,7 @@ func TestUserService_CreateUser_InternalError(t *testing.T) {
 }
 
 func TestUserService_GetUserByEmail(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	service := NewUserService(mockRepo)
 
@@ -134,7 +133,7 @@ func TestUserService_GetUserByEmail(t *testing.T) {
 }
 
 func TestUserService_GetUserById(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	result := NewUserService(mockRepo)
 
@@ -148,7 +147,7 @@ func TestUserService_GetUserById(t *testing.T) {
 }
 
 func TestUserService_GetAllUsers(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	service := NewUserService(mockRepo)
 
@@ -165,7 +164,7 @@ func TestUserService_GetAllUsers(t *testing.T) {
 }
 
 func TestUserService_BlockUser(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	service := NewUserService(mockRepo)
 
@@ -178,7 +177,7 @@ func TestUserService_BlockUser(t *testing.T) {
 }
 
 func TestUserService_ModifyUser(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	service := NewUserService(mockRepo)
 
@@ -191,7 +190,7 @@ func TestUserService_ModifyUser(t *testing.T) {
 }
 
 func TestUserService_ModifyLocation(t *testing.T) {
-	mockRepo := new(mocks.UserRepository)
+	mockRepo := NewMockUserRepository(t)
 
 	service := NewUserService(mockRepo)
 
