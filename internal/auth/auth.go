@@ -1,8 +1,11 @@
 package auth
 
 import (
+	"errors"
 	"ing-soft-2-tp1/internal/config"
-	"ing-soft-2-tp1/internal/repositories"
+	e "ing-soft-2-tp1/internal/errors"
+	"ing-soft-2-tp1/internal/models"
+	"ing-soft-2-tp1/internal/services"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +21,7 @@ func NewAuth(config config.Config) {
 	)
 }
 
-func AddAuthRoutes(r *gin.Engine, userRepo *repositories.Database) {
+func AddAuthRoutes(r *gin.Engine, userRepo services.UserRepository) {
 	r.GET("/auth/:provider", func(c *gin.Context) {
 		r := c.Request.WithContext(context.WithValue(c.Request.Context(), "provider", c.Param("provider")))
 		gothic.BeginAuthHandler(c.Writer, r)
@@ -35,6 +38,25 @@ func AddAuthRoutes(r *gin.Engine, userRepo *repositories.Database) {
 		existingUser, err := userRepo.GetUserByEmail(c.Request.Context(), user.Email)
 		if err != nil {
 			// User not found, create a new one
+			if errors.Is(err, e.ErrNotFound) {
+				newUser := &models.User{
+					Username: user.NickName,
+					Name:     user.Name,
+					Email:    user.Email,
+				}
+
+				id, err := userRepo.AddUser(c.Request.Context(), newUser)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+					return
+				}
+
+				newUser.Id = id
+				existingUser = newUser
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user"})
+				return
+			}
 		}
 
 		if existingUser.BlockedUser {
