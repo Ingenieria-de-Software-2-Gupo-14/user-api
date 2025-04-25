@@ -1,14 +1,14 @@
 package config
 
 import (
-	"github.com/stretchr/testify/assert"
-	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadConfig(t *testing.T) {
 	config := LoadConfig()
-	assert.Equal(t, os.Getenv("PORT"), config.Port)
-	assert.Equal(t, os.Getenv("HOST"), config.Host)
-	assert.Equal(t, os.Getenv("ENVIRONMENT"), config.Environment)
+	assert.Equal(t, "localhost", config.Host)
+	assert.Equal(t, "8080", config.Port)
+	assert.Equal(t, "development", config.Environment)
 }

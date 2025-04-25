@@ -3,10 +3,11 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
 	"ing-soft-2-tp1/internal/models"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -27,7 +28,7 @@ func TestCreateDatabase(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	result := CreateDatabase(db)
+	result := CreateUserRepo(db)
 
 	assert.NotNil(t, result)
 }
@@ -46,7 +47,7 @@ func TestDatabase_AddUser(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	user := models.User{
 		Username:     TEST_USERNAME,
@@ -78,7 +79,7 @@ func TestDatabase_GetUser(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	expectedUser := models.User{
 		Id:           1,
@@ -108,7 +109,7 @@ func TestDatabase_GetUser_NoRows(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	_, err = database.GetUser(ctx, 1)
 	assert.Error(t, err, ErrNotFound)
@@ -124,7 +125,7 @@ func TestDatabase_GetAllUsers(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	expectedUser := models.User{
 		Id:           1,
@@ -160,7 +161,7 @@ func TestDatabase_GetUserByEmail(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	expectedUser := models.User{
 		Id:           1,
@@ -190,7 +191,7 @@ func TestDatabase_GetUserByEmail_NoRows(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	_, err = database.GetUserByEmail(ctx, TEST_EMAIL)
 	assert.Error(t, ErrNotFound)
@@ -205,7 +206,7 @@ func TestDatabase_DeleteUser(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	err = database.DeleteUser(ctx, 1)
 	assert.NoError(t, err)
@@ -220,7 +221,7 @@ func TestDatabase_BlockUser(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	err = database.BlockUser(ctx, 1)
 	assert.NoError(t, err)
@@ -235,7 +236,7 @@ func TestDatabase_ModifyLocation(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	err = database.ModifyLocation(ctx, 1, TEST_LOCATION)
 	assert.NoError(t, err)
@@ -250,7 +251,7 @@ func TestDatabase_ModifyUser(t *testing.T) {
 
 	ctx := context.Background()
 
-	database := CreateDatabase(db)
+	database := CreateUserRepo(db)
 
 	user := models.User{
 		Id:           1,

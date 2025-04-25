@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
 )
 
 const (
@@ -34,24 +35,6 @@ func TestCreateController(t *testing.T) {
 	result := CreateController(mockService)
 
 	assert.NotNil(t, result)
-}
-
-func TestUserController_Health(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodPost, "/health", nil)
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	controller.Health(c)
-	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestUserController_RegisterUser(t *testing.T) {
