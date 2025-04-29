@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"ing-soft-2-tp1/internal/auth"
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
 	"ing-soft-2-tp1/internal/utils"
@@ -31,10 +32,6 @@ type UserController struct {
 // CreateController creates a controller
 func CreateController(service UserService) UserController {
 	return UserController{service: service}
-}
-
-func (controller UserController) Health(context *gin.Context) {
-	context.JSON(http.StatusOK, nil)
 }
 
 func (c UserController) RegisterUser(context *gin.Context) {
@@ -133,7 +130,7 @@ func (controller UserController) UserLogin(context *gin.Context) {
 
 	user, err := controller.service.GetUserByEmail(context.Request.Context(), loginRequest.Email)
 	if err != nil {
-		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
+		context.JSON(http.StatusNotFound, services.CreateErrorResponse(http.StatusNotFound, context.Request.URL.Path))
 		return
 	}
 
@@ -142,13 +139,12 @@ func (controller UserController) UserLogin(context *gin.Context) {
 		return
 	}
 
-
 	if user.BlockedUser == true {
 		context.JSON(http.StatusForbidden, services.CreateErrorResponse(http.StatusForbidden, context.Request.URL.Path))
 		return
 	}
 
-	token, err := GenerateToken(user.Id, user.Admin)
+	token, err := auth.GenerateToken(*user)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
