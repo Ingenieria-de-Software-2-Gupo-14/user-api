@@ -3,7 +3,7 @@ package models
 const (
 	StatusMissingTitle                  = 1
 	StatusMissingDescription            = 2
-	StatusUserNotFound                  = 3
+	StatusUserNotFound                  = 404
 	ErrorTypeBlank                      = "about:blank"
 	ErrorTitleMissingTitle              = "Missing title"
 	ErrorTitleMissingDescription        = "Missing description"

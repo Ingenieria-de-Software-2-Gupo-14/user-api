@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/gin-gonic/gin"
+	"ing-soft-2-tp1/internal/errors"
 	"ing-soft-2-tp1/internal/models"
 
 	_ "github.com/lib/pq"
@@ -13,8 +14,8 @@ type Database struct {
 	DB *sql.DB
 }
 
-// CreateDatabase creates and returns a database
-func CreateDatabase(db *sql.DB) *Database {
+// CreateUserRepo creates and returns a database
+func CreateUserRepo(db *sql.DB) *Database {
 	return &Database{DB: db}
 }
 
@@ -25,7 +26,7 @@ func (db Database) GetUser(ctx context.Context, id int) (*models.User, error) {
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrNotFound
+			return nil, errors.ErrNotFound
 		}
 		return nil, err
 	}
@@ -82,7 +83,7 @@ func (db Database) GetUserByEmail(ctx context.Context, email string) (*models.Us
 	err := row.Scan(&user.Id, &user.Username, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.BlockedUser, &user.ProfilePhoto, &user.Description)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrNotFound
+			return nil, errors.ErrNotFound
 		}
 		return nil, err
 	}
