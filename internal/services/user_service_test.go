@@ -201,3 +201,16 @@ func TestUserService_ModifyLocation(t *testing.T) {
 	err := service.ModifyLocation(ctx, 1, TEST_LOCATION)
 	assert.NoError(t, err)
 }
+
+func TestUserService_ModifyPassword(t *testing.T) {
+	mockRepo := NewMockUserRepository(t)
+
+	service := NewUserService(mockRepo)
+
+	ctx := context.Background()
+
+	mockRepo.On("ModifyPassword", ctx, 1, mock.Anything).Return(nil)
+
+	err := service.ModifyPassword(ctx, 1, TEST_PASSWORD)
+	assert.NoError(t, err)
+}

@@ -3,8 +3,6 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"github.com/gin-gonic/gin"
-	"ing-soft-2-tp1/internal/errors"
 	"ing-soft-2-tp1/internal/models"
 
 	_ "github.com/lib/pq"
@@ -106,7 +104,7 @@ func (db Database) BlockUser(ctx context.Context, id int) error {
 	return err
 }
 
-func (db Database) ModifyPassword(ctx *gin.Context, id int, password string) error {
+func (db Database) ModifyPassword(ctx context.Context, id int, password string) error {
 	_, err := db.DB.ExecContext(ctx, "UPDATE users SET password = $1 where id = $2", password, id)
 	return err
 }

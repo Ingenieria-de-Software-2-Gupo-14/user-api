@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
 	"ing-soft-2-tp1/internal/models"
 	"ing-soft-2-tp1/internal/utils"
 )
@@ -16,7 +15,7 @@ type UserRepository interface {
 	ModifyUser(ctx context.Context, user *models.User) error
 	BlockUser(ctx context.Context, id int) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
-	ModifyPassword(ctx *gin.Context, id int, password string) error
+	ModifyPassword(ctx context.Context, id int, password string) error
 }
 
 type userService struct {
@@ -78,7 +77,7 @@ func (s *userService) BlockUser(ctx context.Context, id int) error {
 	return s.db.BlockUser(ctx, id)
 }
 
-func (s *userService) ModifyPassword(ctx *gin.Context, id int, password string) error {
+func (s *userService) ModifyPassword(ctx context.Context, id int, password string) error {
 	hashPassword, err := utils.HashPassword(password)
 	if err != nil {
 		return err
