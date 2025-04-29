@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
 )
 
 const (
@@ -148,7 +147,7 @@ func TestUserController_RegisterUser_UserAlreadyExists(t *testing.T) {
 	assert.Equal(t, expectedResponse, result)
 }
 
-func TestUserController_RegisterUser_InternalError(t *testing.T) {
+func TestUserController_RegisterUser_InternalError1(t *testing.T) {
 	mockService := NewMockUserService(t)
 
 	controller := CreateController(mockService)
@@ -190,6 +189,48 @@ func TestUserController_RegisterUser_InternalError(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, expectedResponse, result)
+}
+
+func TestUserController_RegisterUser_BadRequest(t *testing.T) {
+	mockService := NewMockUserService(t)
+
+	controller := CreateController(mockService)
+
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+
+	request := models.CreateUserRequest{
+		Email:    "",
+		Password: TEST_PASSWORD,
+		Name:     TEST_NAME,
+		Surname:  TEST_SURNAME,
+	}
+	jsonBody, _ := json.Marshal(request)
+	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	controller.RegisterUser(c)
+
+	var result models.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	if err != nil {
+		return
+	}
+
+	expectedResponse := models.ErrorResponse{
+		Type:     models.ErrorTypeBlank,
+		Title:    models.ErrorTitleBadRequest,
+		Status:   http.StatusBadRequest,
+		Detail:   models.ErrorDescriptionBadRequest,
+		Instance: "/users",
+	}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, expectedResponse, result)
 }
 
@@ -237,6 +278,58 @@ func TestUserController_UsersGet(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, expectedResult, result)
+}
+
+func TestUserController_UsersGet_InternalError(t *testing.T) {
+	mockService := NewMockUserService(t)
+
+	controller := CreateController(mockService)
+
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+
+	req, _ := http.NewRequest(http.MethodGet, "/users", nil)
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	expectedUser := models.User{
+		Id:           1,
+		Username:     "",
+		Name:         TEST_NAME,
+		Surname:      TEST_SURNAME,
+		Password:     TEST_PASSWORD,
+		Email:        TEST_EMAIL,
+		Location:     "",
+		Admin:        TEST_ADMIN,
+		BlockedUser:  TEST_BLOCKED,
+		ProfilePhoto: TEST_PROFILE_PICTURE,
+		Description:  "",
+	}
+
+	expectedUsers := []models.User{}
+	expectedUsers = append(expectedUsers, expectedUser)
+
+	mockService.On("GetAllUsers", c.Request.Context()).Return(nil, sql.ErrConnDone)
+
+	controller.UsersGet(c)
+
+	var result models.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	if err != nil {
+		return
+	}
+
+	expectedResponse := models.ErrorResponse{
+		Type:     models.ErrorTypeBlank,
+		Title:    models.ErrorTitleInternalServerError,
+		Status:   http.StatusInternalServerError,
+		Detail:   models.ErrorDescriptionInternalServerError,
+		Instance: "/users",
+	}
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, expectedResponse, result)
 }
 
 func TestUserController_UserGetById_NotFound(t *testing.T) {
@@ -316,6 +409,40 @@ func TestUserController_UserGetById(t *testing.T) {
 	expectedResponse := models.ResponseUser{User: expectedUser}
 
 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, expectedResponse, result)
+}
+
+func TestUserController_UserGetById_NonNumericParam(t *testing.T) {
+	mockService := NewMockUserService(t)
+
+	controller := CreateController(mockService)
+
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+
+	req, _ := http.NewRequest(http.MethodGet, "/users/a", nil)
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "a"}}
+	c.Request = req
+
+	controller.UserGetById(c)
+
+	var result models.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	if err != nil {
+		return
+	}
+
+	expectedResponse := models.ErrorResponse{
+		Type:     models.ErrorTypeBlank,
+		Title:    models.ErrorTitleInternalServerError,
+		Status:   http.StatusInternalServerError,
+		Detail:   models.ErrorDescriptionInternalServerError,
+		Instance: "/users/a",
+	}
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Equal(t, expectedResponse, result)
 }
 
@@ -462,6 +589,93 @@ func TestUserController_RegisterAdmin(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 	assert.Equal(t, expectedResponse, result)
 
+}
+
+func TestUserController_RegisterAdmin_InternalError1(t *testing.T) {
+	mockService := NewMockUserService(t)
+
+	controller := CreateController(mockService)
+
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+
+	request := models.CreateUserRequest{
+		Email:    TEST_EMAIL,
+		Password: TEST_PASSWORD,
+		Name:     TEST_NAME,
+		Surname:  TEST_SURNAME,
+	}
+	jsonBody, _ := json.Marshal(request)
+	req, _ := http.NewRequest(http.MethodPost, "/admins", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
+	mockService.On("CreateUser", c.Request.Context(), request, true).Return(nil, sql.ErrConnDone)
+
+	controller.RegisterAdmin(c)
+
+	var result models.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	if err != nil {
+		return
+	}
+
+	expectedResponse := models.ErrorResponse{
+		Type:     models.ErrorTypeBlank,
+		Title:    models.ErrorTitleInternalServerError,
+		Status:   http.StatusInternalServerError,
+		Detail:   models.ErrorDescriptionInternalServerError,
+		Instance: "/admins",
+	}
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, expectedResponse, result)
+}
+
+func TestUserController_RegisterAdmin_BadRequest(t *testing.T) {
+	mockService := NewMockUserService(t)
+
+	controller := CreateController(mockService)
+
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+
+	request := models.CreateUserRequest{
+		Email:    "",
+		Password: TEST_PASSWORD,
+		Name:     TEST_NAME,
+		Surname:  TEST_SURNAME,
+	}
+	jsonBody, _ := json.Marshal(request)
+	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+
+	controller.RegisterAdmin(c)
+
+	var result models.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	if err != nil {
+		return
+	}
+
+	expectedResponse := models.ErrorResponse{
+		Type:     models.ErrorTypeBlank,
+		Title:    models.ErrorTitleBadRequest,
+		Status:   http.StatusBadRequest,
+		Detail:   models.ErrorDescriptionBadRequest,
+		Instance: "/users",
+	}
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, expectedResponse, result)
 }
 
 func TestUserController_RegisterAdmin_UserAlreadyExists(t *testing.T) {
@@ -696,6 +910,62 @@ func TestUserController_UserLogin_NoEmail(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Equal(t, expectedResponse, result)
+}
+
+func TestUserController_UserLogin_BlockedUser(t *testing.T) {
+	mockService := NewMockUserService(t)
+
+	controller := CreateController(mockService)
+
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+
+	request := models.LoginRequest{
+		Email:    TEST_EMAIL,
+		Password: TEST_PASSWORD,
+	}
+	jsonBody, _ := json.Marshal(request)
+	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
+	hashPassword, _ := utils.HashPassword(TEST_PASSWORD)
+
+	user := models.User{
+		Id:           1,
+		Username:     "",
+		Name:         TEST_NAME,
+		Surname:      TEST_SURNAME,
+		Password:     hashPassword,
+		Email:        TEST_EMAIL,
+		Location:     "",
+		Admin:        false,
+		BlockedUser:  true,
+		ProfilePhoto: TEST_PROFILE_PICTURE,
+		Description:  "",
+	}
+
+	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(&user, nil)
+
+	controller.UserLogin(c)
+	var result models.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	if err != nil {
+		return
+	}
+
+	expectedResponse := models.ErrorResponse{
+		Type:     models.ErrorTypeBlank,
+		Title:    "error",
+		Status:   http.StatusForbidden,
+		Detail:   "error",
+		Instance: "/login",
+	}
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
 	assert.Equal(t, expectedResponse, result)
 }
 
