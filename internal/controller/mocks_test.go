@@ -450,3 +450,49 @@ func (_c *MockUserService_ModifyUser_Call) RunAndReturn(run func(ctx context.Con
 	_c.Call.Return(run)
 	return _c
 }
+
+// UnblockUser provides a mock function for the type MockUserService
+func (_mock *MockUserService) UnblockUser(ctx context.Context, id int) error {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UnblockUser")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserService_UnblockUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UnblockUser'
+type MockUserService_UnblockUser_Call struct {
+	*mock.Call
+}
+
+// UnblockUser is a helper method to define mock.On call
+//   - ctx
+//   - id
+func (_e *MockUserService_Expecter) UnblockUser(ctx interface{}, id interface{}) *MockUserService_UnblockUser_Call {
+	return &MockUserService_UnblockUser_Call{Call: _e.mock.On("UnblockUser", ctx, id)}
+}
+
+func (_c *MockUserService_UnblockUser_Call) Run(run func(ctx context.Context, id int)) *MockUserService_UnblockUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockUserService_UnblockUser_Call) Return(err error) *MockUserService_UnblockUser_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserService_UnblockUser_Call) RunAndReturn(run func(ctx context.Context, id int) error) *MockUserService_UnblockUser_Call {
+	_c.Call.Return(run)
+	return _c
+}

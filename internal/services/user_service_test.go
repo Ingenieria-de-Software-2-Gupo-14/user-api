@@ -176,6 +176,19 @@ func TestUserService_BlockUser(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestUserService_UnblockUser(t *testing.T) {
+	mockRepo := NewMockUserRepository(t)
+
+	service := NewUserService(mockRepo)
+
+	ctx := context.Background()
+
+	mockRepo.On("UnblockUser", ctx, 1).Return(nil)
+
+	err := service.UnblockUser(ctx, 1)
+	assert.NoError(t, err)
+}
+
 func TestUserService_ModifyUser(t *testing.T) {
 	mockRepo := NewMockUserRepository(t)
 

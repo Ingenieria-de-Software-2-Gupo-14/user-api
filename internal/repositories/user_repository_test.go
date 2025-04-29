@@ -227,6 +227,21 @@ func TestDatabase_BlockUser(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestDatabase_UnblockUser(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectExec(`UPDATE users SET blocked_user = false where id = \$1`).WithArgs(1).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	ctx := context.Background()
+
+	database := CreateUserRepo(db)
+
+	err = database.UnblockUser(ctx, 1)
+	assert.NoError(t, err)
+}
+
 func TestDatabase_ModifyLocation(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)

@@ -1269,6 +1269,27 @@ func TestUserController_BlockUserById_WrongParam(t *testing.T) {
 	assert.Equal(t, expectedResponse, result)
 }
 
+func TestUserController_UnblockUserById(t *testing.T) {
+	mockService := NewMockUserService(t)
+
+	controller := CreateController(mockService)
+
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+
+	req, _ := http.NewRequest(http.MethodPut, "/admins/unblock/1", nil)
+	c, _ := gin.CreateTestContext(w)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mockService.On("UnblockUser", c, 1).Return(nil)
+
+	controller.UnblockUserById(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestUserController_ValidateToken(t *testing.T) {
 	mockService := NewMockUserService(t)
 
