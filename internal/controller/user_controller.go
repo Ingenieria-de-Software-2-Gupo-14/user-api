@@ -41,6 +41,11 @@ func (c UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 
+	if request.Email == "" || request.Surname == "" || request.Name == "" || request.Password == "" {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+
 	if _, err := c.service.GetUserByEmail(ctx, request.Email); err == nil {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
 		return
@@ -105,6 +110,10 @@ func (controller UserController) RegisterAdmin(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
+	if createUserRequest.Email == "" || createUserRequest.Surname == "" || createUserRequest.Name == "" || createUserRequest.Password == "" {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
 
 	if _, err := controller.service.GetUserByEmail(context.Request.Context(), createUserRequest.Email); err == nil {
 		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
@@ -127,6 +136,10 @@ func (controller UserController) UserLogin(context *gin.Context) {
 		return
 	}
 
+	if loginRequest.Email == "" || loginRequest.Password == "" {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
 	user, err := controller.service.GetUserByEmail(context.Request.Context(), loginRequest.Email)
 	if err != nil {
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(http.StatusNotFound, context.Request.URL.Path))
