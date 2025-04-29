@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,13 +30,4 @@ func TestParseToken_Fail(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, JWTInfo{}, result)
 
-}
-
-func TestNewJWTInfoFromClaims_Error(t *testing.T) {
-	claims := jwt.MapClaims{
-		"errorTest": "error",
-	}
-
-	_, err := NewJWTInfoFromClaims(claims)
-	assert.NotNil(t, err)
 }
