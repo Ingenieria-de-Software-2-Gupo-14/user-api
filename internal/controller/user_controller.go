@@ -21,6 +21,8 @@ type UserService interface {
 	ModifyUser(ctx context.Context, user *User) error
 	BlockUser(ctx context.Context, id int) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
+	GetUserPrivacy(ctx context.Context, id int) (*UserPrivacy, error)
+	ModifyPrivacy(ctx context.Context, id int, privacy UserPrivacy) error
 }
 
 // UserController struct that contains a database with users
@@ -217,4 +219,36 @@ func (c UserController) BlockUserById(context *gin.Context) {
 
 func (ct UserController) ValidateToken(c *gin.Context) {
 	c.JSON(http.StatusOK, c.Request.Context().Value("jwt_info"))
+}
+
+func (c UserController) ModifyUserPrivacy(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	var privacy UserPrivacy
+	if err := context.ShouldBindJSON(&privacy); err != nil {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+	if c.service.ModifyPrivacy(context.Request.Context(), id, privacy) != nil {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+	context.JSON(http.StatusOK, nil)
+}
+
+func (c UserController) UserGetPrivacy(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	privacy, err := c.service.GetUserPrivacy(context.Request.Context(), id)
+	if err != nil {
+		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
+		return
+	}
+	context.JSON(http.StatusOK, ResponsePrivacy{Privacy: *privacy})
 }

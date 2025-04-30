@@ -15,6 +15,8 @@ type UserRepository interface {
 	ModifyUser(ctx context.Context, user *models.User) error
 	BlockUser(ctx context.Context, id int) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
+	GetUserPrivacy(ctx context.Context, id int) (*models.UserPrivacy, error)
+	ModifyPrivacy(ctx context.Context, id int, privacy models.UserPrivacy) error
 }
 
 type userService struct {
@@ -75,4 +77,12 @@ func (s *userService) ModifyLocation(ctx context.Context, id int, newLocation st
 func (s *userService) BlockUser(ctx context.Context, id int) error {
 	return s.db.BlockUser(ctx, id)
 
+}
+
+func (s *userService) GetUserPrivacy(ctx context.Context, id int) (*models.UserPrivacy, error) {
+	return s.db.GetUserPrivacy(ctx, id)
+}
+
+func (s *userService) ModifyPrivacy(ctx context.Context, id int, privacy models.UserPrivacy) error {
+	return s.db.ModifyPrivacy(ctx, id, privacy)
 }

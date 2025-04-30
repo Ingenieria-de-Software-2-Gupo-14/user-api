@@ -104,4 +104,24 @@ func (db Database) BlockUser(ctx context.Context, id int) error {
 	return err
 }
 
+func (db Database) GetUserPrivacy(ctx context.Context, id int) (*models.UserPrivacy, error) {
+	row := db.DB.QueryRowContext(ctx, "SELECT * FROM users_privacy WHERE id = $1", id)
+
+	var userPrivacy models.UserPrivacy
+	err := row.Scan(nil, nil, &userPrivacy.Account, &userPrivacy.Name, &userPrivacy.Surname, &userPrivacy.Email, &userPrivacy.Location, &userPrivacy.Description)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &userPrivacy, nil
+}
+
+func (db Database) ModifyPrivacy(ctx context.Context, id int, privacy models.UserPrivacy) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE users_privacy SET account = $2, name = $3, surname = $4, email = $5, location = $6, description = $7 where id = $1", id, privacy.Account, privacy.Name, privacy.Surname, privacy.Email, privacy.Location, privacy.Description)
+	return err
+}
+
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description
