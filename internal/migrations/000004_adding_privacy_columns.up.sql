@@ -1,0 +1,8 @@
+-- +goose Up
+-- +goose StatementBegin
+ALTER TABLE Users ADD COLUMN IF NOT EXISTS name_privacy BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE Users ADD COLUMN IF NOT EXISTS surname_privacy BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE Users ADD COLUMN IF NOT EXISTS email_privacy BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE Users ADD COLUMN IF NOT EXISTS location_privacy BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE Users ADD COLUMN IF NOT EXISTS description_privacy BOOLEAN DEFAULT false NOT NULL;
+-- +goose StatementEnd

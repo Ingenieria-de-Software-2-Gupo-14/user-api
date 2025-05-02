@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"ing-soft-2-tp1/internal/auth"
+	"ing-soft-2-tp1/internal/errors"
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
 	"ing-soft-2-tp1/internal/utils"
@@ -48,13 +49,12 @@ func (c UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 
-	if _, err := c.service.GetUserByEmail(ctx, request.Email); err == nil {
-		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
-		return
-	}
-
-	user, err := c.service.CreateUser(context.Request.Context(), request, false)
+	user, err := c.service.CreateUser(ctx, request, false)
 	if err != nil {
+		if err == errors.ErrEmailInUsed {
+			context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
+			return
+		}
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
@@ -117,13 +117,12 @@ func (controller UserController) RegisterAdmin(context *gin.Context) {
 		return
 	}
 
-	if _, err := controller.service.GetUserByEmail(context.Request.Context(), createUserRequest.Email); err == nil {
-		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
-		return
-	}
-
 	user, err := controller.service.CreateUser(context.Request.Context(), createUserRequest, true)
 	if err != nil {
+		if err == errors.ErrEmailInUsed {
+			context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
+			return
+		}
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
@@ -144,6 +143,7 @@ func (controller UserController) UserLogin(context *gin.Context) {
 	}
 	user, err := controller.service.GetUserByEmail(context.Request.Context(), loginRequest.Email)
 	if err != nil {
+		println(err.Error())
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(http.StatusNotFound, context.Request.URL.Path))
 		return
 	}

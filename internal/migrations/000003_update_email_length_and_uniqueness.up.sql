@@ -1,6 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE Users
-    MODIFY COLUMN email VARCHAR(50) NOT NULL;
+    ALTER COLUMN email TYPE VARCHAR(240);
+ALTER TABLE Users
     ADD CONSTRAINT unique_email UNIQUE (email)
 -- +goose StatementEnd

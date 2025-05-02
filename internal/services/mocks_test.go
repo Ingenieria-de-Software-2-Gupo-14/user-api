@@ -355,6 +355,63 @@ func (_c *MockUserRepository_GetUserByEmail_Call) RunAndReturn(run func(ctx cont
 	return _c
 }
 
+// GetUserPrivacy provides a mock function for the type MockUserRepository
+func (_mock *MockUserRepository) GetUserPrivacy(ctx context.Context, id int) (*models.UserPrivacy, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserPrivacy")
+	}
+
+	var r0 *models.UserPrivacy
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) (*models.UserPrivacy, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) *models.UserPrivacy); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.UserPrivacy)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserRepository_GetUserPrivacy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserPrivacy'
+type MockUserRepository_GetUserPrivacy_Call struct {
+	*mock.Call
+}
+
+// GetUserPrivacy is a helper method to define mock.On call
+//   - ctx
+//   - id
+func (_e *MockUserRepository_Expecter) GetUserPrivacy(ctx interface{}, id interface{}) *MockUserRepository_GetUserPrivacy_Call {
+	return &MockUserRepository_GetUserPrivacy_Call{Call: _e.mock.On("GetUserPrivacy", ctx, id)}
+}
+
+func (_c *MockUserRepository_GetUserPrivacy_Call) Run(run func(ctx context.Context, id int)) *MockUserRepository_GetUserPrivacy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_GetUserPrivacy_Call) Return(userPrivacy *models.UserPrivacy, err error) *MockUserRepository_GetUserPrivacy_Call {
+	_c.Call.Return(userPrivacy, err)
+	return _c
+}
+
+func (_c *MockUserRepository_GetUserPrivacy_Call) RunAndReturn(run func(ctx context.Context, id int) (*models.UserPrivacy, error)) *MockUserRepository_GetUserPrivacy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ModifyLocation provides a mock function for the type MockUserRepository
 func (_mock *MockUserRepository) ModifyLocation(ctx context.Context, id int, newLocation string) error {
 	ret := _mock.Called(ctx, id, newLocation)
@@ -398,6 +455,53 @@ func (_c *MockUserRepository_ModifyLocation_Call) Return(err error) *MockUserRep
 }
 
 func (_c *MockUserRepository_ModifyLocation_Call) RunAndReturn(run func(ctx context.Context, id int, newLocation string) error) *MockUserRepository_ModifyLocation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ModifyPrivacy provides a mock function for the type MockUserRepository
+func (_mock *MockUserRepository) ModifyPrivacy(ctx context.Context, id int, privacy models.UserPrivacy) error {
+	ret := _mock.Called(ctx, id, privacy)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ModifyPrivacy")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, models.UserPrivacy) error); ok {
+		r0 = returnFunc(ctx, id, privacy)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserRepository_ModifyPrivacy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ModifyPrivacy'
+type MockUserRepository_ModifyPrivacy_Call struct {
+	*mock.Call
+}
+
+// ModifyPrivacy is a helper method to define mock.On call
+//   - ctx
+//   - id
+//   - privacy
+func (_e *MockUserRepository_Expecter) ModifyPrivacy(ctx interface{}, id interface{}, privacy interface{}) *MockUserRepository_ModifyPrivacy_Call {
+	return &MockUserRepository_ModifyPrivacy_Call{Call: _e.mock.On("ModifyPrivacy", ctx, id, privacy)}
+}
+
+func (_c *MockUserRepository_ModifyPrivacy_Call) Run(run func(ctx context.Context, id int, privacy models.UserPrivacy)) *MockUserRepository_ModifyPrivacy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int), args[2].(models.UserPrivacy))
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_ModifyPrivacy_Call) Return(err error) *MockUserRepository_ModifyPrivacy_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserRepository_ModifyPrivacy_Call) RunAndReturn(run func(ctx context.Context, id int, privacy models.UserPrivacy) error) *MockUserRepository_ModifyPrivacy_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -27,7 +27,6 @@ type User struct {
 }
 
 type UserPrivacy struct {
-	Account     bool `json:"account"`
 	Name        bool `json:"name"`
 	Surname     bool `json:"surname"`
 	Email       bool `json:"email"`

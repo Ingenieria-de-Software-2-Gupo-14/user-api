@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"ing-soft-2-tp1/internal/errors"
 	"ing-soft-2-tp1/internal/models"
 	"testing"
 
@@ -73,7 +74,7 @@ func TestDatabase_GetUser(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	mock.ExpectQuery(`SELECT \* FROM users WHERE id = \$1`).WithArgs(1).
+	mock.ExpectQuery(`SELECT id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description FROM users WHERE id = \$1`).WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "name", "surname", "password", "email", "location", "admin", "bolcked_user", "profile_photo", "description"}).
 			AddRow(1, TEST_USERNAME, TEST_NAME, TEST_SURNAME, TEST_PASSWORD, TEST_EMAIL, TEST_LOCATION, TEST_ADMIN, TEST_BLOCKED, TEST_PROFILE_PICTURE, TEST_DESCRIPTION))
 
@@ -105,14 +106,14 @@ func TestDatabase_GetUser_NoRows(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	mock.ExpectQuery(`SELECT \* FROM users WHERE id = \$1`).WithArgs(1).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`SELECT id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description FROM users WHERE id = \$1`).WithArgs(1).WillReturnError(sql.ErrNoRows)
 
 	ctx := context.Background()
 
 	database := CreateUserRepo(db)
 
 	_, err = database.GetUser(ctx, 1)
-	assert.Error(t, err, ErrNotFound)
+	assert.Error(t, err, errors.ErrNotFound)
 }
 
 func TestDatabase_GetAllUsers(t *testing.T) {
@@ -155,7 +156,7 @@ func TestDatabase_GetUserByEmail(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	mock.ExpectQuery(`SELECT \* FROM users WHERE email ILIKE \$1`).WithArgs(TEST_EMAIL).
+	mock.ExpectQuery(`SELECT id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description FROM users WHERE email ILIKE \$1`).WithArgs(TEST_EMAIL).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "username", "name", "surname", "password", "email", "location", "admin", "bolcked_user", "profile_photo", "description"}).
 			AddRow(1, TEST_USERNAME, TEST_NAME, TEST_SURNAME, TEST_PASSWORD, TEST_EMAIL, TEST_LOCATION, TEST_ADMIN, TEST_BLOCKED, TEST_PROFILE_PICTURE, TEST_DESCRIPTION))
 
@@ -187,14 +188,14 @@ func TestDatabase_GetUserByEmail_NoRows(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	mock.ExpectQuery(`SELECT \* FROM users WHERE email ILIKE \$1`).WithArgs(TEST_EMAIL).WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`SELECT id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description FROM users WHERE email ILIKE \$1`).WithArgs(TEST_EMAIL).WillReturnError(sql.ErrNoRows)
 
 	ctx := context.Background()
 
 	database := CreateUserRepo(db)
 
 	_, err = database.GetUserByEmail(ctx, TEST_EMAIL)
-	assert.Error(t, ErrNotFound)
+	assert.Error(t, errors.ErrNotFound)
 }
 
 func TestDatabase_DeleteUser(t *testing.T) {
