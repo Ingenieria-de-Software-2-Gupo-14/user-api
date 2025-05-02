@@ -252,3 +252,20 @@ func (c UserController) UserGetPrivacy(context *gin.Context) {
 	}
 	context.JSON(http.StatusOK, ResponsePrivacy{Privacy: *privacy})
 }
+
+func (c UserController) UserGetSelf(context *gin.Context) {
+	authToken, _ := context.Cookie("Authorization")
+	if authToken == "" {
+		authToken = context.Request.Header.Get("Authorization")
+	}
+	jwt, err := auth.ParseToken(authToken)
+	if err != nil {
+		return
+	}
+	user, err := c.service.GetUserById(context, jwt.UserId)
+	if err != nil {
+		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
+		return
+	}
+	context.JSON(http.StatusOK, ResponseUser{User: *user})
+}
