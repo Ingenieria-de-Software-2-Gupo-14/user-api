@@ -7,6 +7,7 @@ import (
 	"ing-soft-2-tp1/internal/models"
 	"ing-soft-2-tp1/internal/services"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth"
@@ -19,6 +20,10 @@ func NewAuth(config config.Config) {
 	goth.UseProviders(
 		google.New(config.GoogleKey, config.GoogleSecret, "http://localhost:8080/auth/google/callback"),
 	)
+}
+
+type AuthController struct {
+	userRepo services.UserRepository
 }
 
 func AddAuthRoutes(r *gin.Engine, userRepo services.UserRepository) {
@@ -78,7 +83,9 @@ func AddAuthRoutes(r *gin.Engine, userRepo services.UserRepository) {
 func getAuthToken(c *gin.Context) string {
 	auth, _ := c.Cookie("Authorization")
 	if auth == "" {
-		auth = c.Request.Header.Get("Authorization")
+		if parts := strings.Fields(c.GetHeader("Authorization")); len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+			auth = parts[1]
+		}
 	}
 	return auth
 }

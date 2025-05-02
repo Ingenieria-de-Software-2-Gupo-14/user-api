@@ -2,9 +2,9 @@ package auth
 
 import (
 	"errors"
-	"fmt"
 	"ing-soft-2-tp1/internal/models"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -25,33 +25,11 @@ type JWTInfo struct {
 	Iat    int64  `json:"iat"`
 }
 
-func NewJWTInfoFromClaims(claims jwt.MapClaims) (JWTInfo, error) {
-	userID, ok := claims["user_id"].(float64)
-	if !ok {
-		return JWTInfo{}, fmt.Errorf("user_id claim: %v, %w", claims["user_id"], ErrMissingDataField)
-	}
-
-	admin, ok := claims["admin"].(bool)
-	if !ok {
-		return JWTInfo{}, fmt.Errorf("admin claim: %v, %w", claims["admin"], ErrMissingDataField)
-	}
-
-	exp, ok := claims["exp"].(float64)
-	if !ok {
-		return JWTInfo{}, fmt.Errorf("exp claim: %v, %w", claims["exp"], ErrMissingDataField)
-	}
-
-	iat, ok := claims["iat"].(float64)
-	if !ok {
-		return JWTInfo{}, fmt.Errorf("iat claim: %v, %w", claims["iat"], ErrMissingDataField)
-	}
-
-	return JWTInfo{
-		UserId: int(userID),
-		Admin:  admin,
-		Exp:    int64(exp),
-		Iat:    int64(iat),
-	}, nil
+type Claims struct {
+	jwt.StandardClaims
+	Email    string `json:"email"`
+	UserName string `json:"user_name"`
+	Admin    bool   `json:"admin"`
 }
 
 func GetJWTSecret() string {
@@ -64,23 +42,25 @@ func GetJWTSecret() string {
 
 // GenerateToken genera un token JWT para el usuario.
 func GenerateToken(user models.User) (string, error) {
-	secret := GetJWTSecret()
-
-	claims := jwt.MapClaims{
-		"user_id": user.Id,
-		"email":   user.Email,
-		"admin":   user.Admin,
-		"iat":     time.Now().Unix(),
-		"exp":     time.Now().Add(time.Hour).Unix(),
+	claims := Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject:   strconv.Itoa(user.Id),
+			Issuer:    "",
+			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+		Email:    user.Email,
+		UserName: user.Username,
+		Admin:    user.Admin,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(GetJWTSecret()))
 }
 
-func ParseToken(tokenStr string) (JWTInfo, error) {
+func ParseToken(tokenStr string) (Claims, error) {
 	secret := []byte(GetJWTSecret())
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
+	var claims Claims
+	token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrJWTValidation
 		}
@@ -88,22 +68,17 @@ func ParseToken(tokenStr string) (JWTInfo, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return JWTInfo{}, ErrInvalidToken
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				return claims, ErrInvalidToken
+			} else if ve.Errors&jwt.ValidationErrorExpired != 0 {
+				return claims, ErrExpiredToken
+			} else {
+				return claims, ErrJWTValidation
+			}
+		}
+		return claims, ErrInvalidToken
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return JWTInfo{}, ErrInvalidToken
-	}
-
-	jwtInfo, err := NewJWTInfoFromClaims(claims)
-	if err != nil {
-		return JWTInfo{}, err
-	}
-
-	if jwtInfo.Exp < time.Now().Unix() {
-		return JWTInfo{}, ErrExpiredToken
-	}
-
-	return jwtInfo, nil
+	return claims, nil
 }
