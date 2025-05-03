@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"ing-soft-2-tp1/internal/auth"
+	"ing-soft-2-tp1/internal/errors"
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
 	"ing-soft-2-tp1/internal/utils"
@@ -21,6 +22,8 @@ type UserService interface {
 	ModifyUser(ctx context.Context, user *User) error
 	BlockUser(ctx context.Context, id int) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
+	GetUserPrivacy(ctx context.Context, id int) (*UserPrivacy, error)
+	ModifyPrivacy(ctx context.Context, id int, privacy UserPrivacy) error
 }
 
 // UserController struct that contains a database with users
@@ -46,13 +49,12 @@ func (c UserController) RegisterUser(context *gin.Context) {
 		return
 	}
 
-	if _, err := c.service.GetUserByEmail(ctx, request.Email); err == nil {
-		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
-		return
-	}
-
-	user, err := c.service.CreateUser(context.Request.Context(), request, false)
+	user, err := c.service.CreateUser(ctx, request, false)
 	if err != nil {
+		if err == errors.ErrEmailInUsed {
+			context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
+			return
+		}
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
@@ -66,6 +68,12 @@ func (c UserController) UsersGet(context *gin.Context) {
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
+	}
+	isAdmin, requesterId := checkRequester(context)
+	for i := range users {
+		if isAdmin == false && requesterId != users[i].Id {
+			c.applyPrivacy(&users[i], context)
+		}
 	}
 	response := ResponseUsers{Users: users}
 	context.JSON(http.StatusOK, response)
@@ -84,7 +92,10 @@ func (c UserController) UserGetById(context *gin.Context) {
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
 		return
 	}
-
+	isAdmin, requesterId := checkRequester(context)
+	if isAdmin == false && requesterId != id {
+		c.applyPrivacy(user, context)
+	}
 	context.JSON(http.StatusOK, ResponseUser{User: *user})
 }
 
@@ -115,13 +126,12 @@ func (controller UserController) RegisterAdmin(context *gin.Context) {
 		return
 	}
 
-	if _, err := controller.service.GetUserByEmail(context.Request.Context(), createUserRequest.Email); err == nil {
-		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
-		return
-	}
-
 	user, err := controller.service.CreateUser(context.Request.Context(), createUserRequest, true)
 	if err != nil {
+		if err == errors.ErrEmailInUsed {
+			context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
+			return
+		}
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}
@@ -142,6 +152,7 @@ func (controller UserController) UserLogin(context *gin.Context) {
 	}
 	user, err := controller.service.GetUserByEmail(context.Request.Context(), loginRequest.Email)
 	if err != nil {
+		println(err.Error())
 		context.JSON(http.StatusNotFound, services.CreateErrorResponse(http.StatusNotFound, context.Request.URL.Path))
 		return
 	}
@@ -217,4 +228,81 @@ func (c UserController) BlockUserById(context *gin.Context) {
 
 func (ct UserController) ValidateToken(c *gin.Context) {
 	c.JSON(http.StatusOK, c.Request.Context().Value("jwt_info"))
+}
+
+func (c UserController) ModifyUserPrivacy(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	var privacy UserPrivacy
+	if err := context.ShouldBindJSON(&privacy); err != nil {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+	if c.service.ModifyPrivacy(context.Request.Context(), id, privacy) != nil {
+		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		return
+	}
+	context.JSON(http.StatusOK, nil)
+}
+
+func (c UserController) UserGetPrivacy(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		return
+	}
+	privacy, err := c.service.GetUserPrivacy(context.Request.Context(), id)
+	if err != nil {
+		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
+		return
+	}
+	context.JSON(http.StatusOK, ResponsePrivacy{Privacy: *privacy})
+}
+
+func (c UserController) UserGetSelf(context *gin.Context) {
+	authToken, _ := context.Cookie("Authorization")
+	if authToken == "" {
+		authToken = context.Request.Header.Get("Authorization")
+	}
+	jwt, err := auth.ParseToken(authToken)
+	if err != nil {
+		return
+	}
+	user, err := c.service.GetUserById(context.Request.Context(), jwt.UserId)
+	if err != nil {
+		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
+		return
+	}
+	context.JSON(http.StatusOK, ResponseUser{User: *user})
+}
+
+func (c UserController) applyPrivacy(user *User, context *gin.Context) {
+	privacy, _ := c.service.GetUserPrivacy(context.Request.Context(), user.Id)
+	checkPrivacy(&user.Name, privacy.Name)
+	checkPrivacy(&user.Surname, privacy.Surname)
+	checkPrivacy(&user.Email, privacy.Email)
+	checkPrivacy(&user.Location, privacy.Location)
+	checkPrivacy(&user.Description, privacy.Description)
+}
+
+func checkPrivacy(s *string, privacy bool) {
+	if privacy {
+		*s = ""
+	}
+}
+
+func checkRequester(context *gin.Context) (bool, int) {
+	userAuth, _ := context.Cookie("Authorization")
+	if userAuth == "" {
+		userAuth = context.Request.Header.Get("Authorization")
+	}
+
+	jwt, err := auth.ParseToken(userAuth)
+	if err != nil {
+		return false, -1
+	}
+	return jwt.Admin, jwt.UserId
 }

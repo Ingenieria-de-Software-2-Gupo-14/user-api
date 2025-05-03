@@ -7,3 +7,7 @@ type ResponseUser struct {
 type ResponseUsers struct {
 	Users []User `json:"data"`
 }
+
+type ResponsePrivacy struct {
+	Privacy UserPrivacy `json:"data"`
+}

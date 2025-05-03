@@ -42,6 +42,9 @@ func CreateRouter(db *sql.DB) *gin.Engine {
 	r.DELETE("/users/:id", auth.AuthMiddleware(userRepo), cont.UserDeleteById)
 	r.PUT("/users/block/:id", cont.BlockUserById)
 	r.PUT("/users/:id/location", cont.ModifyUserLocation)
+	r.PUT("/users/:id/privacy", cont.ModifyUserPrivacy)
+	r.GET("/users/:id/privacy", cont.UserGetPrivacy)
+	r.GET("/user", cont.UserGetSelf)
 	return r
 }
 

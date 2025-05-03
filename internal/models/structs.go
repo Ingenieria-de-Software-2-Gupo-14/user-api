@@ -25,3 +25,11 @@ type User struct {
 	ProfilePhoto int    `json:"profile-photo"` //Foreign key to mongodb with profile pic
 	Description  string `json:"description"`
 }
+
+type UserPrivacy struct {
+	Name        bool `json:"name"`
+	Surname     bool `json:"surname"`
+	Email       bool `json:"email"`
+	Location    bool `json:"location"`
+	Description bool `json:"description"`
+}
