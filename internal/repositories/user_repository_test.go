@@ -51,16 +51,11 @@ func TestDatabase_AddUser(t *testing.T) {
 	database := CreateUserRepo(db)
 
 	user := models.User{
-		Username:     TEST_USERNAME,
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     TEST_PASSWORD,
-		Email:        TEST_EMAIL,
-		Location:     TEST_LOCATION,
-		Admin:        TEST_ADMIN,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  TEST_DESCRIPTION,
+		Name:     TEST_NAME,
+		Surname:  TEST_SURNAME,
+		Password: TEST_PASSWORD,
+		Email:    TEST_EMAIL,
+		Admin:    TEST_ADMIN,
 	}
 
 	id, err := database.AddUser(ctx, &user)

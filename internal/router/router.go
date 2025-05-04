@@ -16,8 +16,8 @@ func CreateRouter(db *sql.DB) *gin.Engine {
 	r := gin.Default()
 
 	userRepo := repositories.CreateUserRepo(db)
-	userService := services.NewUserService(userRepo)
-	cont := controller.CreateController(userService)
+	_ = services.NewUserService(userRepo)
+	cont := controller.CreateController(nil)
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"}, // frontend address here

@@ -1,35 +1,20 @@
 package controller
 
 import (
-	"context"
-	"ing-soft-2-tp1/internal/auth"
 	. "ing-soft-2-tp1/internal/models"
 	services "ing-soft-2-tp1/internal/services"
-	"ing-soft-2-tp1/internal/utils"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-type UserService interface {
-	DeleteUser(ctx context.Context, id int) error
-	CreateUser(ctx context.Context, request CreateUserRequest, admin bool) (*User, error)
-	GetUserById(ctx context.Context, id int) (*User, error)
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
-	GetAllUsers(ctx context.Context) (users []User, err error)
-	ModifyUser(ctx context.Context, user *User) error
-	BlockUser(ctx context.Context, id int) error
-	ModifyLocation(ctx context.Context, id int, newLocation string) error
-}
-
-// UserController struct that contains a database with users
 type UserController struct {
-	service UserService
+	service services.UserService
 }
 
 // CreateController creates a controller
-func CreateController(service UserService) UserController {
+func CreateController(service services.UserService) UserController {
 	return UserController{service: service}
 }
 
@@ -120,41 +105,6 @@ func (controller UserController) RegisterAdmin(context *gin.Context) {
 	context.JSON(http.StatusCreated, ResponseUser{User: *user})
 }
 
-func (controller UserController) UserLogin(context *gin.Context) {
-	var loginRequest LoginRequest
-	if err := context.ShouldBindJSON(&loginRequest); err != nil {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
-		return
-	}
-
-	user, err := controller.service.GetUserByEmail(context.Request.Context(), loginRequest.Email)
-	if err != nil {
-		context.JSON(http.StatusNotFound, services.CreateErrorResponse(http.StatusNotFound, context.Request.URL.Path))
-		return
-	}
-
-	if err := utils.CompareHashPassword(user.Password, loginRequest.Password); err != nil {
-		context.JSON(http.StatusUnauthorized, services.CreateErrorResponse(http.StatusUnauthorized, context.Request.URL.Path))
-		return
-	}
-
-	if user.BlockedUser == true {
-		context.JSON(http.StatusForbidden, services.CreateErrorResponse(http.StatusForbidden, context.Request.URL.Path))
-		return
-	}
-
-	token, err := auth.GenerateToken(*user)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
-		return
-	}
-
-	//Set cookie
-	context.SetSameSite(http.SameSiteLaxMode)
-	context.SetCookie("Authorization", token, 3600, "/", "", false, true)
-	context.JSON(http.StatusOK, gin.H{"token": token})
-}
-
 func (c UserController) ModifyUser(context *gin.Context) {
 	var user User
 
@@ -182,7 +132,7 @@ func (c UserController) ModifyUserLocation(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
-	if c.service.ModifyLocation(context, id, user.Location) != nil {
+	if c.service.ModifyLocation(context, id, *user.Location) != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}

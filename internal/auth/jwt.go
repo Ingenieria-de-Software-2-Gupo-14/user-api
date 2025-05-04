@@ -2,7 +2,6 @@ package auth
 
 import (
 	"errors"
-	"ing-soft-2-tp1/internal/models"
 	"os"
 	"strconv"
 	"time"
@@ -27,9 +26,9 @@ type JWTInfo struct {
 
 type Claims struct {
 	jwt.StandardClaims
-	Email    string `json:"email"`
-	UserName string `json:"user_name"`
-	Admin    bool   `json:"admin"`
+	Email string `json:"email"`
+	Name  string `json:"full_name"`
+	Admin bool   `json:"admin"`
 }
 
 func GetJWTSecret() string {
@@ -41,17 +40,17 @@ func GetJWTSecret() string {
 }
 
 // GenerateToken genera un token JWT para el usuario.
-func GenerateToken(user models.User) (string, error) {
+func GenerateToken(id int, email string, name string, admin bool) (string, error) {
 	claims := Claims{
 		StandardClaims: jwt.StandardClaims{
-			Subject:   strconv.Itoa(user.Id),
+			Subject:   strconv.Itoa(id),
 			Issuer:    "",
 			ExpiresAt: time.Now().Add(time.Hour).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
-		Email:    user.Email,
-		UserName: user.Username,
-		Admin:    user.Admin,
+		Email: email,
+		Name:  name,
+		Admin: admin,
 	}
 
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(GetJWTSecret()))

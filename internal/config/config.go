@@ -9,7 +9,6 @@ import (
 	_ "github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"github.com/pressly/goose"
 )
 
 type Config struct {
@@ -66,11 +65,6 @@ func LoadConfig() Config {
 func CreateDatabase(config Config) (*sql.DB, error) {
 	db, err := sql.Open("postgres", config.DatabaseURL)
 	if err != nil {
-		return nil, err
-	}
-
-	// Run migrations
-	if err := goose.Up(db, "internal/migrations"); err != nil {
 		return nil, err
 	}
 
