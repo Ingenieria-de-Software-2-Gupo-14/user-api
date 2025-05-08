@@ -2,6 +2,9 @@
 run:
 	go run ./cmd/api
 
+migrate:
+	go run ./cmd/migrations
+
 test:
 	go test ./...
 
@@ -12,6 +15,9 @@ docker-build:
 # Ejecutar la API usando Docker Compose
 docker-run:
 	docker-compose up --build
+
+swaggo:
+	swag init -g ./cmd/api/main.go -o ./docs
 
 # Limpiar archivos generados
 clean:

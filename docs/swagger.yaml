@@ -1,0 +1,459 @@
+definitions:
+  errors.HTTPError:
+    properties:
+      code:
+        type: integer
+      error:
+        type: string
+      title:
+        type: string
+    type: object
+  models.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 60
+        minLength: 3
+        type: string
+      password:
+        maxLength: 60
+        minLength: 8
+        type: string
+      surname:
+        maxLength: 60
+        minLength: 3
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - surname
+    type: object
+  models.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  models.User:
+    properties:
+      admin:
+        type: boolean
+      blocked:
+        description: Ya no tiene etiqueta db directa, se calcula con JOIN
+        type: boolean
+      created_at:
+        type: string
+      description:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      location:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      profile_photo:
+        type: string
+      surname:
+        type: string
+      updated_at:
+        type: string
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server celler server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: User API
+  version: "1.0"
+paths:
+  /auth/{provider}:
+    get:
+      consumes:
+      - application/json
+      description: Begin authentication with the specified provider
+      parameters:
+      - description: Provider name
+        in: path
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Begin authentication
+      tags:
+      - Auth
+  /auth/{provider}/callback:
+    get:
+      consumes:
+      - application/json
+      description: Complete authentication with the specified provider
+      parameters:
+      - description: Provider name
+        in: path
+        name: provider
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Complete authentication
+      tags:
+      - Auth
+  /auth/admins:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user. The 'admin' flag (passed during route setup,
+        not an API param) determines if an admin user is created.
+      parameters:
+      - description: User Registration Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateUserRequest'
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "409":
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Register a new user
+      tags:
+      - Auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Logs in a user with email and password, returning user information
+        and a JWT token.
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful login returns user and token
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request format or input validation failed
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "401":
+          description: Invalid email or password
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "403":
+          description: User is blocked
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "500":
+          description: Internal server error (e.g., token generation failed)
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: User login
+      tags:
+      - Auth
+  /auth/logout:
+    get:
+      consumes:
+      - application/json
+      description: Logout the user by clearing the cookie
+      produces:
+      - application/json
+      responses:
+        "307":
+          description: Redirected to home page
+          schema:
+            type: string
+      summary: Logout
+      tags:
+      - Auth
+  /auth/users:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user. The 'admin' flag (passed during route setup,
+        not an API param) determines if an admin user is created.
+      parameters:
+      - description: User Registration Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateUserRequest'
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "409":
+          description: Email already exists
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Register a new user
+      tags:
+      - Auth
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of all users in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of users
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.User'
+              type: array
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Get all users
+      tags:
+      - Users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a user from the database
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User successfully deleted
+        "400":
+          description: Invalid user ID format
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Delete user by ID
+      tags:
+      - Users
+    get:
+      consumes:
+      - application/json
+      description: Returns a specific user by their ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User data
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/models.User'
+            type: object
+        "400":
+          description: Invalid user ID format
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Get user by ID
+      tags:
+      - Users
+  /users/{id}/location:
+    put:
+      consumes:
+      - application/json
+      description: Updates the location of a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User with updated location
+        in: body
+        name: location
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Location updated successfully
+        "400":
+          description: Invalid user ID format or request
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Modify user location
+      tags:
+      - Users
+  /users/block/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Blocks a user by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: User blocked successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid user ID format
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Block user
+      tags:
+      - Users
+  /users/modify:
+    post:
+      consumes:
+      - application/json
+      description: Updates user information
+      parameters:
+      - description: Updated user data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated user data
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/models.User'
+            type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errors.HTTPError'
+      summary: Modify user
+      tags:
+      - Users
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"

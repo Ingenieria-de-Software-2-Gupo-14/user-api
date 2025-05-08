@@ -25,7 +25,7 @@ func TestCreateDatabase_WrongUrl(t *testing.T) {
 		JWTSecret:    "",
 	}
 
-	_, err := CreateDatabase(testConfig)
+	_, err := testConfig.CreateDatabase()
 	assert.NotNil(t, err)
 	println(err)
 }

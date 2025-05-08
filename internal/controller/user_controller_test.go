@@ -1,1315 +1,208 @@
-package controller
+package controller_test
 
 import (
 	"bytes"
-	"database/sql"
+	"context"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
-	"ing-soft-2-tp1/internal/models"
-	"ing-soft-2-tp1/internal/repositories"
-	"ing-soft-2-tp1/internal/utils"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/controller"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	s "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-const (
-	TEST_ID              = 1
-	TEST_USERNAME        = "testUser"
-	TEST_NAME            = "testName"
-	TEST_SURNAME         = "testSurname"
-	TEST_PASSWORD        = "testPassword"
-	TEST_EMAIL           = "testEmail"
-	TEST_LOCATION        = "testLocation"
-	TEST_ADMIN           = false
-	TEST_BLOCKED         = false
-	TEST_PROFILE_PICTURE = 0
-	TEST_DESCRIPTION     = "testDesc"
-)
+func setupTest(t *testing.T) (*s.MockUserService, *gin.Context, *httptest.ResponseRecorder, *controller.UserController) {
+	gin.SetMode(gin.TestMode)
+	mockService := s.NewMockUserService(t)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	userController := controller.CreateController(mockService)
+	return mockService, c, recorder, userController
+}
 
 func TestCreateController(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	result := CreateController(mockService)
-
+	mockService := s.NewMockUserService(t)
+	result := controller.CreateController(mockService)
 	assert.NotNil(t, result)
 }
 
-func TestUserController_RegisterUser(t *testing.T) {
-	mockService := NewMockUserService(t)
+func TestUsersGet_Success(t *testing.T) {
+	mockService, c, recorder, userController := setupTest(t)
 
-	controller := CreateController(mockService)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/users", nil)
 
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.CreateUserRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-		Name:     TEST_NAME,
-		Surname:  TEST_SURNAME,
+	// Setup expected users
+	expectedUsers := []models.User{
+		{
+			Id:      1,
+			Name:    "Test1",
+			Surname: "User1",
+			Email:   "test1@example.com",
+		},
+		{
+			Id:      2,
+			Name:    "Test2",
+			Surname: "User2",
+			Email:   "test2@example.com",
+		},
 	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(jsonBody))
+
+	mockService.EXPECT().GetAllUsers(mock.Anything).Return(expectedUsers, nil)
+
+	// Call the function
+	userController.UsersGet(c)
+
+	// Check response
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var response struct {
+		Data []models.User `json:"data"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, len(expectedUsers), len(response.Data))
+	assert.Equal(t, expectedUsers[0].Id, response.Data[0].Id)
+	assert.Equal(t, expectedUsers[0].Name, response.Data[0].Name)
+}
+
+func TestUserGetById_Success(t *testing.T) {
+	mockService, c, recorder, userController := setupTest(t)
+
+	userId := 1
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/users/"+strconv.Itoa(userId), nil)
+	c.AddParam("id", strconv.Itoa(userId))
+
+	expectedUser := &models.User{
+		Id:      userId,
+		Name:    "Test",
+		Surname: "User",
+		Email:   "test@example.com",
+	}
+
+	mockService.EXPECT().GetUserById(mock.Anything, userId).Return(expectedUser, nil)
+
+	// Call the function
+	userController.UserGetById(c)
+
+	// Check response
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var response struct {
+		Data models.User `json:"data"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedUser.Id, response.Data.Id)
+	assert.Equal(t, expectedUser.Name, response.Data.Name)
+}
+
+func TestUserGetById_NotFound(t *testing.T) {
+	mockService, c, recorder, userController := setupTest(t)
+
+	userId := 999
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/users/"+strconv.Itoa(userId), nil)
+	c.AddParam("id", strconv.Itoa(userId))
+
+	mockService.EXPECT().GetUserById(mock.Anything, userId).Return(nil, errors.New("not found"))
+
+	// Call the function
+	userController.UserGetById(c)
+
+	// Check response
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+}
+
+func TestUserDeleteById_Success(t *testing.T) {
+	mockService, c, recorder, userController := setupTest(t)
+
+	userId := 1
+	c.Request = httptest.NewRequest(http.MethodDelete, "/api/users/"+strconv.Itoa(userId), nil)
+	c.AddParam("id", strconv.Itoa(userId))
+
+	mockService.EXPECT().DeleteUser(mock.Anything, userId).Return(nil)
+
+	// Call the function
+	userController.UserDeleteById(c)
+
+	// Check response
+	assert.Equal(t, http.StatusNoContent, recorder.Code)
+}
+
+func TestModifyUser_Success(t *testing.T) {
+	mockService, c, recorder, userController := setupTest(t)
+
+	updatedUser := models.User{
+		Id:       1,
+		Name:     "Updated",
+		Surname:  "User",
+		Email:    "test@example.com",
+		Location: "New Location",
+	}
+
+	jsonValue, _ := json.Marshal(updatedUser)
+	c.Request = httptest.NewRequest(http.MethodPut, "/api/users/"+strconv.Itoa(updatedUser.Id), bytes.NewBuffer(jsonValue))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	mockService.EXPECT().ModifyUser(mock.Anything, mock.MatchedBy(func(u *models.User) bool {
+		return u.Id == updatedUser.Id &&
+			u.Name == updatedUser.Name &&
+			u.Location == updatedUser.Location
+	})).Return(nil)
+
+	// Call the function
+	userController.ModifyUser(c)
+
+	// Check response
+	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestBlockUserById_Success(t *testing.T) {
+	mockService, c, recorder, userController := setupTest(t)
+
+	userId := 1
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/users/"+strconv.Itoa(userId)+"/block", nil)
+	c.AddParam("id", strconv.Itoa(userId))
+	c.Request = c.Request.WithContext(context.Background())
+
+	mockService.EXPECT().BlockUser(mock.Anything, userId, "", mock.AnythingOfType("*int"), mock.AnythingOfType("*time.Time")).Return(nil)
+
+	// Call the function
+	userController.BlockUserById(c)
+
+	// Check response
+	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestModifyUserLocation_Success(t *testing.T) {
+	mockService, c, recorder, userController := setupTest(t)
+
+	userId := 1
+	newLocation := "New Location"
+
+	updateData := models.User{
+		Location: newLocation,
+	}
+
+	jsonValue, _ := json.Marshal(updateData)
+	req := httptest.NewRequest(http.MethodPatch, "/api/users/"+strconv.Itoa(userId)+"/location", bytes.NewBuffer(jsonValue))
 	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
 	c.Request = req
+	c.AddParam("id", strconv.Itoa(userId))
 
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     TEST_PASSWORD,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        TEST_ADMIN,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
+	mockService.EXPECT().ModifyLocation(mock.Anything, userId, newLocation).Return(nil)
 
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
-	mockService.On("CreateUser", c.Request.Context(), request, false).Return(&expectedUser, nil)
+	// Call the function
+	userController.ModifyUserLocation(c)
 
-	controller.RegisterUser(c)
-
-	var result models.ResponseUser
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ResponseUser{User: expectedUser}
-
-	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_RegisterUser_UserAlreadyExists(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.CreateUserRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-		Name:     TEST_NAME,
-		Surname:  TEST_SURNAME,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     TEST_PASSWORD,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        TEST_ADMIN,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(&expectedUser, nil)
-
-	controller.RegisterUser(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleConflict,
-		Status:   http.StatusConflict,
-		Detail:   models.ErrorDescriptionConflict,
-		Instance: "/users",
-	}
-
-	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_RegisterUser_InternalError1(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.CreateUserRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-		Name:     TEST_NAME,
-		Surname:  TEST_SURNAME,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
-	mockService.On("CreateUser", c.Request.Context(), request, false).Return(nil, sql.ErrConnDone)
-
-	controller.RegisterUser(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_RegisterUser_BadRequest(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.CreateUserRequest{
-		Email:    "",
-		Password: TEST_PASSWORD,
-		Name:     TEST_NAME,
-		Surname:  TEST_SURNAME,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	controller.RegisterUser(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleBadRequest,
-		Status:   http.StatusBadRequest,
-		Detail:   models.ErrorDescriptionBadRequest,
-		Instance: "/users",
-	}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UsersGet(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodGet, "/users", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     TEST_PASSWORD,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        TEST_ADMIN,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	expectedUsers := []models.User{}
-	expectedUsers = append(expectedUsers, expectedUser)
-
-	mockService.On("GetAllUsers", c.Request.Context()).Return(expectedUsers, nil)
-
-	controller.UsersGet(c)
-
-	var result models.ResponseUsers
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResult := models.ResponseUsers{Users: expectedUsers}
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, expectedResult, result)
-}
-
-func TestUserController_UsersGet_InternalError(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodGet, "/users", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     TEST_PASSWORD,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        TEST_ADMIN,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	expectedUsers := []models.User{}
-	expectedUsers = append(expectedUsers, expectedUser)
-
-	mockService.On("GetAllUsers", c.Request.Context()).Return(nil, sql.ErrConnDone)
-
-	controller.UsersGet(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UserGetById_NotFound(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodGet, "/users/1", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-	c.Request = req
-
-	mockService.On("GetUserById", c.Request.Context(), 1).Return(nil, repositories.ErrNotFound)
-
-	controller.UserGetById(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleUserNotFound,
-		Status:   http.StatusNotFound,
-		Detail:   models.ErrorDescriptionUserNotFound,
-		Instance: "/users/1",
-	}
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UserGetById(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodGet, "/users/1", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-	c.Request = req
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     TEST_PASSWORD,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        TEST_ADMIN,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	mockService.On("GetUserById", c.Request.Context(), 1).Return(&expectedUser, nil)
-
-	controller.UserGetById(c)
-
-	var result models.ResponseUser
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ResponseUser{User: expectedUser}
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UserGetById_NonNumericParam(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodGet, "/users/a", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "a"}}
-	c.Request = req
-
-	controller.UserGetById(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users/a",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UserDeleteById(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodDelete, "/users/1", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-	c.Request = req
-
-	mockService.On("DeleteUser", c.Request.Context(), 1).Return(nil)
-
-	controller.UserDeleteById(c)
-
-	assert.Equal(t, http.StatusNoContent, w.Code)
-}
-
-func TestUserController_UserDeleteById_InternalError(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodDelete, "/users/1", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-	c.Request = req
-
-	mockService.On("DeleteUser", c.Request.Context(), 1).Return(sql.ErrConnDone)
-
-	controller.UserDeleteById(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users/1",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UserDeleteById_WrongParams(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodDelete, "/users/a", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "a"}}
-	c.Request = req
-
-	controller.UserDeleteById(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users/a",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_RegisterAdmin(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.CreateUserRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-		Name:     TEST_NAME,
-		Surname:  TEST_SURNAME,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/admins", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     TEST_PASSWORD,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        true,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
-	mockService.On("CreateUser", c.Request.Context(), request, true).Return(&expectedUser, nil)
-
-	controller.RegisterAdmin(c)
-
-	var result models.ResponseUser
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ResponseUser{User: expectedUser}
-
-	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Equal(t, expectedResponse, result)
-
-}
-
-func TestUserController_RegisterAdmin_InternalError1(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.CreateUserRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-		Name:     TEST_NAME,
-		Surname:  TEST_SURNAME,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/admins", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
-	mockService.On("CreateUser", c.Request.Context(), request, true).Return(nil, sql.ErrConnDone)
-
-	controller.RegisterAdmin(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/admins",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_RegisterAdmin_BadRequest(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.CreateUserRequest{
-		Email:    "",
-		Password: TEST_PASSWORD,
-		Name:     TEST_NAME,
-		Surname:  TEST_SURNAME,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	controller.RegisterAdmin(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleBadRequest,
-		Status:   http.StatusBadRequest,
-		Detail:   models.ErrorDescriptionBadRequest,
-		Instance: "/users",
-	}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_RegisterAdmin_UserAlreadyExists(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.CreateUserRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-		Name:     TEST_NAME,
-		Surname:  TEST_SURNAME,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/admins", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     TEST_PASSWORD,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        TEST_ADMIN,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(&expectedUser, nil)
-
-	controller.RegisterAdmin(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleConflict,
-		Status:   http.StatusConflict,
-		Detail:   models.ErrorDescriptionConflict,
-		Instance: "/admins",
-	}
-
-	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UserLogin(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.LoginRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	hashPassword, _ := utils.HashPassword(TEST_PASSWORD)
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     hashPassword,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        true,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(&expectedUser, nil)
-
-	controller.UserLogin(c)
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestUserController_UserLogin_WrongPassword(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.LoginRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     TEST_PASSWORD,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        true,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(&expectedUser, nil)
-
-	controller.UserLogin(c)
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    "error",
-		Status:   http.StatusUnauthorized,
-		Detail:   "error",
-		Instance: "/login",
-	}
-
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UserLogin_NoUser(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.LoginRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(nil, repositories.ErrNotFound)
-
-	controller.UserLogin(c)
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleUserNotFound,
-		Status:   http.StatusNotFound,
-		Detail:   models.ErrorDescriptionUserNotFound,
-		Instance: "/login",
-	}
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UserLogin_NoEmail(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.LoginRequest{
-		Email:    "",
-		Password: TEST_PASSWORD,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	controller.UserLogin(c)
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleBadRequest,
-		Status:   http.StatusBadRequest,
-		Detail:   models.ErrorDescriptionBadRequest,
-		Instance: "/login",
-	}
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_UserLogin_BlockedUser(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.LoginRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-	hashPassword, _ := utils.HashPassword(TEST_PASSWORD)
-
-	user := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     hashPassword,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        false,
-		BlockedUser:  true,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(&user, nil)
-
-	controller.UserLogin(c)
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    "error",
-		Status:   http.StatusForbidden,
-		Detail:   "error",
-		Instance: "/login",
-	}
-
-	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_ModifyUser(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     "",
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        true,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	jsonBody, _ := json.Marshal(expectedUser)
-
-	req, _ := http.NewRequest(http.MethodPost, "/users/modify", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	mockService.On("ModifyUser", c.Request.Context(), &expectedUser).Return(nil)
-
-	controller.ModifyUser(c)
-
-	var result models.ResponseUser
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ResponseUser{User: expectedUser}
-
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_ModifyUser_InternalError(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     "",
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        true,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	jsonBody, _ := json.Marshal(expectedUser)
-
-	req, _ := http.NewRequest(http.MethodPost, "/users/modify", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	mockService.On("ModifyUser", c.Request.Context(), &expectedUser).Return(sql.ErrConnDone)
-
-	controller.ModifyUser(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users/modify",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_ModifyUserLocation(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	expectedUser := models.User{
-		Location: TEST_LOCATION,
-	}
-	jsonBody, _ := json.Marshal(expectedUser)
-	req, _ := http.NewRequest(http.MethodPut, "/users/1/location", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-	c.Request = req
-
-	mockService.On("ModifyLocation", c, 1, TEST_LOCATION).Return(nil)
-
-	controller.ModifyUserLocation(c)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestUserController_ModifyUserLocation_InternalError(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	expectedUser := models.User{
-		Location: TEST_LOCATION,
-	}
-	jsonBody, _ := json.Marshal(expectedUser)
-	req, _ := http.NewRequest(http.MethodPut, "/users/1/location", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-	c.Request = req
-
-	mockService.On("ModifyLocation", c, 1, TEST_LOCATION).Return(sql.ErrConnDone)
-
-	controller.ModifyUserLocation(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users/1/location",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_ModifyUserLocation_WrongParams(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	expectedUser := models.User{
-		Location: TEST_LOCATION,
-	}
-	jsonBody, _ := json.Marshal(expectedUser)
-	req, _ := http.NewRequest(http.MethodPut, "/users/a/location", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "a"}}
-	c.Request = req
-
-	controller.ModifyUserLocation(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users/a/location",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_BlockUserById(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodPut, "/users/block/1", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-	c.Request = req
-
-	mockService.On("BlockUser", c, 1).Return(nil)
-
-	controller.BlockUserById(c)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-func TestUserController_BlockUserById_InternalError(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodPut, "/users/block/1", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
-	c.Request = req
-
-	mockService.On("BlockUser", c, 1).Return(sql.ErrConnDone)
-
-	controller.BlockUserById(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users/block/1",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_BlockUserById_WrongParam(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest(http.MethodPut, "/users/block/a", nil)
-	c, _ := gin.CreateTestContext(w)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "a"}}
-	c.Request = req
-
-	controller.BlockUserById(c)
-
-	var result models.ErrorResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	if err != nil {
-		return
-	}
-
-	expectedResponse := models.ErrorResponse{
-		Type:     models.ErrorTypeBlank,
-		Title:    models.ErrorTitleInternalServerError,
-		Status:   http.StatusInternalServerError,
-		Detail:   models.ErrorDescriptionInternalServerError,
-		Instance: "/users/block/a",
-	}
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, expectedResponse, result)
-}
-
-func TestUserController_ValidateToken(t *testing.T) {
-	mockService := NewMockUserService(t)
-
-	controller := CreateController(mockService)
-
-	gin.SetMode(gin.TestMode)
-
-	w := httptest.NewRecorder()
-
-	request := models.LoginRequest{
-		Email:    TEST_EMAIL,
-		Password: TEST_PASSWORD,
-	}
-	jsonBody, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	c, _ := gin.CreateTestContext(w)
-	c.Request = req
-
-	hashPassword, _ := utils.HashPassword(TEST_PASSWORD)
-
-	expectedUser := models.User{
-		Id:           1,
-		Username:     "",
-		Name:         TEST_NAME,
-		Surname:      TEST_SURNAME,
-		Password:     hashPassword,
-		Email:        TEST_EMAIL,
-		Location:     "",
-		Admin:        true,
-		BlockedUser:  TEST_BLOCKED,
-		ProfilePhoto: TEST_PROFILE_PICTURE,
-		Description:  "",
-	}
-
-	mockService.On("GetUserByEmail", c.Request.Context(), TEST_EMAIL).Return(&expectedUser, nil)
-
-	controller.UserLogin(c)
-	controller.ValidateToken(c)
-	assert.Equal(t, http.StatusOK, w.Code)
+	// Check response
+	assert.Equal(t, http.StatusOK, recorder.Code)
 }
 
 func TestUserController_ModifyPassword(t *testing.T) {

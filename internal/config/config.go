@@ -9,7 +9,6 @@ import (
 	_ "github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"github.com/pressly/goose"
 )
 
 type Config struct {
@@ -63,15 +62,16 @@ func LoadConfig() Config {
 	}
 }
 
-func CreateDatabase(config Config) (*sql.DB, error) {
+func (config *Config) CreateDatabase() (*sql.DB, error) {
 	db, err := sql.Open("postgres", config.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}
 
-	// Run migrations
-	if err := goose.Up(db, "internal/migrations"); err != nil {
-		return nil, err
+	// Set timezone to UTC for all sessions
+	_, err = db.Exec("SET timezone TO 'UTC';")
+	if err != nil {
+		return nil, fmt.Errorf("failed to set timezone to UTC: %w", err)
 	}
 
 	return db, nil
