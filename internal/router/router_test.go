@@ -22,7 +22,7 @@ func TestSetEnviroment2(t *testing.T) {
 func TestCreateRouter(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	router := CreateRouter(config.Config{})
-
-	assert.NotNil(t, router)
+	router, err := CreateRouter(config.Config{})
+	assert.Error(t, err)
+	assert.Nil(t, router)
 }

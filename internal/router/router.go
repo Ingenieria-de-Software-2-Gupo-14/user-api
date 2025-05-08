@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
@@ -11,7 +12,7 @@ import (
 )
 
 // CreateRouter creates and return a Router with its corresponding end points
-func CreateRouter(config config.Config) *gin.Engine {
+func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -24,7 +25,7 @@ func CreateRouter(config config.Config) *gin.Engine {
 
 	deps, err := NewDependencies(&config)
 	if err != nil {
-		panic(err.Error())
+		return nil, fmt.Errorf("error creating dependencies: %w", err)
 	}
 
 	r.GET("/health", func(ctx *gin.Context) {
@@ -52,7 +53,7 @@ func CreateRouter(config config.Config) *gin.Engine {
 	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
 	r.PUT("/users/block/:id", deps.Controllers.UserController.BlockUserById)
 	r.PUT("/users/:id/location", deps.Controllers.UserController.ModifyUserLocation)
-	return r
+	return r, nil
 }
 
 func SetEnviroment(env string) {

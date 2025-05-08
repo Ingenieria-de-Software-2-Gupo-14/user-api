@@ -2,7 +2,6 @@ package router
 
 import (
 	"database/sql"
-	"log"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/controller"
@@ -36,7 +35,7 @@ type Repositories struct {
 func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	db, err := cfg.CreateDatabase()
 	if err != nil {
-		log.Fatal("Error creating database", err)
+		return nil, err
 	}
 
 	// Repositories

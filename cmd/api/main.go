@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	apiconfig "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/router"
 	"github.com/markbates/goth"
@@ -39,10 +41,13 @@ func main() {
 
 	router.SetEnviroment(config.Environment)
 
-	r := router.CreateRouter(config)
+	r, err := router.CreateRouter(config)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	// use ginSwagger middleware to serve the API docs
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	if err := r.Run(":" + config.Port); err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 }
