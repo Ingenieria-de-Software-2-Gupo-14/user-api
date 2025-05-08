@@ -25,12 +25,8 @@ jobs:
       - name: Run tests with coverage
         run: go test ./internal/... -coverprofile=coverage.out
 
-      - name: Show coverage summary
-        run: go tool cover -func=coverage.out
-
-      - name: Fail if coverage is below threshold
-        run: |
-          total=$(go tool cover -func=coverage.out | grep total: | awk '{print substr($3, 1, length($3)-1)}')
-          threshold=75.0
-          echo "Total coverage: $total%"
-          awk -v t=$threshold -v c=$total 'BEGIN {exit (c < t) ? 1 : 0}'
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: Ingenieria-de-Software-2-Gupo-14/user-api
