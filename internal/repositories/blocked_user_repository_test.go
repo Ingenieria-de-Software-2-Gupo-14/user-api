@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,7 +98,7 @@ func TestBlockedUserDB_UnblockUser_NotFound(t *testing.T) {
 	repo := NewBlockedUserRepository(db)
 
 	err = repo.UnblockUser(ctx, blockedUserID)
-	assert.Equal(t, errors.ErrNotFound, err)
+	assert.Equal(t, ErrNotFound, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 

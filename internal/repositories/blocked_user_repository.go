@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 
 	_ "github.com/lib/pq"
@@ -42,7 +41,7 @@ func (db *BlockedUserDB) UnblockUser(ctx context.Context, blockedUserID int) err
 	_, err := db.DB.ExecContext(ctx, query, blockedUserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return errors.ErrNotFound // No se encontró el bloqueo activo
+			return ErrNotFound // No se encontró el bloqueo activo
 		}
 		return err // Otro error de base de datos
 	}

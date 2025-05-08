@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	e "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 
@@ -36,9 +36,9 @@ func NewAuthController(userRepo services.UserService, loginAttemptsService servi
 // @Produce      plain
 // @Param        request body models.CreateUserRequest true "User Registration Details"
 // @Success      201  {object}  map[string]int  "User created successfully"
-// @Failure      400  {object}  errors.HTTPError "Invalid request format"
-// @Failure      409  {object}  errors.HTTPError "Email already exists"
-// @Failure      500  {object}  errors.HTTPError "Internal server error"
+// @Failure      400  {object}  utils.HTTPError "Invalid request format"
+// @Failure      409  {object}  utils.HTTPError "Email already exists"
+// @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /auth/users [post]
 // @Router       /auth/admins [post]
 func (ac *AuthController) Register(admin bool) gin.HandlerFunc {
@@ -46,18 +46,18 @@ func (ac *AuthController) Register(admin bool) gin.HandlerFunc {
 		var request models.CreateUserRequest
 		ctx := c.Request.Context()
 		if err := c.Bind(&request); err != nil {
-			e.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
+			utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
 			return
 		}
 
 		if _, err := ac.userRepo.GetUserByEmail(ctx, request.Email); err == nil {
-			e.ErrorResponse(c, http.StatusConflict, "Email already exists")
+			utils.ErrorResponse(c, http.StatusConflict, "Email already exists")
 			return
 		}
 
 		id, err := ac.userRepo.CreateUser(c.Request.Context(), request, admin)
 		if err != nil {
-			e.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -69,13 +69,13 @@ func (ac *AuthController) Register(admin bool) gin.HandlerFunc {
 // and redirecting to the home page
 func (ac *AuthController) finishAuth(ctx *gin.Context, user models.User) {
 	if user.Blocked {
-		e.ErrorResponse(ctx, http.StatusForbidden, "User is blocked")
+		utils.ErrorResponse(ctx, http.StatusForbidden, "User is blocked")
 		return
 	}
 
 	token, err := models.GenerateToken(user.Id, user.Email, user.Name, user.Admin)
 	if err != nil {
-		e.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -98,32 +98,32 @@ func (ac *AuthController) finishAuth(ctx *gin.Context, user models.User) {
 // @Produce      json
 // @Param        request  body      models.LoginRequest  true  "Login Credentials"
 // @Success      200      {object}  map[string]interface{}  "Successful login returns user and token"
-// @Failure      400      {object}  errors.HTTPError   "Invalid request format or input validation failed"
-// @Failure      401      {object}  errors.HTTPError   "Invalid email or password"
-// @Failure      403      {object}  errors.HTTPError   "User is blocked"
-// @Failure      500      {object}  errors.HTTPError   "Internal server error (e.g., token generation failed)"
+// @Failure      400      {object}  utils.HTTPError   "Invalid request format or input validation failed"
+// @Failure      401      {object}  utils.HTTPError   "Invalid email or password"
+// @Failure      403      {object}  utils.HTTPError   "User is blocked"
+// @Failure      500      {object}  utils.HTTPError   "Internal server error (e.g., token generation failed)"
 // @Router       /auth/login [post]
 func (ac *AuthController) Login(c *gin.Context) {
 	var request models.LoginRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		e.ErrorResponseWithErr(c, http.StatusBadRequest, err)
+		utils.ErrorResponseWithErr(c, http.StatusBadRequest, err)
 		return
 	}
 
 	user, err := ac.userRepo.GetUserByEmail(c.Request.Context(), request.Email)
 	if err != nil {
-		e.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
+		utils.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
 
 	if user.Blocked {
-		e.ErrorResponse(c, http.StatusForbidden, "User is blocked")
+		utils.ErrorResponse(c, http.StatusForbidden, "User is blocked")
 		return
 	}
 
 	if err := utils.CompareHashPassword(user.Password, request.Password); err != nil {
 		ac.loginAttemptsService.AddLoginAttempt(c, user.Id, c.Request.RemoteAddr, c.Request.UserAgent(), false)
-		e.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
+		utils.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
 
@@ -139,9 +139,9 @@ func (ac *AuthController) Login(c *gin.Context) {
 // @Produce      json
 // @Param        provider  path      string  true  "Provider name"
 // @Success      200  {object}   map[string]interface{}
-// @Failure      400  {object}   errors.HTTPError
-// @Failure      401  {object}   errors.HTTPError
-// @Failure      500  {object}   errors.HTTPError
+// @Failure      400  {object}   utils.HTTPError
+// @Failure      401  {object}   utils.HTTPError
+// @Failure      500  {object}   utils.HTTPError
 // @Router       /auth/{provider} [get]
 func (ac *AuthController) BeginAuth(c *gin.Context) {
 	provider := c.Param("provider")
@@ -161,22 +161,22 @@ func (ac *AuthController) BeginAuth(c *gin.Context) {
 // @Produce      json
 // @Param        provider  path      string  true  "Provider name"
 // @Success      200  {object}   map[string]interface{}
-// @Failure      400  {object}   errors.HTTPError
-// @Failure      401  {object}   errors.HTTPError
-// @Failure      500  {object}   errors.HTTPError
+// @Failure      400  {object}   utils.HTTPError
+// @Failure      401  {object}   utils.HTTPError
+// @Failure      500  {object}   utils.HTTPError
 // @Router       /auth/{provider}/callback [get]
 func (ac *AuthController) CompleteAuth(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "provider", c.Param("provider"))
 	user, err := gothic.CompleteUserAuth(c.Writer, c.Request.WithContext(ctx))
 	if err != nil {
-		e.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	existingUser, err := ac.userRepo.GetUserByEmail(ctx, user.Email)
 	if err != nil {
 		// User not found, create a new one
-		if errors.Is(err, e.ErrNotFound) {
+		if errors.Is(err, repositories.ErrNotFound) {
 			newUser := models.CreateUserRequest{
 				Name:    user.Name,
 				Surname: user.LastName,
@@ -185,7 +185,7 @@ func (ac *AuthController) CompleteAuth(c *gin.Context) {
 
 			id, err := ac.userRepo.CreateUser(ctx, newUser, false)
 			if err != nil {
-				e.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+				utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 				return
 			}
 
@@ -194,7 +194,7 @@ func (ac *AuthController) CompleteAuth(c *gin.Context) {
 			existingUser.Surname = user.LastName
 			existingUser.Email = user.Email
 		} else {
-			e.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -230,7 +230,7 @@ func (ac *AuthController) AuthMiddlewarefunc(ctx *gin.Context) {
 	tokenStr := getAuthToken(ctx)
 	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
-		e.ErrorResponseWithErr(ctx, http.StatusUnauthorized, err)
+		utils.ErrorResponseWithErr(ctx, http.StatusUnauthorized, err)
 		ctx.Abort()
 		return
 	}
@@ -238,13 +238,13 @@ func (ac *AuthController) AuthMiddlewarefunc(ctx *gin.Context) {
 	uId, _ := strconv.Atoi(claims.Subject)
 	blocked, err := ac.userRepo.IsUserBlocked(ctx.Request.Context(), uId)
 	if err != nil {
-		e.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		ctx.Abort()
 		return
 	}
 
 	if blocked {
-		e.ErrorResponse(ctx, http.StatusForbidden, "User is blocked")
+		utils.ErrorResponse(ctx, http.StatusForbidden, "User is blocked")
 		// Make Cookie Expire
 		ctx.SetCookie("Authorization", "", -1, "/", "", false, true)
 		ctx.Abort()

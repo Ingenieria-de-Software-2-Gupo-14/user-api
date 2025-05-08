@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -130,7 +129,7 @@ func TestDatabase_GetUser_NoRows(t *testing.T) {
 	database := CreateUserRepo(db)
 
 	_, err = database.GetUser(ctx, 1)
-	assert.Error(t, err, errors.ErrNotFound)
+	assert.Error(t, err, ErrNotFound)
 }
 
 func TestDatabase_GetAllUsers(t *testing.T) {
@@ -253,7 +252,7 @@ func TestDatabase_GetUserByEmail_NoRows(t *testing.T) {
 	database := CreateUserRepo(db)
 
 	_, err = database.GetUserByEmail(ctx, email)
-	assert.Error(t, errors.ErrNotFound)
+	assert.Error(t, ErrNotFound)
 }
 
 func TestDatabase_DeleteUser(t *testing.T) {

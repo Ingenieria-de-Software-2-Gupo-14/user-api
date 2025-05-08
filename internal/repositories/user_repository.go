@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 
 	_ "github.com/lib/pq"
@@ -57,7 +56,7 @@ func (db userRepository) GetUser(ctx context.Context, id int) (*models.User, err
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.ErrNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -145,7 +144,7 @@ func (db userRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.ErrNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}

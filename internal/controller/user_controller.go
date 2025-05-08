@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	services "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,7 +32,7 @@ func CreateController(service services.UserService) *UserController {
 func (c UserController) UsersGet(context *gin.Context) {
 	users, err := c.service.GetAllUsers(context.Request.Context())
 	if err != nil {
-		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
+		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -53,13 +53,13 @@ func (c UserController) UsersGet(context *gin.Context) {
 func (c UserController) UserGetById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
-		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
+		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
 
 	user, err := c.service.GetUserById(context.Request.Context(), id)
 	if err != nil {
-		errors.ErrorResponse(context, http.StatusNotFound, "User not found")
+		utils.ErrorResponse(context, http.StatusNotFound, "User not found")
 		return
 	}
 
@@ -80,12 +80,12 @@ func (c UserController) UserGetById(context *gin.Context) {
 func (controller UserController) UserDeleteById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
-		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
+		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
 
 	if err := controller.service.DeleteUser(context.Request.Context(), id); err != nil {
-		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
+		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 	context.JSON(http.StatusNoContent, nil)
@@ -105,12 +105,12 @@ func (controller UserController) UserDeleteById(context *gin.Context) {
 func (c UserController) ModifyUser(context *gin.Context) {
 	var user models.User
 	if err := context.ShouldBindJSON(&user); err != nil {
-		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
+		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 
 	if err := c.service.ModifyUser(context.Request.Context(), &user); err != nil {
-		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
+		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -133,15 +133,15 @@ func (c UserController) ModifyUserLocation(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	var user models.User
 	if err != nil {
-		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
+		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
 	if err := context.ShouldBindJSON(&user); err != nil {
-		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
+		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 	if err := c.service.ModifyLocation(context, id, user.Location); err != nil {
-		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
+		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 	context.JSON(http.StatusOK, nil)
@@ -161,13 +161,13 @@ func (c UserController) ModifyUserLocation(context *gin.Context) {
 func (c UserController) BlockUserById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
-		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
+		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
 
 	// TODO: Add reason and blockerId
 	if err := c.service.BlockUser(context.Request.Context(), id, "", nil, nil); err != nil {
-		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
+		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 

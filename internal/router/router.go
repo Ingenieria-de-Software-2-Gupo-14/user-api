@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -29,7 +29,7 @@ func CreateRouter(config config.Config) *gin.Engine {
 
 	r.GET("/health", func(ctx *gin.Context) {
 		if err := deps.DB.Ping(); err != nil {
-			errors.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 			return
 		}
 
