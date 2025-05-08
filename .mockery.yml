@@ -1,6 +1,6 @@
 all: false
 dir: '{{.InterfaceDir}}'
-filename: mocks_test.go
+filename: mocks.go
 force-file-write: true
 formatter: goimports
 log-level: info
@@ -11,7 +11,7 @@ require-template-schema-exists: true
 template: testify
 template-schema: '{{.Template}}.schema.json'
 packages:
-  ing-soft-2-tp1:
+  github.com/Ingenieria-de-Software-2-Gupo-14/user-api:
     config:
-      all: True
-      recursive: True
+      all: true
+      recursive: true

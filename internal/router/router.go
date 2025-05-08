@@ -1,23 +1,19 @@
 package router
 
 import (
-	"database/sql"
-	"ing-soft-2-tp1/internal/auth"
-	"ing-soft-2-tp1/internal/controller"
-	"ing-soft-2-tp1/internal/repositories"
-	"ing-soft-2-tp1/internal/services"
+	"fmt"
+	"net/http"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 // CreateRouter creates and return a Router with its corresponding end points
-func CreateRouter(db *sql.DB) *gin.Engine {
+func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r := gin.Default()
-
-	userRepo := repositories.CreateUserRepo(db)
-	userService := services.NewUserService(userRepo)
-	cont := controller.CreateController(userService)
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"}, // frontend address here
@@ -27,22 +23,37 @@ func CreateRouter(db *sql.DB) *gin.Engine {
 		AllowCredentials: true, // if you need cookies or auth headers
 	}))
 
+	deps, err := NewDependencies(&config)
+	if err != nil {
+		return nil, fmt.Errorf("error creating dependencies: %w", err)
+	}
+
 	r.GET("/health", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{"status": "ok"})
+		if err := deps.DB.Ping(); err != nil {
+			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{"stats": deps.DB.Stats()})
 	})
 
-	auth.AddAuthRoutes(r, userRepo)
+	// Auth routes
+	auth := r.Group("/auth")
+	auth.GET("/:provider", deps.Controllers.AuthController.BeginAuth)
+	auth.GET("/:provider/callback", deps.Controllers.AuthController.CompleteAuth)
+	auth.POST("/users", deps.Controllers.AuthController.Register(false))
+	auth.POST("/admins", deps.Controllers.AuthController.Register(true))
+	auth.POST("/login", deps.Controllers.AuthController.Login)
+	auth.GET("/logout", deps.Controllers.AuthController.Logout)
 
-	r.POST("/users", cont.RegisterUser)
-	r.POST("/admins", cont.RegisterAdmin)
-	r.GET("/users", cont.UsersGet)
-	r.POST("/users/modify", cont.ModifyUser)
-	r.POST("/login", cont.UserLogin)
-	r.GET("/users/:id", auth.AuthMiddleware(userRepo), cont.UserGetById)
-	r.DELETE("/users/:id", auth.AuthMiddleware(userRepo), cont.UserDeleteById)
-	r.PUT("/users/block/:id", cont.BlockUserById)
-	r.PUT("/users/:id/location", cont.ModifyUserLocation)
-	return r
+	// User routes
+	r.GET("/users", deps.Controllers.UserController.UsersGet)
+	r.POST("/users/modify", deps.Controllers.UserController.ModifyUser)
+	r.GET("/users/:id", deps.Controllers.UserController.UserGetById)
+	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
+	r.PUT("/users/block/:id", deps.Controllers.UserController.BlockUserById)
+	r.PUT("/users/:id/location", deps.Controllers.UserController.ModifyUserLocation)
+	return r, nil
 }
 
 func SetEnviroment(env string) {
