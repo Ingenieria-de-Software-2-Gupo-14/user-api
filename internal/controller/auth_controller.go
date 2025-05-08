@@ -116,6 +116,11 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
+	if user.Blocked {
+		e.ErrorResponse(c, http.StatusForbidden, "User is blocked")
+		return
+	}
+
 	if err := utils.CompareHashPassword(user.Password, request.Password); err != nil {
 		ac.loginAttemptsService.AddLoginAttempt(c, user.Id, c.Request.RemoteAddr, c.Request.UserAgent(), false)
 		e.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")

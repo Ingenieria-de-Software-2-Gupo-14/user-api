@@ -29,7 +29,7 @@ func (db *BlockedUserDB) BlockUser(ctx context.Context, blockedUserID int, reaso
 	query := `
 		INSERT INTO blocked_users (blocked_user_id, reason, blocker_id, blocked_until, created_at)
 		VALUES ($1, $2, $3, $4, $5)`
-	_, err := db.DB.ExecContext(ctx, query, blockedUserID, reason, blockerID, blockedUntil, time.Now())
+	_, err := db.DB.ExecContext(ctx, query, blockedUserID, reason, blockerID, blockedUntil, time.Now().UTC())
 	return err
 }
 

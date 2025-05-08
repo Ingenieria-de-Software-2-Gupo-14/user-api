@@ -2,6 +2,9 @@
 run:
 	go run ./cmd/api
 
+migrate:
+	go run ./cmd/migrations
+
 test:
 	go test ./...
 

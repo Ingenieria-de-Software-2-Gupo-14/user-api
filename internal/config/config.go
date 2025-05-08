@@ -68,5 +68,11 @@ func (config *Config) CreateDatabase() (*sql.DB, error) {
 		return nil, err
 	}
 
+	// Set timezone to UTC for all sessions
+	_, err = db.Exec("SET timezone TO 'UTC';")
+	if err != nil {
+		return nil, fmt.Errorf("failed to set timezone to UTC: %w", err)
+	}
+
 	return db, nil
 }

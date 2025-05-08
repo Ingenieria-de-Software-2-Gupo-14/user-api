@@ -28,7 +28,7 @@ func (db *LoginAttemptDB) AddLoginAttempt(ctx context.Context, userID int, ipAdd
 	query := `
 		INSERT INTO login_attempts (user_id, ip_address, user_agent, successful, created_at)
 		VALUES ($1, $2, $3, $4, $5)`
-	_, err := db.DB.ExecContext(ctx, query, userID, ipAddress, userAgent, successful, time.Now())
+	_, err := db.DB.ExecContext(ctx, query, userID, ipAddress, userAgent, successful, time.Now().UTC())
 	return err
 }
 
