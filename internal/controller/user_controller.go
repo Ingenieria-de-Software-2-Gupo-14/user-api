@@ -11,17 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type UserService interface {
-	DeleteUser(ctx context.Context, id int) error
-	CreateUser(ctx context.Context, request CreateUserRequest, admin bool) (*User, error)
-	GetUserById(ctx context.Context, id int) (*User, error)
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
-	GetAllUsers(ctx context.Context) (users []User, err error)
-	ModifyUser(ctx context.Context, user *User) error
-	BlockUser(ctx context.Context, id int) error
-	ModifyLocation(ctx context.Context, id int, newLocation string) error
-	ModifyPassword(ctx context.Context, id int, password string) error
-}
 // UserController struct that contains a database with users
 type UserController struct {
 	service services.UserService
@@ -136,14 +125,14 @@ func (c UserController) ModifyUser(context *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        id        path      int         true  "User ID"
-// @Param        location  body      models.User  true  "User with updated location"
+// @Param        location  body      models.LocationModifyRequest  true  "User with updated location"
 // @Success      200       {object}  nil          "Location updated successfully"
 // @Failure      400       {object}  errors.HTTPError  "Invalid user ID format or request"
 // @Failure      500       {object}  errors.HTTPError  "Internal server error"
 // @Router       /users/{id}/location [put]
 func (c UserController) ModifyUserLocation(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
-	var user models.User
+	var user models.LocationModifyRequest
 	if err != nil {
 		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
@@ -185,19 +174,32 @@ func (c UserController) BlockUserById(context *gin.Context) {
 
 	context.String(http.StatusOK, "User blocked successfully")
 }
+
+// ModifyUserPasssword godoc
+// @Summary      Modify user password
+// @Description  Updates the password of a specific user
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id        path      int         true  "User ID"
+// @Param        password  body      models.PasswordModifyRequest  true  "User with updated password"
+// @Success      200       {object}  nil          "Pasword updated successfully"
+// @Failure      400       {object}  errors.HTTPError  "Invalid user ID format or request"
+// @Failure      500       {object}  errors.HTTPError  "Internal server error"
+// @Router       /users/{id}/password [put]
 func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
 	var id, err = strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, ctx.Request.URL.Path))
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	var user User
+	var user models.PasswordModifyRequest
 	if err := ctx.ShouldBindJSON(&user); err != nil {
-		ctx.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, ctx.Request.URL.Path))
+		utils.ErrorResponseWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
 	if c.service.ModifyPassword(ctx.Request.Context(), id, user.Password) != nil {
-		ctx.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, ctx.Request.URL.Path))
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, nil)

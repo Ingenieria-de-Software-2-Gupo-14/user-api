@@ -103,5 +103,5 @@ func (s *userService) ModifyPassword(ctx context.Context, id int, password strin
 	if err != nil {
 		return err
 	}
-	return s.db.ModifyPassword(ctx, id, hashPassword)
+	return s.userRepo.ModifyPassword(ctx, id, hashPassword)
 }
