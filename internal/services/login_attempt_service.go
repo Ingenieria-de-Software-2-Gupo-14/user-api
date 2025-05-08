@@ -2,9 +2,10 @@ package services
 
 import (
 	"context"
-	"ing-soft-2-tp1/internal/models"
-	"ing-soft-2-tp1/internal/repositories"
 	"time"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 )
 
 const (

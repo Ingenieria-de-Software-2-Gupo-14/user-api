@@ -1,10 +1,12 @@
 package services
 
 import (
-	"github.com/stretchr/testify/assert"
-	"ing-soft-2-tp1/internal/models"
 	"net/http"
 	"testing"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const TEST_INSTANCE = "test"

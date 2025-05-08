@@ -1,10 +1,11 @@
 package controller
 
 import (
-	. "ing-soft-2-tp1/internal/models"
-	services "ing-soft-2-tp1/internal/services"
 	"net/http"
 	"strconv"
+
+	. "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	services "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,8 +15,8 @@ type UserController struct {
 }
 
 // CreateController creates a controller
-func CreateController(service services.UserService) UserController {
-	return UserController{service: service}
+func CreateController(service services.UserService) *UserController {
+	return &UserController{service: service}
 }
 
 func (c UserController) RegisterUser(context *gin.Context) {
@@ -132,7 +133,7 @@ func (c UserController) ModifyUserLocation(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
 		return
 	}
-	if c.service.ModifyLocation(context, id, *user.Location) != nil {
+	if c.service.ModifyLocation(context, id, user.Location) != nil {
 		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
 		return
 	}

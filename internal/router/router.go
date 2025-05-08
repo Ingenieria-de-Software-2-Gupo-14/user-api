@@ -1,23 +1,18 @@
 package router
 
 import (
-	"database/sql"
-	"ing-soft-2-tp1/internal/auth"
-	"ing-soft-2-tp1/internal/controller"
-	"ing-soft-2-tp1/internal/repositories"
-	"ing-soft-2-tp1/internal/services"
+	"net/http"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 // CreateRouter creates and return a Router with its corresponding end points
-func CreateRouter(db *sql.DB) *gin.Engine {
+func CreateRouter(config config.Config) *gin.Engine {
 	r := gin.Default()
-
-	userRepo := repositories.CreateUserRepo(db)
-	_ = services.NewUserService(userRepo)
-	cont := controller.CreateController(nil)
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"}, // frontend address here
@@ -27,21 +22,36 @@ func CreateRouter(db *sql.DB) *gin.Engine {
 		AllowCredentials: true, // if you need cookies or auth headers
 	}))
 
+	deps, err := NewDependencies(&config)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	r.GET("/health", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{"status": "ok"})
+		if err := deps.DB.Ping(); err != nil {
+			errors.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		stats := deps.DB.Stats()
+		ctx.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+			"stats":  stats,
+		})
 	})
 
-	auth.AddAuthRoutes(r, userRepo)
+	// Auth routes
+	r.GET("/auth/:provider", deps.Controllers.AuthController.BeginAuth)
+	r.GET("/auth/:provider/callback", deps.Controllers.AuthController.CompleteAuth)
+	r.GET("/auth/logout", deps.Controllers.AuthController.Logout)
 
-	r.POST("/users", cont.RegisterUser)
-	r.POST("/admins", cont.RegisterAdmin)
-	r.GET("/users", cont.UsersGet)
-	r.POST("/users/modify", cont.ModifyUser)
-	r.POST("/login", cont.UserLogin)
-	r.GET("/users/:id", auth.AuthMiddleware(userRepo), cont.UserGetById)
-	r.DELETE("/users/:id", auth.AuthMiddleware(userRepo), cont.UserDeleteById)
-	r.PUT("/users/block/:id", cont.BlockUserById)
-	r.PUT("/users/:id/location", cont.ModifyUserLocation)
+	r.POST("/users", deps.Controllers.UserController.RegisterUser)
+	r.POST("/admins", deps.Controllers.UserController.RegisterAdmin)
+	r.GET("/users", deps.Controllers.UserController.UsersGet)
+	r.POST("/users/modify", deps.Controllers.UserController.ModifyUser)
+	r.GET("/users/:id", deps.Controllers.UserController.UserGetById)
+	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
+	r.PUT("/users/block/:id", deps.Controllers.UserController.BlockUserById)
+	r.PUT("/users/:id/location", deps.Controllers.UserController.ModifyUserLocation)
 	return r
 }
 

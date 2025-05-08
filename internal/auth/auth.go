@@ -2,15 +2,16 @@ package auth
 
 import (
 	"errors"
-	"ing-soft-2-tp1/internal/config"
-	e "ing-soft-2-tp1/internal/errors"
-	"ing-soft-2-tp1/internal/models"
-	"ing-soft-2-tp1/internal/services"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
+	e "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth"
@@ -27,14 +28,19 @@ func NewAuth(config config.Config) {
 
 type AuthController struct {
 	userRepo             services.UserService
-	blockService         services.BlockedUserService
 	loginAttemptsService services.LoginAttemptService
 }
 
-func NewAuthController(userRepo services.UserService) *AuthController {
+func NewAuthController(userRepo services.UserService, loginAttemptsService services.LoginAttemptService) *AuthController {
 	return &AuthController{
-		userRepo: userRepo,
+		userRepo:             userRepo,
+		loginAttemptsService: loginAttemptsService,
 	}
+}
+
+type authResponse struct {
+	User  models.User `json:"user"`
+	Token string      `json:"token"`
 }
 
 // finishAuth finish the authentication process by generating a token and setting it in the cookie
@@ -51,36 +57,70 @@ func (ac *AuthController) finishAuth(ctx *gin.Context, user models.User) {
 		return
 	}
 
+	ac.loginAttemptsService.AddLoginAttempt(ctx, user.Id, ctx.Request.RemoteAddr, ctx.Request.UserAgent(), true)
+
 	ctx.SetSameSite(http.SameSiteLaxMode)
 	ctx.SetCookie("Authorization", token, 3600, "/", "", false, true)
-	ctx.Redirect(http.StatusTemporaryRedirect, "/")
+	ctx.JSON(http.StatusOK, authResponse{
+		User:  user,
+		Token: token,
+	})
 }
 
-// BeginAuth initiates the authentication process for the specified provider
-func (ac *AuthController) BeginAuth(c *gin.Context) {
-	provider := c.Param("provider")
-	if provider != "direct" {
-		r := c.Request.WithContext(context.WithValue(c.Request.Context(), "provider", c.Param("provider")))
-		gothic.BeginAuthHandler(c.Writer, r)
+func (ac *AuthController) Login(c *gin.Context) {
+	var request models.LoginRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		e.ErrorResponseWithErr(c, http.StatusBadRequest, err)
 		return
 	}
 
-	email := c.Query("email")
-	password := c.Query("password")
-	if email == "" || password == "" {
-		e.ErrorResponse(c, http.StatusBadRequest, "Email and password are required")
-		return
-	}
-
-	user, err := ac.userRepo.Login(c.Request.Context(), email, password)
+	user, err := ac.userRepo.Login(c.Request.Context(), request.Email, request.Password)
 	if err != nil {
-		e.ErrorResponse(c, http.StatusUnauthorized, "Invalid credentials")
+		if !errors.Is(err, e.ErrNotFound) {
+			ac.loginAttemptsService.AddLoginAttempt(c, user.Id, c.Request.RemoteAddr, c.Request.UserAgent(), false)
+		}
+		e.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
 		return
 	}
 
 	ac.finishAuth(c, *user)
 }
 
+// BeginAuth godoc
+//
+// @Summary      Begin authentication
+// @Description  Begin authentication with the specified provider
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        provider  path      string  true  "Provider name"
+// @Success      200  {object}   authResponse
+// @Failure      400  {object}   e.HTTPError
+// @Failure      401  {object}   e.HTTPError
+// @Failure      500  {object}   e.HTTPError
+// @Router       /auth/{provider} [get]
+func (ac *AuthController) BeginAuth(c *gin.Context) {
+	provider := c.Param("provider")
+	ctx := context.WithValue(c.Request.Context(), "provider", provider)
+	r := c.Request.WithContext(ctx)
+
+	gothic.BeginAuthHandler(c.Writer, r)
+
+}
+
+// CompleteAuth godoc
+//
+// @Summary      Complete authentication
+// @Description  Complete authentication with the specified provider
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        provider  path      string  true  "Provider name"
+// @Success      200  {object}   authResponse
+// @Failure      400  {object}   e.HTTPError
+// @Failure      401  {object}   e.HTTPError
+// @Failure      500  {object}   e.HTTPError
+// @Router       /auth/{provider}/callback [get]
 func (ac *AuthController) CompleteAuth(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "provider", c.Param("provider"))
 	user, err := gothic.CompleteUserAuth(c.Writer, c.Request.WithContext(ctx))
@@ -101,7 +141,7 @@ func (ac *AuthController) CompleteAuth(c *gin.Context) {
 
 			user, err := ac.userRepo.CreateUser(ctx, newUser, false)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+				e.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 				return
 			}
 
@@ -115,20 +155,17 @@ func (ac *AuthController) CompleteAuth(c *gin.Context) {
 	ac.finishAuth(c, *existingUser)
 }
 
+// Logout godoc
+//
+// @Summary      Logout
+// @Description  Logout the user by clearing the cookie
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Success      307
 func (ac *AuthController) Logout(c *gin.Context) {
-	if _, err := c.Cookie("Authorization"); err != nil {
-		e.ErrorResponse(c, http.StatusBadRequest, "No cookie found")
-		return
-	}
-
 	c.SetCookie("Authorization", "", -1, "/", "", false, true)
 	c.Redirect(http.StatusTemporaryRedirect, "/")
-}
-
-func AddAuthRoutes(r *gin.Engine, userRepo services.UserService) {
-	authController := NewAuthController(userRepo)
-	r.GET("/auth/:provider", authController.BeginAuth)
-	r.GET("/auth/:provider/callback", authController.CompleteAuth)
 }
 
 func getAuthToken(c *gin.Context) string {

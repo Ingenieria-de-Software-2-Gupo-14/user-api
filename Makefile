@@ -13,6 +13,9 @@ docker-build:
 docker-run:
 	docker-compose up --build
 
+swaggo:
+	swag init -g ./cmd/api/main.go -o ./docs
+
 # Limpiar archivos generados
 clean:
 	rm -f main

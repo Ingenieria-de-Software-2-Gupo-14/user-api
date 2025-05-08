@@ -3,8 +3,9 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"ing-soft-2-tp1/internal/errors"
-	"ing-soft-2-tp1/internal/models"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 
 	_ "github.com/lib/pq"
 )

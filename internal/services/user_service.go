@@ -2,9 +2,10 @@ package services
 
 import (
 	"context"
-	"ing-soft-2-tp1/internal/models"
-	"ing-soft-2-tp1/internal/repositories"
-	"ing-soft-2-tp1/internal/utils"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 )
 
 type UserService interface {
@@ -99,4 +100,18 @@ func (s *userService) Login(ctx context.Context, email string, password string) 
 func (s *userService) IsUserBlocked(ctx context.Context, id int) (bool, error) {
 	block, _, err := s.blockedUserRepo.IsUserBlocked(ctx, id)
 	return block, err
+}
+
+func (s *userService) BlockUser(ctx context.Context, id int) error {
+	blockedUser, err := s.userRepo.GetUser(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	err = s.blockedUserRepo.BlockUser(ctx, blockedUser.Id, "", nil, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

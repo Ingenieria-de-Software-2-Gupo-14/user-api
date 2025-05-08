@@ -20,10 +20,10 @@ type User struct {
 	Surname      string    `json:"surname" db:"surname"`
 	Password     string    `json:"-" db:"password"`
 	Email        string    `json:"email" db:"email"`
-	Location     *string   `json:"location,omitempty" db:"location"`
+	Location     string    `json:"location,omitempty" db:"location"`
 	Admin        bool      `json:"admin" db:"admin"`
 	ProfilePhoto *string   `json:"profile_photo,omitempty" db:"profile_photo"`
-	Description  *string   `json:"description,omitempty" db:"description"`
+	Description  string    `json:"description,omitempty" db:"description"`
 	Phone        *string   `json:"phone,omitempty" db:"phone"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`

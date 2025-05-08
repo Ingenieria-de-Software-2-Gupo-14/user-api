@@ -1,8 +1,9 @@
 package services
 
 import (
-	. "ing-soft-2-tp1/internal/models"
 	"net/http"
+
+	. "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 )
 
 // CreateErrorResponse creates and returns an error response struct according to the status code, in case of not recognizing the status code and internal server error response is created

@@ -4,7 +4,7 @@ package mocks
 
 import (
 	context "context"
-	models "ing-soft-2-tp1/internal/models"
+	models "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 
 	mock "github.com/stretchr/testify/mock"
 )

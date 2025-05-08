@@ -1,4 +1,4 @@
-module ing-soft-2-tp1
+module github.com/Ingenieria-de-Software-2-Gupo-14/user-api
 
 go 1.24
 
@@ -15,6 +15,7 @@ require (
 	github.com/pressly/goose v2.7.0+incompatible
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.36.0
+	golang.org/x/net v0.38.0
 )
 
 require (
@@ -56,7 +57,6 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.15.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.17.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect

@@ -62,7 +62,7 @@ func LoadConfig() Config {
 	}
 }
 
-func CreateDatabase(config Config) (*sql.DB, error) {
+func (config *Config) CreateDatabase() (*sql.DB, error) {
 	db, err := sql.Open("postgres", config.DatabaseURL)
 	if err != nil {
 		return nil, err

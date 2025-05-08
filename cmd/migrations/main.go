@@ -1,9 +1,10 @@
 package main
 
 import (
-	"ing-soft-2-tp1/internal/config"
 	"log"
 	"log/slog"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 
 	"github.com/pressly/goose"
 )
@@ -11,7 +12,7 @@ import (
 func main() {
 	cfg := config.LoadConfig() // lee las variables de entorno
 
-	db, err := config.CreateDatabase(cfg)
+	db, err := cfg.CreateDatabase()
 	if err != nil {
 		log.Fatal("Error creating database", err)
 	}
