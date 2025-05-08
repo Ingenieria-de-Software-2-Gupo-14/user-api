@@ -14,7 +14,7 @@ import (
 type BlockedUserRepository interface {
 	BlockUser(ctx context.Context, blockedUserID int, reason string, blockerID *int, blockedUntil *time.Time) error
 	UnblockUser(ctx context.Context, blockedUserID int) error
-	IsUserBlocked(ctx context.Context, userID int) (bool, *models.BlockedUser, error)
+	GetBlocksByUserId(ctx context.Context, userID int) ([]models.BlockedUser, error)
 }
 
 type BlockedUserDB struct {
@@ -36,7 +36,7 @@ func (db *BlockedUserDB) BlockUser(ctx context.Context, blockedUserID int, reaso
 func (db *BlockedUserDB) UnblockUser(ctx context.Context, blockedUserID int) error {
 	query := `
 		UPDATE blocked_users
-		SET blocked_until = NOW()
+		SET blocked_until = NOW(), reason = reason || ' [UNBLOCK]'
 		WHERE blocked_user_id = $1 AND (blocked_until IS NULL OR blocked_until > NOW())
 		`
 	_, err := db.DB.ExecContext(ctx, query, blockedUserID)
@@ -50,32 +50,28 @@ func (db *BlockedUserDB) UnblockUser(ctx context.Context, blockedUserID int) err
 	return nil // Desbloqueo exitoso
 }
 
-func (db *BlockedUserDB) IsUserBlocked(ctx context.Context, userID int) (bool, *models.BlockedUser, error) {
+func (db *BlockedUserDB) GetBlocksByUserId(ctx context.Context, userID int) ([]models.BlockedUser, error) {
 	query := `
 		SELECT id, created_at, blocked_until, reason, blocker_id, blocked_user_id
 		FROM blocked_users
-		WHERE blocked_user_id = $1 AND (blocked_until IS NULL OR blocked_until > NOW())
-		ORDER BY created_at DESC
-		LIMIT 1`
+		WHERE blocked_user_id = $1
+		ORDER BY created_at DESC`
 
-	row := db.DB.QueryRowContext(ctx, query, userID)
-	var blockedInfo models.BlockedUser
-
-	err := row.Scan(
-		&blockedInfo.Id,
-		&blockedInfo.CreatedAt,
-		&blockedInfo.BlockedUntil,
-		&blockedInfo.Reason,
-		&blockedInfo.BlockerId,
-		&blockedInfo.BlockedUserId,
-	)
-
+	rows, err := db.DB.QueryContext(ctx, query, userID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil, nil // No está bloqueado
-		}
-		return false, nil, err // Otro error de base de datos
+		return nil, err
 	}
 
-	return true, &blockedInfo, nil // Está bloqueado
+	defer rows.Close()
+
+	var blocks []models.BlockedUser
+	for rows.Next() {
+		var block models.BlockedUser
+		if err := rows.Scan(&block.Id, &block.CreatedAt, &block.BlockedUntil, &block.Reason, &block.BlockerId, &block.BlockedUserId); err != nil {
+			return nil, err
+		}
+		blocks = append(blocks, block)
+	}
+
+	return blocks, nil
 }

@@ -32,20 +32,20 @@ func CreateRouter(config config.Config) *gin.Engine {
 			errors.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		stats := deps.DB.Stats()
-		ctx.JSON(http.StatusOK, gin.H{
-			"status": "ok",
-			"stats":  stats,
-		})
+
+		ctx.JSON(http.StatusOK, gin.H{"stats": deps.DB.Stats()})
 	})
 
 	// Auth routes
-	r.GET("/auth/:provider", deps.Controllers.AuthController.BeginAuth)
-	r.GET("/auth/:provider/callback", deps.Controllers.AuthController.CompleteAuth)
-	r.GET("/auth/logout", deps.Controllers.AuthController.Logout)
+	auth := r.Group("/auth")
+	auth.GET("/:provider", deps.Controllers.AuthController.BeginAuth)
+	auth.GET("/:provider/callback", deps.Controllers.AuthController.CompleteAuth)
+	auth.POST("/users", deps.Controllers.AuthController.Register(false))
+	auth.POST("/admins", deps.Controllers.AuthController.Register(true))
+	auth.POST("/login", deps.Controllers.AuthController.Login)
+	auth.GET("/logout", deps.Controllers.AuthController.Logout)
 
-	r.POST("/users", deps.Controllers.UserController.RegisterUser)
-	r.POST("/admins", deps.Controllers.UserController.RegisterAdmin)
+	// User routes
 	r.GET("/users", deps.Controllers.UserController.UsersGet)
 	r.POST("/users/modify", deps.Controllers.UserController.ModifyUser)
 	r.GET("/users/:id", deps.Controllers.UserController.UserGetById)

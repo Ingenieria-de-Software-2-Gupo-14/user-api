@@ -1,4 +1,4 @@
-package auth
+package models
 
 import (
 	"errors"
@@ -15,14 +15,6 @@ var (
 	ErrMissingDataField = errors.New("missing data field")
 	ErrJWTValidation    = jwt.NewValidationError("invalid signing method", jwt.ValidationErrorSignatureInvalid)
 )
-
-type JWTInfo struct {
-	UserId int    `json:"user_id"`
-	Email  string `json:"email"`
-	Admin  bool   `json:"admin"`
-	Exp    int64  `json:"exp"`
-	Iat    int64  `json:"iat"`
-}
 
 type Claims struct {
 	jwt.StandardClaims

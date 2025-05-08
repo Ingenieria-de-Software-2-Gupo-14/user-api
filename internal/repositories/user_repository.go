@@ -137,7 +137,7 @@ func (db userRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 
 	row := db.DB.QueryRowContext(ctx, query, email)
 	var user models.User
-	// Eliminada la columna bad_login_attempts del Scan
+
 	err := row.Scan(
 		&user.Id, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location,
 		&user.Admin, &user.ProfilePhoto, &user.Description, &user.Phone, &user.CreatedAt,

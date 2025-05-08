@@ -88,65 +88,59 @@ func (_c *MockBlockedUserRepository_BlockUser_Call) RunAndReturn(run func(ctx co
 	return _c
 }
 
-// IsUserBlocked provides a mock function for the type MockBlockedUserRepository
-func (_mock *MockBlockedUserRepository) IsUserBlocked(ctx context.Context, userID int) (bool, *models.BlockedUser, error) {
+// GetBlocksByUserId provides a mock function for the type MockBlockedUserRepository
+func (_mock *MockBlockedUserRepository) GetBlocksByUserId(ctx context.Context, userID int) ([]models.BlockedUser, error) {
 	ret := _mock.Called(ctx, userID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for IsUserBlocked")
+		panic("no return value specified for GetBlocksByUserId")
 	}
 
-	var r0 bool
-	var r1 *models.BlockedUser
-	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) (bool, *models.BlockedUser, error)); ok {
+	var r0 []models.BlockedUser
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) ([]models.BlockedUser, error)); ok {
 		return returnFunc(ctx, userID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) bool); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) []models.BlockedUser); ok {
 		r0 = returnFunc(ctx, userID)
 	} else {
-		r0 = ret.Get(0).(bool)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int) *models.BlockedUser); ok {
-		r1 = returnFunc(ctx, userID)
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(*models.BlockedUser)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]models.BlockedUser)
 		}
 	}
-	if returnFunc, ok := ret.Get(2).(func(context.Context, int) error); ok {
-		r2 = returnFunc(ctx, userID)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = returnFunc(ctx, userID)
 	} else {
-		r2 = ret.Error(2)
+		r1 = ret.Error(1)
 	}
-	return r0, r1, r2
+	return r0, r1
 }
 
-// MockBlockedUserRepository_IsUserBlocked_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'IsUserBlocked'
-type MockBlockedUserRepository_IsUserBlocked_Call struct {
+// MockBlockedUserRepository_GetBlocksByUserId_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetBlocksByUserId'
+type MockBlockedUserRepository_GetBlocksByUserId_Call struct {
 	*mock.Call
 }
 
-// IsUserBlocked is a helper method to define mock.On call
+// GetBlocksByUserId is a helper method to define mock.On call
 //   - ctx
 //   - userID
-func (_e *MockBlockedUserRepository_Expecter) IsUserBlocked(ctx interface{}, userID interface{}) *MockBlockedUserRepository_IsUserBlocked_Call {
-	return &MockBlockedUserRepository_IsUserBlocked_Call{Call: _e.mock.On("IsUserBlocked", ctx, userID)}
+func (_e *MockBlockedUserRepository_Expecter) GetBlocksByUserId(ctx interface{}, userID interface{}) *MockBlockedUserRepository_GetBlocksByUserId_Call {
+	return &MockBlockedUserRepository_GetBlocksByUserId_Call{Call: _e.mock.On("GetBlocksByUserId", ctx, userID)}
 }
 
-func (_c *MockBlockedUserRepository_IsUserBlocked_Call) Run(run func(ctx context.Context, userID int)) *MockBlockedUserRepository_IsUserBlocked_Call {
+func (_c *MockBlockedUserRepository_GetBlocksByUserId_Call) Run(run func(ctx context.Context, userID int)) *MockBlockedUserRepository_GetBlocksByUserId_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(int))
 	})
 	return _c
 }
 
-func (_c *MockBlockedUserRepository_IsUserBlocked_Call) Return(b bool, blockedUser *models.BlockedUser, err error) *MockBlockedUserRepository_IsUserBlocked_Call {
-	_c.Call.Return(b, blockedUser, err)
+func (_c *MockBlockedUserRepository_GetBlocksByUserId_Call) Return(blockedUsers []models.BlockedUser, err error) *MockBlockedUserRepository_GetBlocksByUserId_Call {
+	_c.Call.Return(blockedUsers, err)
 	return _c
 }
 
-func (_c *MockBlockedUserRepository_IsUserBlocked_Call) RunAndReturn(run func(ctx context.Context, userID int) (bool, *models.BlockedUser, error)) *MockBlockedUserRepository_IsUserBlocked_Call {
+func (_c *MockBlockedUserRepository_GetBlocksByUserId_Call) RunAndReturn(run func(ctx context.Context, userID int) ([]models.BlockedUser, error)) *MockBlockedUserRepository_GetBlocksByUserId_Call {
 	_c.Call.Return(run)
 	return _c
 }

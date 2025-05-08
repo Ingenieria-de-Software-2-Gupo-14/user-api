@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/auth"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/controller"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
@@ -19,14 +18,13 @@ type Dependencies struct {
 }
 
 type Controllers struct {
-	AuthController *auth.AuthController
+	AuthController *controller.AuthController
 	UserController *controller.UserController
 }
 
 type Services struct {
 	UserService  services.UserService
 	LoginService services.LoginAttemptService
-	BlockService services.BlockedUserService
 }
 
 type Repositories struct {
@@ -46,12 +44,11 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	loginRepo := repositories.NewLoginAttemptRepository(db)
 	blockRepo := repositories.NewBlockedUserRepository(db)
 	// Services
-	userService := services.NewUserService(userRepo)
+	userService := services.NewUserService(userRepo, blockRepo)
 	loginService := services.NewLoginAttemptService(loginRepo, blockRepo)
-	blockService := services.NewBlockedUserService(blockRepo)
 
 	// Controllers
-	authController := auth.NewAuthController(userService, loginService)
+	authController := controller.NewAuthController(userService, loginService)
 	userController := controller.CreateController(userService)
 
 	return &Dependencies{
@@ -63,7 +60,6 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 		Services: Services{
 			UserService:  userService,
 			LoginService: loginService,
-			BlockService: blockService,
 		},
 		Repositories: Repositories{
 			UserRepository:  userRepo,

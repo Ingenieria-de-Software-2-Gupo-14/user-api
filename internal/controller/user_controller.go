@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	. "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/errors"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	services "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -19,140 +20,156 @@ func CreateController(service services.UserService) *UserController {
 	return &UserController{service: service}
 }
 
-func (c UserController) RegisterUser(context *gin.Context) {
-	var request CreateUserRequest
-	ctx := context.Request.Context()
-	if err := context.Bind(&request); err != nil {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
-		return
-	}
-
-	if _, err := c.service.GetUserByEmail(ctx, request.Email); err == nil {
-		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
-		return
-	}
-
-	user, err := c.service.CreateUser(context.Request.Context(), request, false)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
-		return
-	}
-
-	context.JSON(http.StatusCreated, ResponseUser{User: *user})
-}
-
-// UsersGet sends all users to the API context, even if there are none
+// UsersGet godoc
+// @Summary      Get all users
+// @Description  Returns a list of all users in the system
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string][]models.User  "List of users"
+// @Failure      500  {object}  errors.HTTPError          "Internal server error"
+// @Router       /users [get]
 func (c UserController) UsersGet(context *gin.Context) {
 	users, err := c.service.GetAllUsers(context.Request.Context())
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
-	response := ResponseUsers{Users: users}
-	context.JSON(http.StatusOK, response)
+
+	context.JSON(http.StatusOK, gin.H{"data": users})
 }
 
-// UserGetById sends response with the corresponding user with a status code 200, if the user isn't in the database it'll send a status code 404 not found
+// UserGetById godoc
+// @Summary      Get user by ID
+// @Description  Returns a specific user by their ID
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {object}  map[string]models.User  "User data"
+// @Failure      400  {object}  errors.HTTPError        "Invalid user ID format"
+// @Failure      404  {object}  errors.HTTPError        "User not found"
+// @Router       /users/{id} [get]
 func (c UserController) UserGetById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
 
-	user, ok := c.service.GetUserById(context.Request.Context(), id)
-	if ok != nil {
-		context.JSON(http.StatusNotFound, services.CreateErrorResponse(StatusUserNotFound, context.Request.URL.Path))
+	user, err := c.service.GetUserById(context.Request.Context(), id)
+	if err != nil {
+		errors.ErrorResponse(context, http.StatusNotFound, "User not found")
 		return
 	}
 
-	context.JSON(http.StatusOK, ResponseUser{User: *user})
+	context.JSON(http.StatusOK, gin.H{"data": user})
 }
 
-// UserDeleteById removes user from database corresponding to id receive in context body, responds with code 204 "no content" in case of successful and 404 in case of user not found
+// UserDeleteById godoc
+// @Summary      Delete user by ID
+// @Description  Removes a user from the database
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "User ID"
+// @Success      204  {object}  nil  "User successfully deleted"
+// @Failure      400  {object}  errors.HTTPError  "Invalid user ID format"
+// @Failure      500  {object}  errors.HTTPError  "Internal server error"
+// @Router       /users/{id} [delete]
 func (controller UserController) UserDeleteById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
 
 	if err := controller.service.DeleteUser(context.Request.Context(), id); err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 	context.JSON(http.StatusNoContent, nil)
 }
 
-func (controller UserController) RegisterAdmin(context *gin.Context) {
-	var createUserRequest CreateUserRequest
-
-	if err := context.Bind(&createUserRequest); err != nil {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
-		return
-	}
-
-	if _, err := controller.service.GetUserByEmail(context.Request.Context(), createUserRequest.Email); err == nil {
-		context.JSON(http.StatusConflict, services.CreateErrorResponse(http.StatusConflict, context.Request.URL.Path))
-		return
-	}
-
-	user, err := controller.service.CreateUser(context.Request.Context(), createUserRequest, true)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
-		return
-	}
-
-	context.JSON(http.StatusCreated, ResponseUser{User: *user})
-}
-
+// ModifyUser godoc
+// @Summary      Modify user
+// @Description  Updates user information
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        user  body      models.User  true  "Updated user data"
+// @Success      200   {object}  map[string]models.User  "Updated user data"
+// @Failure      400   {object}  errors.HTTPError        "Invalid request format"
+// @Failure      500   {object}  errors.HTTPError        "Internal server error"
+// @Router       /users/modify [post]
 func (c UserController) ModifyUser(context *gin.Context) {
-	var user User
-
+	var user models.User
 	if err := context.ShouldBindJSON(&user); err != nil {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 
 	if err := c.service.ModifyUser(context.Request.Context(), &user); err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 
-	context.JSON(http.StatusOK, ResponseUser{User: user})
+	context.JSON(http.StatusOK, gin.H{"data": user})
 }
 
+// ModifyUserLocation godoc
+// @Summary      Modify user location
+// @Description  Updates the location of a specific user
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id        path      int         true  "User ID"
+// @Param        location  body      models.User  true  "User with updated location"
+// @Success      200       {object}  nil          "Location updated successfully"
+// @Failure      400       {object}  errors.HTTPError  "Invalid user ID format or request"
+// @Failure      500       {object}  errors.HTTPError  "Internal server error"
+// @Router       /users/{id}/location [put]
 func (c UserController) ModifyUserLocation(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
-	var user User
+	var user models.User
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
 	if err := context.ShouldBindJSON(&user); err != nil {
-		context.JSON(http.StatusBadRequest, services.CreateErrorResponse(http.StatusBadRequest, context.Request.URL.Path))
+		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
 		return
 	}
-	if c.service.ModifyLocation(context, id, user.Location) != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+	if err := c.service.ModifyLocation(context, id, user.Location); err != nil {
+		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 	context.JSON(http.StatusOK, nil)
 }
 
+// BlockUserById godoc
+// @Summary      Block user
+// @Description  Blocks a user by ID
+// @Tags         Users
+// @Accept       json
+// @Produce      plain
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {string}  string  "User blocked successfully"
+// @Failure      400  {object}  errors.HTTPError  "Invalid user ID format"
+// @Failure      500  {object}  errors.HTTPError  "Internal server error"
+// @Router       /users/block/{id} [put]
 func (c UserController) BlockUserById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
+		errors.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
-	if c.service.BlockUser(context, id) != nil {
-		context.JSON(http.StatusInternalServerError, services.CreateErrorResponse(http.StatusInternalServerError, context.Request.URL.Path))
-		return
-	}
-	context.JSON(http.StatusOK, nil)
-}
 
-func (ct UserController) ValidateToken(c *gin.Context) {
-	c.JSON(http.StatusOK, c.Request.Context().Value("jwt_info"))
+	// TODO: Add reason and blockerId
+	if err := c.service.BlockUser(context.Request.Context(), id, "", nil, nil); err != nil {
+		errors.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
+		return
+	}
+
+	context.String(http.StatusOK, "User blocked successfully")
 }

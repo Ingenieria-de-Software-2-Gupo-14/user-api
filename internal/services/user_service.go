@@ -2,42 +2,42 @@ package services
 
 import (
 	"context"
+	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
+	repo "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 )
 
 type UserService interface {
 	DeleteUser(ctx context.Context, id int) error
-	CreateUser(ctx context.Context, request models.CreateUserRequest, admin bool) (*models.User, error)
+	CreateUser(ctx context.Context, request models.CreateUserRequest, admin bool) (int, error)
 	GetUserById(ctx context.Context, id int) (*models.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	GetAllUsers(ctx context.Context) (users []models.User, err error)
 	ModifyUser(ctx context.Context, user *models.User) error
-	BlockUser(ctx context.Context, id int) error
+	BlockUser(ctx context.Context, id int, reason string, blockerId *int, blockedUntil *time.Time) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
-	Login(ctx context.Context, email string, password string) (*models.User, error)
 	IsUserBlocked(ctx context.Context, id int) (bool, error)
 }
 
 type userService struct {
-	userRepo        repositories.UserRepository
-	blockedUserRepo repositories.BlockedUserRepository
+	userRepo      repo.UserRepository
+	blockUserRepo repo.BlockedUserRepository
 }
 
-func NewUserService(db repositories.UserRepository) *userService {
-	return &userService{userRepo: db}
+func NewUserService(userRepo repo.UserRepository, blockedUserRepo repo.BlockedUserRepository) *userService {
+	return &userService{userRepo: userRepo, blockUserRepo: blockedUserRepo}
 }
 
 func (s *userService) DeleteUser(ctx context.Context, id int) error {
 	return s.userRepo.DeleteUser(ctx, id)
 }
 
-func (s *userService) CreateUser(ctx context.Context, request models.CreateUserRequest, admin bool) (*models.User, error) {
+func (s *userService) CreateUser(ctx context.Context, request models.CreateUserRequest, admin bool) (int, error) {
 	hashPassword, err := utils.HashPassword(request.Password)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	user := &models.User{
@@ -48,18 +48,7 @@ func (s *userService) CreateUser(ctx context.Context, request models.CreateUserR
 		Admin:    admin,
 	}
 
-	id, err := s.userRepo.AddUser(ctx, user)
-	if err != nil {
-		return nil, err
-	}
-
-	createdUser, err := s.userRepo.GetUser(ctx, id)
-	if err != nil {
-		user.Id = id
-		return user, nil
-	}
-
-	return createdUser, nil
+	return s.userRepo.AddUser(ctx, user)
 }
 
 func (s *userService) GetUserById(ctx context.Context, id int) (*models.User, error) {
@@ -82,34 +71,27 @@ func (s *userService) ModifyLocation(ctx context.Context, id int, newLocation st
 	return s.userRepo.ModifyLocation(ctx, id, newLocation)
 }
 
-// Login handles user login
-// It checks if the user exists and if the password is correct
-func (s *userService) Login(ctx context.Context, email string, password string) (*models.User, error) {
-	user, err := s.userRepo.GetUserByEmail(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := utils.CompareHashPassword(user.Password, password); err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
 func (s *userService) IsUserBlocked(ctx context.Context, id int) (bool, error) {
-	block, _, err := s.blockedUserRepo.IsUserBlocked(ctx, id)
-	return block, err
+	blocks, err := s.blockUserRepo.GetBlocksByUserId(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	return len(blocks) > 0, nil
 }
 
-func (s *userService) BlockUser(ctx context.Context, id int) error {
-	blockedUser, err := s.userRepo.GetUser(ctx, id)
-	if err != nil {
+func (s *userService) BlockUser(
+	ctx context.Context,
+	userId int,
+	reason string,
+	blockerId *int,
+	blockedUntil *time.Time,
+) error {
+	if _, err := s.userRepo.GetUser(ctx, userId); err != nil {
 		return err
 	}
 
-	err = s.blockedUserRepo.BlockUser(ctx, blockedUser.Id, "", nil, nil)
-	if err != nil {
+	if err := s.blockUserRepo.BlockUser(ctx, userId, reason, blockerId, blockedUntil); err != nil {
 		return err
 	}
 
