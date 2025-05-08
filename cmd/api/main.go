@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	_ "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/docs"
 	apiconfig "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/router"
 	"github.com/markbates/goth"
