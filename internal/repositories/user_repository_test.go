@@ -331,3 +331,18 @@ func TestDatabase_ModifyUser(t *testing.T) {
 	err = database.ModifyUser(ctx, &user)
 	assert.NoError(t, err)
 }
+
+func TestDatabase_ModifyPassword(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectExec(`UPDATE users SET password = \$1 where id = \$2`).WithArgs("test", 1).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	ctx := context.Background()
+
+	database := CreateUserRepo(db)
+
+	err = database.ModifyPassword(ctx, 1, "test")
+	assert.NoError(t, err)
+}

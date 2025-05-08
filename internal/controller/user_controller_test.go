@@ -204,3 +204,58 @@ func TestModifyUserLocation_Success(t *testing.T) {
 	// Check response
 	assert.Equal(t, http.StatusOK, recorder.Code)
 }
+
+func TestUserController_ModifyPassword(t *testing.T) {
+	mockService, c, recorder, controller := setupTest(t)
+
+	newPassword := "TEST_PASSWORD"
+
+	gin.SetMode(gin.TestMode)
+
+	expectedRequest := models.PasswordModifyRequest{
+		Password: newPassword,
+	}
+
+	jsonBody, _ := json.Marshal(expectedRequest)
+
+	req, _ := http.NewRequest(http.MethodPost, "/users/1/password", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mockService.On("ModifyPassword", c.Request.Context(), 1, newPassword).Return(nil)
+
+	controller.ModifyUserPasssword(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestUserController_ModifyPassword_WrongParam(t *testing.T) {
+	_, c, recorder, controller := setupTest(t)
+
+	newPassword := "TEST_PASSWORD"
+
+	gin.SetMode(gin.TestMode)
+
+	expectedRequest := models.PasswordModifyRequest{
+		Password: newPassword,
+	}
+
+	jsonBody, _ := json.Marshal(expectedRequest)
+
+	req, _ := http.NewRequest(http.MethodPost, "/users/a/password", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "a"}}
+	c.Request = req
+
+	controller.ModifyUserPasssword(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	var result models.ErrorResponse
+	err := json.Unmarshal(recorder.Body.Bytes(), &result)
+	if err != nil {
+		return
+	}
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}

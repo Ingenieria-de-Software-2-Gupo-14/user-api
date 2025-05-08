@@ -53,6 +53,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
 	r.PUT("/users/block/:id", deps.Controllers.UserController.BlockUserById)
 	r.PUT("/users/:id/location", deps.Controllers.UserController.ModifyUserLocation)
+	r.PUT("/users/:id/password", deps.Controllers.UserController.ModifyUserPasssword)
 	return r, nil
 }
 

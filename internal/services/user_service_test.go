@@ -226,3 +226,18 @@ func TestUserService_IsUserBlocked(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, blocked)
 }
+
+func TestUserService_ModifyPassword(t *testing.T) {
+	newPassword := "TEST_PASSWORD"
+
+	mockUserRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+
+	service := services.NewUserService(mockUserRepo, mockBlockedRepo)
+	ctx := context.Background()
+
+	mockUserRepo.On("ModifyPassword", ctx, 1, mock.Anything).Return(nil)
+
+	err := service.ModifyPassword(ctx, 1, newPassword)
+	assert.NoError(t, err)
+}

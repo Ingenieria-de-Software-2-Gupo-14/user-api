@@ -19,6 +19,7 @@ type UserService interface {
 	BlockUser(ctx context.Context, id int, reason string, blockerId *int, blockedUntil *time.Time) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
 	IsUserBlocked(ctx context.Context, id int) (bool, error)
+	ModifyPassword(ctx context.Context, id int, password string) error
 }
 
 type userService struct {
@@ -96,4 +97,11 @@ func (s *userService) BlockUser(
 	}
 
 	return nil
+}
+func (s *userService) ModifyPassword(ctx context.Context, id int, password string) error {
+	hashPassword, err := utils.HashPassword(password)
+	if err != nil {
+		return err
+	}
+	return s.userRepo.ModifyPassword(ctx, id, hashPassword)
 }

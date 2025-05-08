@@ -21,6 +21,7 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	ModifyUser(ctx context.Context, user *models.User) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
+	ModifyPassword(ctx context.Context, id int, password string) error
 }
 
 type userRepository struct {
@@ -170,6 +171,12 @@ func (db userRepository) ModifyLocation(ctx context.Context, id int, newLocation
 	return err
 }
 
+func (db userRepository) ModifyPassword(ctx context.Context, id int, password string) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE users SET password = $1 where id = $2", password, id)
+	return err
+}
+
+//id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description
 // Eliminar Implementación de métodos IncrementBadLoginAttempts y ResetBadLoginAttempts
 // func (db userRepository) IncrementBadLoginAttempts(...) { ... }
 // func (db userRepository) ResetBadLoginAttempts(...) { ... }

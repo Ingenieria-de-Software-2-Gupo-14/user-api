@@ -14,6 +14,14 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type PasswordModifyRequest struct {
+	Password string `json:"password" binding:"required,min=8,max=60"`
+}
+
+type LocationModifyRequest struct {
+	Location string `json:"location" binding:"required"`
+}
+
 type User struct {
 	Id           int       `json:"id" db:"id"`
 	Name         string    `json:"name" db:"name"`

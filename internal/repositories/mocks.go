@@ -726,6 +726,53 @@ func (_c *MockUserRepository_ModifyLocation_Call) RunAndReturn(run func(ctx cont
 	return _c
 }
 
+// ModifyPassword provides a mock function for the type MockUserRepository
+func (_mock *MockUserRepository) ModifyPassword(ctx context.Context, id int, password string) error {
+	ret := _mock.Called(ctx, id, password)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ModifyPassword")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, string) error); ok {
+		r0 = returnFunc(ctx, id, password)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserRepository_ModifyPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ModifyPassword'
+type MockUserRepository_ModifyPassword_Call struct {
+	*mock.Call
+}
+
+// ModifyPassword is a helper method to define mock.On call
+//   - ctx
+//   - id
+//   - password
+func (_e *MockUserRepository_Expecter) ModifyPassword(ctx interface{}, id interface{}, password interface{}) *MockUserRepository_ModifyPassword_Call {
+	return &MockUserRepository_ModifyPassword_Call{Call: _e.mock.On("ModifyPassword", ctx, id, password)}
+}
+
+func (_c *MockUserRepository_ModifyPassword_Call) Run(run func(ctx context.Context, id int, password string)) *MockUserRepository_ModifyPassword_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_ModifyPassword_Call) Return(err error) *MockUserRepository_ModifyPassword_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserRepository_ModifyPassword_Call) RunAndReturn(run func(ctx context.Context, id int, password string) error) *MockUserRepository_ModifyPassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ModifyUser provides a mock function for the type MockUserRepository
 func (_mock *MockUserRepository) ModifyUser(ctx context.Context, user *models.User) error {
 	ret := _mock.Called(ctx, user)
