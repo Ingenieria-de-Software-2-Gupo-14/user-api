@@ -1,5 +1,7 @@
 # go-template
 
+[![codecov](https://codecov.io/gh/Ingenieria-de-Software-2-Gupo-14/user-api/graph/badge.svg?token=E1LZ14J5QR)](https://codecov.io/gh/Ingenieria-de-Software-2-Gupo-14/user-api)
+
 ## Descripción
 
 go-template es un proyecto de ejemplo de go que utiliza Docker y Docker Compose para crear un entorno de desarrollo y despliegue.
