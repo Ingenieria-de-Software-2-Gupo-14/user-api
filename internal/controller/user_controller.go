@@ -28,7 +28,7 @@ func CreateController(service services.UserService) *UserController {
 // @Accept       json
 // @Produce      json
 // @Success      200  {object}  map[string][]models.User  "List of users"
-// @Failure      500  {object}  errors.HTTPError          "Internal server error"
+// @Failure      500  {object}  utils.HTTPError          "Internal server error"
 // @Router       /users [get]
 func (c UserController) UsersGet(context *gin.Context) {
 	users, err := c.service.GetAllUsers(context.Request.Context())
@@ -48,8 +48,8 @@ func (c UserController) UsersGet(context *gin.Context) {
 // @Produce      json
 // @Param        id   path      int  true  "User ID"
 // @Success      200  {object}  map[string]models.User  "User data"
-// @Failure      400  {object}  errors.HTTPError        "Invalid user ID format"
-// @Failure      404  {object}  errors.HTTPError        "User not found"
+// @Failure      400  {object}  utils.HTTPError        "Invalid user ID format"
+// @Failure      404  {object}  utils.HTTPError        "User not found"
 // @Router       /users/{id} [get]
 func (c UserController) UserGetById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
@@ -75,8 +75,8 @@ func (c UserController) UserGetById(context *gin.Context) {
 // @Produce      json
 // @Param        id   path      int  true  "User ID"
 // @Success      204  {object}  nil  "User successfully deleted"
-// @Failure      400  {object}  errors.HTTPError  "Invalid user ID format"
-// @Failure      500  {object}  errors.HTTPError  "Internal server error"
+// @Failure      400  {object}  utils.HTTPError  "Invalid user ID format"
+// @Failure      500  {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/{id} [delete]
 func (controller UserController) UserDeleteById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
@@ -100,8 +100,8 @@ func (controller UserController) UserDeleteById(context *gin.Context) {
 // @Produce      json
 // @Param        user  body      models.User  true  "Updated user data"
 // @Success      200   {object}  map[string]models.User  "Updated user data"
-// @Failure      400   {object}  errors.HTTPError        "Invalid request format"
-// @Failure      500   {object}  errors.HTTPError        "Internal server error"
+// @Failure      400   {object}  utils.HTTPError        "Invalid request format"
+// @Failure      500   {object}  utils.HTTPError        "Internal server error"
 // @Router       /users/modify [post]
 func (c UserController) ModifyUser(context *gin.Context) {
 	var user models.User
@@ -127,8 +127,8 @@ func (c UserController) ModifyUser(context *gin.Context) {
 // @Param        id        path      int         true  "User ID"
 // @Param        location  body      models.LocationModifyRequest  true  "User with updated location"
 // @Success      200       {object}  nil          "Location updated successfully"
-// @Failure      400       {object}  errors.HTTPError  "Invalid user ID format or request"
-// @Failure      500       {object}  errors.HTTPError  "Internal server error"
+// @Failure      400       {object}  utils.HTTPError  "Invalid user ID format or request"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/{id}/location [put]
 func (c UserController) ModifyUserLocation(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
@@ -156,8 +156,8 @@ func (c UserController) ModifyUserLocation(context *gin.Context) {
 // @Produce      plain
 // @Param        id   path      int  true  "User ID"
 // @Success      200  {string}  string  "User blocked successfully"
-// @Failure      400  {object}  errors.HTTPError  "Invalid user ID format"
-// @Failure      500  {object}  errors.HTTPError  "Internal server error"
+// @Failure      400  {object}  utils.HTTPError  "Invalid user ID format"
+// @Failure      500  {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/block/{id} [put]
 func (c UserController) BlockUserById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
@@ -184,8 +184,8 @@ func (c UserController) BlockUserById(context *gin.Context) {
 // @Param        id        path      int         true  "User ID"
 // @Param        password  body      models.PasswordModifyRequest  true  "User with updated password"
 // @Success      200       {object}  nil          "Pasword updated successfully"
-// @Failure      400       {object}  errors.HTTPError  "Invalid user ID format or request"
-// @Failure      500       {object}  errors.HTTPError  "Internal server error"
+// @Failure      400       {object}  utils.HTTPError  "Invalid user ID format or request"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/{id}/password [put]
 func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
 	var id, err = strconv.Atoi(ctx.Param("id"))
