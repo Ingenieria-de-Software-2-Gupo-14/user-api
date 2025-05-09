@@ -13,6 +13,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/markbates/goth v1.81.0
 	github.com/pressly/goose v2.7.0+incompatible
+	github.com/sethvargo/go-password v0.3.1
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0

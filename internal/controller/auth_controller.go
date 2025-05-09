@@ -20,12 +20,14 @@ import (
 type AuthController struct {
 	userRepo             services.UserService
 	loginAttemptsService services.LoginAttemptService
+	verificationService  services.VerificationService
 }
 
-func NewAuthController(userRepo services.UserService, loginAttemptsService services.LoginAttemptService) *AuthController {
+func NewAuthController(userRepo services.UserService, loginAttemptsService services.LoginAttemptService, verificationService services.VerificationService) *AuthController {
 	return &AuthController{
 		userRepo:             userRepo,
 		loginAttemptsService: loginAttemptsService,
+		verificationService:  verificationService,
 	}
 }
 
