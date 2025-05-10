@@ -2,8 +2,6 @@ package router
 
 import (
 	"database/sql"
-	"time"
-
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/controller"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
@@ -53,9 +51,6 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	authController := controller.NewAuthController(userService, loginService, verificationService)
 	userController := controller.CreateController(userService)
 
-	//Routines
-	verificationCleanup(verificationRepo)
-
 	return &Dependencies{
 		DB: db,
 		Controllers: Controllers{
@@ -73,16 +68,4 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 		},
 	}, nil
 
-}
-
-func verificationCleanup(repository repositories.VerificationRepository) {
-	go func() {
-		for {
-			err := repository.DeleteExpired()
-			if err != nil {
-				return
-			}
-			time.Sleep(10 * time.Minute)
-		}
-	}()
 }
