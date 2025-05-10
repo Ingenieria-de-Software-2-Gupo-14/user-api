@@ -46,6 +46,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	auth.POST("/admins", deps.Controllers.AuthController.Register(true))
 	auth.POST("/login", deps.Controllers.AuthController.Login)
 	auth.GET("/logout", deps.Controllers.AuthController.Logout)
+	auth.PUT("/users/verify/resend", deps.Controllers.AuthController.ResendPin)
 
 	// User routes
 	r.GET("/users", deps.Controllers.UserController.UsersGet)

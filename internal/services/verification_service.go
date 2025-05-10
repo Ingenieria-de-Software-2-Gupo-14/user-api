@@ -15,6 +15,7 @@ type VerificationService interface {
 	CreatePendingVerification(ctx context.Context, request models.CreateUserRequest, admin bool) (string, error)
 	GetPendingVerificationByEmail(ctx context.Context, email string) (*models.UserVerification, error)
 	DeleteByEmail(ctx context.Context, email string) error
+	UpdatePin(ctx context.Context, email string) (string, error)
 }
 
 type verificationService struct {
@@ -55,4 +56,12 @@ func (s *verificationService) GetPendingVerificationByEmail(ctx context.Context,
 
 func (s *verificationService) DeleteByEmail(ctx context.Context, email string) error {
 	return s.verificationRepo.DeleteByEmail(ctx, email)
+}
+
+func (s *verificationService) UpdatePin(ctx context.Context, email string) (string, error) {
+	pin, errPin := password.Generate(6, 2, 0, false, true)
+	if errPin != nil {
+		return "", errPin
+	}
+	return pin, s.verificationRepo.UpdatePin(ctx, email, pin)
 }

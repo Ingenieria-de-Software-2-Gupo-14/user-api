@@ -2,6 +2,8 @@ package controller
 
 import (
 	"errors"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,9 +18,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
 	"golang.org/x/net/context"
-
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
 type AuthController struct {
@@ -363,7 +362,24 @@ func sendPinByEmail(pin string, userEmail string) error {
 	return err
 }
 
-/*func (ac *AuthController) ResendPin(c *gin.Context) {
+func (ac *AuthController) ResendPin(c *gin.Context) {
 	tokenStr, _ := c.Cookie("Verification")
 	claims, err := models.ParseToken(tokenStr)
-}*/
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+	println(claims.Email)
+	pin, err := ac.verificationService.UpdatePin(c.Request.Context(), claims.Email)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+	err = sendPinByEmail(pin, claims.Email)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+	println(pin)
+	c.JSON(http.StatusOK, nil)
+}
