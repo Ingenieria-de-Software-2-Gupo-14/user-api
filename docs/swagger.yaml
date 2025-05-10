@@ -21,6 +21,11 @@ definitions:
     - password
     - surname
     type: object
+  models.EmailVerifiaction:
+    properties:
+      pin:
+        type: string
+    type: object
   models.LocationModifyRequest:
     properties:
       location:
@@ -171,7 +176,9 @@ paths:
       consumes:
       - application/json
       description: Registers a new user. The 'admin' flag (passed during route setup,
-        not an API param) determines if an admin user is created.
+        not an API param) determines if an admin user is created. Incase of user registration
+        it starts the verifcation process, the user won't be saved on the database
+        unless the process is finished
       parameters:
       - description: User Registration Details
         in: body
@@ -263,7 +270,9 @@ paths:
       consumes:
       - application/json
       description: Registers a new user. The 'admin' flag (passed during route setup,
-        not an API param) determines if an admin user is created.
+        not an API param) determines if an admin user is created. Incase of user registration
+        it starts the verifcation process, the user won't be saved on the database
+        unless the process is finished
       parameters:
       - description: User Registration Details
         in: body
@@ -293,6 +302,56 @@ paths:
           schema:
             $ref: '#/definitions/utils.HTTPError'
       summary: Register a new user
+      tags:
+      - Auth
+  /auth/users/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify the new user's registration using a Pin sent to the users
+        email
+      parameters:
+      - description: Email Verification Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.EmailVerifiaction'
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: User Verified and created successfully
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Verify a new user's registration
+      tags:
+      - Auth
+  /auth/users/verify/resend:
+    put:
+      consumes:
+      - application/json
+      description: Sends a new Verification Pin to email saved in verification cookie
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: New Pin sent successfully
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Sends a new Verification
       tags:
       - Auth
   /users:

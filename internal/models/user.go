@@ -46,3 +46,17 @@ type BlockedUser struct {
 	BlockerId     *int       `json:"blocker_id,omitempty" db:"blocker_id"` // Puntero para permitir nulos (bloqueo del sistema)
 	BlockedUserId int        `json:"blocked_user_id" db:"blocked_user_id"`
 }
+
+type UserVerification struct {
+	Id              int       `json:"id" db:"id"`
+	Email           string    `json:"email" db:"email"`
+	Name            string    `json:"name" db:"name"`
+	Surname         string    `json:"surname" db:"surname"`
+	Password        string    `json:"password" db:"password"`
+	VerificationPin string    `json:"pin" db:"verification_pin"`
+	PinExpiration   time.Time `json:"pin_expiration" db:"pin_expiration"`
+}
+
+type EmailVerifiaction struct {
+	VerificationPin string `json:"pin" db:"verification_pin"`
+}

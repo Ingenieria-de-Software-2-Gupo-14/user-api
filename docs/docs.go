@@ -26,7 +26,7 @@ const docTemplate = `{
     "paths": {
         "/auth/admins": {
             "post": {
-                "description": "Registers a new user. The 'admin' flag (passed during route setup, not an API param) determines if an admin user is created.",
+                "description": "Registers a new user. The 'admin' flag (passed during route setup, not an API param) determines if an admin user is created. Incase of user registration it starts the verifcation process, the user won't be saved on the database unless the process is finished",
                 "consumes": [
                     "application/json"
                 ],
@@ -163,7 +163,7 @@ const docTemplate = `{
         },
         "/auth/users": {
             "post": {
-                "description": "Registers a new user. The 'admin' flag (passed during route setup, not an API param) determines if an admin user is created.",
+                "description": "Registers a new user. The 'admin' flag (passed during route setup, not an API param) determines if an admin user is created. Incase of user registration it starts the verifcation process, the user won't be saved on the database unless the process is finished",
                 "consumes": [
                     "application/json"
                 ],
@@ -206,6 +206,81 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/utils.HTTPError"
                         }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/users/verify": {
+            "post": {
+                "description": "Verify the new user's registration using a Pin sent to the users email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Verify a new user's registration",
+                "parameters": [
+                    {
+                        "description": "Email Verification Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.EmailVerifiaction"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User Verified and created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/users/verify/resend": {
+            "put": {
+                "description": "Sends a new Verification Pin to email saved in verification cookie",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Sends a new Verification",
+                "responses": {
+                    "200": {
+                        "description": "New Pin sent successfully"
                     },
                     "500": {
                         "description": "Internal server error",
@@ -660,6 +735,14 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 60,
                     "minLength": 3
+                }
+            }
+        },
+        "models.EmailVerifiaction": {
+            "type": "object",
+            "properties": {
+                "pin": {
+                    "type": "string"
                 }
             }
         },
