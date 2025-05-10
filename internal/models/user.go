@@ -56,3 +56,9 @@ type UserVerification struct {
 	VerificationPin string    `json:"pin" db:"verification_pin"`
 	PinExpiration   time.Time `json:"pin_expiration" db:"pin_expiration"`
 }
+
+type EmailVerifiaction struct {
+	Email           string `json:"email" db:"email"`
+	VerificationPin string `json:"pin" db:"verification_pin"`
+	Admin           bool   `json:"admin" db:"admin"`
+}

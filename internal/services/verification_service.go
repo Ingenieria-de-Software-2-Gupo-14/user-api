@@ -6,7 +6,6 @@ import (
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	repo "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 	"github.com/sethvargo/go-password/password"
 )
 
@@ -14,7 +13,7 @@ const PinLifeTime = 5
 
 type VerificationService interface {
 	CreatePendingVerification(ctx context.Context, request models.CreateUserRequest, admin bool) (string, error)
-	GetPendingVerificationByEmail(ctx context.Context, email string) (models.UserVerification, error)
+	GetPendingVerificationByEmail(ctx context.Context, email string) (*models.UserVerification, error)
 	DeleteByEmail(ctx context.Context, email string) error
 }
 
@@ -27,23 +26,23 @@ func NewVerificationService(verificationRepo repo.VerificationRepository) *verif
 }
 
 func (s *verificationService) CreatePendingVerification(ctx context.Context, request models.CreateUserRequest, admin bool) (string, error) {
-	hashPassword, err := utils.HashPassword(request.Password)
+	/*hashPassword, err := utils.HashPassword(request.Password)
 	if err != nil {
 		return "", err
-	}
+	}*/
 	pin, errPin := password.Generate(6, 2, 0, false, true)
 	if errPin != nil {
-		return "", err
+		return "", errPin
 	}
 	user := &models.UserVerification{
 		Email:           request.Email,
 		Name:            request.Name,
 		Surname:         request.Surname,
-		Password:        hashPassword,
+		Password:        request.Password,
 		VerificationPin: pin,
 		PinExpiration:   time.Now().Add(PinLifeTime * time.Minute),
 	}
-	_, err = s.verificationRepo.AddPendingVerification(ctx, user)
+	_, err := s.verificationRepo.AddPendingVerification(ctx, user)
 	if err != nil {
 		return "", err
 	}

@@ -13,6 +13,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/markbates/goth v1.81.0
 	github.com/pressly/goose v2.7.0+incompatible
+	github.com/sendgrid/sendgrid-go v3.16.0+incompatible
 	github.com/sethvargo/go-password v0.3.1
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/files v1.0.1
@@ -64,6 +65,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect

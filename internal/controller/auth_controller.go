@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
 	"golang.org/x/net/context"
+
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
 type AuthController struct {
@@ -57,14 +61,60 @@ func (ac *AuthController) Register(admin bool) gin.HandlerFunc {
 			return
 		}
 
-		id, err := ac.userRepo.CreateUser(c.Request.Context(), request, admin)
-		if err != nil {
-			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-			return
-		}
+		if admin == true {
+			ac.registerAdmin(c, request)
 
-		c.JSON(http.StatusCreated, gin.H{"id": id})
+		} else {
+			ac.registerUser(c, request)
+		}
+		return
+
 	}
+}
+
+func (ac *AuthController) VerifyRegistration(c *gin.Context) {
+	var request models.EmailVerifiaction
+	ctx := c.Request.Context()
+	if err := c.Bind(&request); err != nil {
+		println(err)
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	if request.Email == "" || request.VerificationPin == "" {
+		println("faltan datos")
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	println(request.Email)
+	verification, err := ac.verificationService.GetPendingVerificationByEmail(ctx, request.Email)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	if time.Now().After(verification.PinExpiration) {
+		utils.ErrorResponseWithErr(c, http.StatusGone, err)
+		return
+	}
+
+	if verification.VerificationPin != request.VerificationPin {
+		utils.ErrorResponseWithErr(c, http.StatusBadRequest, err)
+		return
+	}
+
+	id, err := ac.userRepo.CreateUser(c.Request.Context(), models.CreateUserRequest{
+		Email:    verification.Email,
+		Password: verification.Password,
+		Name:     verification.Name,
+		Surname:  verification.Surname,
+	}, request.Admin)
+
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.SetCookie("Verification", "", -1, "/", "", false, true)
 }
 
 // finishAuth finish the authentication process by generating a token and setting it in the cookie
@@ -267,3 +317,53 @@ func (ac *AuthController) AuthMiddlewarefunc(ctx *gin.Context) {
 	ctx.Set("claims", claims)
 	ctx.Next()
 }
+
+func (ac *AuthController) registerAdmin(c *gin.Context, request models.CreateUserRequest) {
+	id, err := ac.userRepo.CreateUser(c.Request.Context(), request, true)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func (ac *AuthController) registerUser(c *gin.Context, request models.CreateUserRequest) {
+	//id, err := ac.userRepo.CreateUser(c.Request.Context(), request, admin)
+	pin, err := ac.verificationService.CreatePendingVerification(c.Request.Context(), request, false)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+	sendPinByEmail(pin, request.Email)
+	println(pin)
+	token, err := models.GenerateToken(0, request.Email, request.Name, false)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.SetSameSite(http.SameSiteLaxMode)
+
+	c.SetCookie("Verification", token, 3600, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+	})
+}
+
+func sendPinByEmail(pin string, userEmail string) error {
+	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
+	subject := "Verification Code"
+	to := mail.NewEmail("User", userEmail)
+	content := mail.NewContent("text/plain", "Your verification code is "+pin)
+	message := mail.NewV3MailInit(from, subject, to, content)
+
+	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
+	_, err := client.Send(message)
+	return err
+}
+
+/*func (ac *AuthController) ResendPin(c *gin.Context) {
+	tokenStr, _ := c.Cookie("Verification")
+	claims, err := models.ParseToken(tokenStr)
+}*/

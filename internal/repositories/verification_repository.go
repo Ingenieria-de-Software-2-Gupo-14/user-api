@@ -30,7 +30,7 @@ func (db verificationRepository) AddPendingVerification(ctx context.Context, use
 		RETURNING id`
 	var id int
 	err := db.DB.QueryRowContext(ctx, query,
-		&user.Name, &user.Surname, &user.Password, &user.Email, &user.VerificationPin, &user.PinExpiration,
+		user.Name, user.Surname, user.Password, user.Email, user.VerificationPin, user.PinExpiration,
 	).Scan(&id)
 
 	if err != nil {
@@ -47,7 +47,7 @@ func (db verificationRepository) GetPendingVerificationByEmail(ctx context.Conte
 	var verification models.UserVerification
 
 	err := row.Scan(
-		&verification.Id, &verification.Email, &verification.Name, &verification.Surname, &verification.VerificationPin, &verification.PinExpiration,
+		&verification.Id, &verification.Email, &verification.Name, &verification.Surname, &verification.Password, &verification.VerificationPin, &verification.PinExpiration,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
