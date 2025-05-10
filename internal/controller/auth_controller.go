@@ -2,7 +2,10 @@ package controller
 
 import (
 	"errors"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -375,15 +378,15 @@ func (ac *AuthController) registerUser(c *gin.Context, request models.CreateUser
 }
 
 func sendPinByEmail(pin string, userEmail string) error {
-	/*from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
+	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
 	subject := "Verification Code"
 	to := mail.NewEmail("User", userEmail)
 	content := mail.NewContent("text/plain", "Your verification code is "+pin)
 	message := mail.NewV3MailInit(from, subject, to, content)
 
 	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
-	_, err := client.Send(message)*/
-	return nil
+	_, err := client.Send(message)
+	return err
 }
 
 // @Summary      Sends a new Verification
@@ -393,7 +396,7 @@ func sendPinByEmail(pin string, userEmail string) error {
 // @Produce      plain
 // @Success      200  {object}  nil  "New Pin sent successfully"
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
-// @Router       /auth/users/verify [post]
+// @Router       /auth/users/verify/resend [put]
 func (ac *AuthController) ResendPin(c *gin.Context) {
 	tokenStr, _ := c.Cookie("Verification")
 	claims, err := models.ParseToken(tokenStr)

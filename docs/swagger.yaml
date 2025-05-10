@@ -308,6 +308,39 @@ paths:
     post:
       consumes:
       - application/json
+      description: Verify the new user's registration using a Pin sent to the users
+        email
+      parameters:
+      - description: Email Verification Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.EmailVerifiaction'
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: User Verified and created successfully
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Verify a new user's registration
+      tags:
+      - Auth
+  /auth/users/verify/resend:
+    put:
+      consumes:
+      - application/json
       description: Sends a new Verification Pin to email saved in verification cookie
       produces:
       - text/plain

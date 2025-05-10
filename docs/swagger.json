@@ -211,6 +211,55 @@
         },
         "/auth/users/verify": {
             "post": {
+                "description": "Verify the new user's registration using a Pin sent to the users email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Verify a new user's registration",
+                "parameters": [
+                    {
+                        "description": "Email Verification Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.EmailVerifiaction"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User Verified and created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/users/verify/resend": {
+            "put": {
                 "description": "Sends a new Verification Pin to email saved in verification cookie",
                 "consumes": [
                     "application/json"
