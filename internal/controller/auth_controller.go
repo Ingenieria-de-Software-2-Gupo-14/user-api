@@ -2,10 +2,7 @@ package controller
 
 import (
 	"errors"
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +32,7 @@ func NewAuthController(userRepo services.UserService, loginAttemptsService servi
 }
 
 // @Summary      Register a new user
-// @Description  Registers a new user. The 'admin' flag (passed during route setup, not an API param) determines if an admin user is created.
+// @Description  Registers a new user. The 'admin' flag (passed during route setup, not an API param) determines if an admin user is created. Incase of user registration it starts the verifcation process, the user won't be saved on the database unless the process is finished
 // @Tags         Auth
 // @Accept       json
 // @Produce      plain
@@ -71,21 +68,31 @@ func (ac *AuthController) Register(admin bool) gin.HandlerFunc {
 	}
 }
 
+// @Summary      Verify a new user's registration
+// @Description  Verify the new user's registration using a Pin sent to the users email
+// @Tags         Auth
+// @Accept       json
+// @Produce      plain
+// @Param        request body models.EmailVerifiaction true "Email Verification Details"
+// @Success      201  {object}  map[string]int  "User Verified and created successfully"
+// @Failure      400  {object}  utils.HTTPError "Invalid request format"
+// @Failure      500  {object}  utils.HTTPError "Internal server error"
+// @Router       /auth/users/verify [post]
 func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 	var request models.EmailVerifiaction
-	ctx := c.Request.Context()
+	tokenStr, _ := c.Cookie("Verification")
+	claims, err1 := models.ParseToken(tokenStr)
+	if err1 != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err1)
+		return
+	}
 	if err := c.Bind(&request); err != nil {
 		println(err)
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
-		return
 	}
-	if request.Email == "" || request.VerificationPin == "" {
-		println("faltan datos")
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
-		return
-	}
-	println(request.Email)
-	verification, err := ac.verificationService.GetPendingVerificationByEmail(ctx, request.Email)
+	println(claims.Email)
+	ctx := c.Request.Context()
+	verification, err := ac.verificationService.GetPendingVerificationByEmail(ctx, claims.Email)
 	if err != nil {
 		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 		return
@@ -97,6 +104,8 @@ func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 	}
 
 	if verification.VerificationPin != request.VerificationPin {
+		println("i sent " + request.VerificationPin)
+		println("i found " + verification.VerificationPin)
 		utils.ErrorResponseWithErr(c, http.StatusBadRequest, err)
 		return
 	}
@@ -106,7 +115,7 @@ func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 		Password: verification.Password,
 		Name:     verification.Name,
 		Surname:  verification.Surname,
-	}, request.Admin)
+	}, false)
 
 	if err != nil {
 		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
@@ -366,17 +375,25 @@ func (ac *AuthController) registerUser(c *gin.Context, request models.CreateUser
 }
 
 func sendPinByEmail(pin string, userEmail string) error {
-	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
+	/*from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
 	subject := "Verification Code"
 	to := mail.NewEmail("User", userEmail)
 	content := mail.NewContent("text/plain", "Your verification code is "+pin)
 	message := mail.NewV3MailInit(from, subject, to, content)
 
 	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
-	_, err := client.Send(message)
-	return err
+	_, err := client.Send(message)*/
+	return nil
 }
 
+// @Summary      Sends a new Verification
+// @Description  Sends a new Verification Pin to email saved in verification cookie
+// @Tags         Auth
+// @Accept       json
+// @Produce      plain
+// @Success      200  {object}  nil  "New Pin sent successfully"
+// @Failure      500  {object}  utils.HTTPError "Internal server error"
+// @Router       /auth/users/verify [post]
 func (ac *AuthController) ResendPin(c *gin.Context) {
 	tokenStr, _ := c.Cookie("Verification")
 	claims, err := models.ParseToken(tokenStr)

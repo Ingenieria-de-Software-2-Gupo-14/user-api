@@ -58,7 +58,5 @@ type UserVerification struct {
 }
 
 type EmailVerifiaction struct {
-	Email           string `json:"email" db:"email"`
 	VerificationPin string `json:"pin" db:"verification_pin"`
-	Admin           bool   `json:"admin" db:"admin"`
 }
