@@ -101,13 +101,18 @@ func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 		return
 	}
 
-	id, err := ac.userRepo.CreateUser(c.Request.Context(), models.CreateUserRequest{
+	id, err := ac.userRepo.CreateUser(ctx, models.CreateUserRequest{
 		Email:    verification.Email,
 		Password: verification.Password,
 		Name:     verification.Name,
 		Surname:  verification.Surname,
 	}, request.Admin)
 
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+	err = ac.verificationService.DeleteByEmail(ctx, verification.Email)
 	if err != nil {
 		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 		return
@@ -329,11 +334,21 @@ func (ac *AuthController) registerAdmin(c *gin.Context, request models.CreateUse
 
 func (ac *AuthController) registerUser(c *gin.Context, request models.CreateUserRequest) {
 	//id, err := ac.userRepo.CreateUser(c.Request.Context(), request, admin)
-	pin, err := ac.verificationService.CreatePendingVerification(c.Request.Context(), request, false)
+	_, err := ac.verificationService.GetPendingVerificationByEmail(c.Request.Context(), request.Email)
+	var pin string
+	if err == nil {
+		err = ac.verificationService.DeleteByEmail(c.Request.Context(), request.Email)
+		if err != nil {
+			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	pin, err = ac.verificationService.CreatePendingVerification(c.Request.Context(), request, false)
 	if err != nil {
 		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 		return
 	}
+
 	sendPinByEmail(pin, request.Email)
 	println(pin)
 	token, err := models.GenerateToken(0, request.Email, request.Name, false)

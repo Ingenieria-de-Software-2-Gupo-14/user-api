@@ -64,7 +64,7 @@ func (db verificationRepository) GetPendingVerificationByEmail(ctx context.Conte
 }
 
 func (db verificationRepository) DeleteByEmail(ctx context.Context, email string) error {
-	_, err := db.DB.ExecContext(ctx, "DELETE FROM verifaction WHERE email ILIKE $1", email)
+	_, err := db.DB.ExecContext(ctx, "DELETE FROM verification WHERE email ILIKE $1", email)
 	return err
 }
 
