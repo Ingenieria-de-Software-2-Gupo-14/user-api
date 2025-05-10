@@ -42,9 +42,11 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	auth.GET("/:provider", deps.Controllers.AuthController.BeginAuth)
 	auth.GET("/:provider/callback", deps.Controllers.AuthController.CompleteAuth)
 	auth.POST("/users", deps.Controllers.AuthController.Register(false))
+	auth.POST("/users/verify", deps.Controllers.AuthController.VerifyRegistration)
 	auth.POST("/admins", deps.Controllers.AuthController.Register(true))
 	auth.POST("/login", deps.Controllers.AuthController.Login)
 	auth.GET("/logout", deps.Controllers.AuthController.Logout)
+	auth.PUT("/users/verify/resend", deps.Controllers.AuthController.ResendPin)
 
 	// User routes
 	r.GET("/users", deps.Controllers.UserController.UsersGet)

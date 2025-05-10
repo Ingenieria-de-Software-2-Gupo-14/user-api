@@ -2,7 +2,6 @@ package router
 
 import (
 	"database/sql"
-
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/controller"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
@@ -42,12 +41,14 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	userRepo := repositories.CreateUserRepo(db)
 	loginRepo := repositories.NewLoginAttemptRepository(db)
 	blockRepo := repositories.NewBlockedUserRepository(db)
+	verificationRepo := repositories.CreateVerificationRepo(db)
 	// Services
 	userService := services.NewUserService(userRepo, blockRepo)
 	loginService := services.NewLoginAttemptService(loginRepo, blockRepo)
+	verificationService := services.NewVerificationService(verificationRepo)
 
 	// Controllers
-	authController := controller.NewAuthController(userService, loginService)
+	authController := controller.NewAuthController(userService, loginService, verificationService)
 	userController := controller.CreateController(userService)
 
 	return &Dependencies{

@@ -36,14 +36,16 @@ func (s *userService) DeleteUser(ctx context.Context, id int) error {
 }
 
 func (s *userService) CreateUser(ctx context.Context, request models.CreateUserRequest, admin bool) (int, error) {
-	hashPassword, err := utils.HashPassword(request.Password)
-	if err != nil {
-		return 0, err
+	if admin {
+		hashPassword, err := utils.HashPassword(request.Password)
+		if err != nil {
+			return 0, err
+		}
+		request.Password = hashPassword
 	}
-
 	user := &models.User{
 		Email:    request.Email,
-		Password: hashPassword,
+		Password: request.Password,
 		Name:     request.Name,
 		Surname:  request.Surname,
 		Admin:    admin,
