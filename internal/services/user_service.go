@@ -20,6 +20,8 @@ type UserService interface {
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
 	IsUserBlocked(ctx context.Context, id int) (bool, error)
 	ModifyPassword(ctx context.Context, id int, password string) error
+	AddNotification(ctx context.Context, id int, text string) error
+	GetUserNotifications(ctx context.Context, id int) (models.Notifications, error)
 }
 
 type userService struct {
@@ -106,4 +108,11 @@ func (s *userService) ModifyPassword(ctx context.Context, id int, password strin
 		return err
 	}
 	return s.userRepo.ModifyPassword(ctx, id, hashPassword)
+}
+
+func (s *userService) AddNotification(ctx context.Context, id int, text string) error {
+	return s.userRepo.AddNotification(ctx, id, text)
+}
+func (s *userService) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
+	return s.userRepo.GetUserNotifications(ctx, id)
 }

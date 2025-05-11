@@ -22,6 +22,8 @@ type UserRepository interface {
 	ModifyUser(ctx context.Context, user *models.User) error
 	ModifyLocation(ctx context.Context, id int, newLocation string) error
 	ModifyPassword(ctx context.Context, id int, password string) error
+	AddNotification(ctx context.Context, id int, text string) error
+	GetUserNotifications(ctx context.Context, id int) (models.Notifications, error)
 }
 
 type userRepository struct {
@@ -174,6 +176,41 @@ func (db userRepository) ModifyLocation(ctx context.Context, id int, newLocation
 func (db userRepository) ModifyPassword(ctx context.Context, id int, password string) error {
 	_, err := db.DB.ExecContext(ctx, "UPDATE users SET password = $1 where id = $2", password, id)
 	return err
+}
+
+func (db userRepository) AddNotification(ctx context.Context, id int, text string) error {
+	query := `
+		INSERT INTO notifications (user_id, notification_text)
+		VALUES ($1, $2)`
+	row := db.DB.QueryRowContext(ctx, query, id, text)
+	return row.Err()
+}
+
+func (db userRepository) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
+	query := `
+			SELECT notification_text, created_time 
+			FROM notifications
+			WHERE user_id = $1`
+	rows, err := db.DB.QueryContext(ctx, query, id)
+	if err != nil {
+		return models.Notifications{}, err
+	}
+
+	var notifications models.Notifications
+
+	for rows.Next() {
+		var n models.Notification
+		err := rows.Scan(&n.NotificationText, &n.CreatedTime)
+		if err != nil {
+			return models.Notifications{}, err
+		}
+		notifications.Notifications = append(notifications.Notifications, n)
+	}
+
+	if err := rows.Err(); err != nil {
+		return models.Notifications{}, err
+	}
+	return notifications, nil
 }
 
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description

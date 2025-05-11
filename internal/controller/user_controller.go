@@ -1,7 +1,11 @@
 package controller
 
 import (
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
@@ -204,6 +208,88 @@ func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, nil)
 
+}
+
+// NotifyUsers godoc
+// @Summary      Send a notification to users
+// @Description  Send a notification to users sent in body
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        Notification  body  models.NotifyRequest true  "Notification payload"
+// @Success      200       {object}  nil          "Users notified successfully"
+// @Failure      400       {object}  utils.HTTPError  "Invalid request"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Router       /users/notify [post]
+func (c UserController) NotifyUsers(ctx *gin.Context) {
+	var notifyRequest models.NotifyRequest
+	if err := ctx.ShouldBindJSON(&notifyRequest); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	cont := ctx.Request.Context()
+	for _, userID := range notifyRequest.Users {
+		user, err := c.service.GetUserById(cont, userID)
+		if err != nil {
+			if err == repositories.ErrNotFound {
+				continue
+			}
+			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+			continue
+		}
+		err = c.service.AddNotification(cont, userID, notifyRequest.NotificationText)
+		if err != nil {
+			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+			continue
+		}
+		errMail := sendNotifByEmail(user.Email, notifyRequest.NotificationText)
+		if errMail != nil {
+			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMail)
+			continue
+		}
+	}
+	ctx.JSON(http.StatusOK, nil)
+}
+
+func sendNotifByEmail(email string, text string) error {
+	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
+	subject := "Verification Code"
+	to := mail.NewEmail("User", email)
+	content := mail.NewContent("text/plain", text)
+	message := mail.NewV3MailInit(from, subject, to, content)
+
+	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
+	_, err := client.Send(message)
+	return err
+}
+
+// GetUserNotifications godoc
+// @Summary      Send a notification to users
+// @Description  Send a notification to users sent in body
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id        path      int         true  "User ID"
+// @Success      200       {object}  models.Notifications          "Users notified successfully"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Router       /users/{id}/notifications [get]
+func (c UserController) GetUserNotifications(ctx *gin.Context) {
+	var id, err = strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	var notifs models.Notifications
+	notifs, err = c.service.GetUserNotifications(ctx.Request.Context(), id)
+	if err != nil {
+		if err == repositories.ErrNotFound {
+			utils.ErrorResponse(ctx, http.StatusNotFound, "User not found")
+		} else {
+			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	ctx.JSON(http.StatusOK, notifs)
 }
 
 func (ct UserController) ValidateToken(c *gin.Context) {

@@ -174,6 +174,53 @@ func (_m *MockUserService) EXPECT() *MockUserService_Expecter {
 	return &MockUserService_Expecter{mock: &_m.Mock}
 }
 
+// AddNotification provides a mock function for the type MockUserService
+func (_mock *MockUserService) AddNotification(ctx context.Context, id int, text string) error {
+	ret := _mock.Called(ctx, id, text)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddNotification")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, string) error); ok {
+		r0 = returnFunc(ctx, id, text)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserService_AddNotification_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddNotification'
+type MockUserService_AddNotification_Call struct {
+	*mock.Call
+}
+
+// AddNotification is a helper method to define mock.On call
+//   - ctx
+//   - id
+//   - text
+func (_e *MockUserService_Expecter) AddNotification(ctx interface{}, id interface{}, text interface{}) *MockUserService_AddNotification_Call {
+	return &MockUserService_AddNotification_Call{Call: _e.mock.On("AddNotification", ctx, id, text)}
+}
+
+func (_c *MockUserService_AddNotification_Call) Run(run func(ctx context.Context, id int, text string)) *MockUserService_AddNotification_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockUserService_AddNotification_Call) Return(err error) *MockUserService_AddNotification_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserService_AddNotification_Call) RunAndReturn(run func(ctx context.Context, id int, text string) error) *MockUserService_AddNotification_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // BlockUser provides a mock function for the type MockUserService
 func (_mock *MockUserService) BlockUser(ctx context.Context, id int, reason string, blockerId *int, blockedUntil *time.Time) error {
 	ret := _mock.Called(ctx, id, reason, blockerId, blockedUntil)
@@ -491,6 +538,61 @@ func (_c *MockUserService_GetUserById_Call) Return(user *models.User, err error)
 }
 
 func (_c *MockUserService_GetUserById_Call) RunAndReturn(run func(ctx context.Context, id int) (*models.User, error)) *MockUserService_GetUserById_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetUserNotifications provides a mock function for the type MockUserService
+func (_mock *MockUserService) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserNotifications")
+	}
+
+	var r0 models.Notifications
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) (models.Notifications, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) models.Notifications); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Get(0).(models.Notifications)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserService_GetUserNotifications_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserNotifications'
+type MockUserService_GetUserNotifications_Call struct {
+	*mock.Call
+}
+
+// GetUserNotifications is a helper method to define mock.On call
+//   - ctx
+//   - id
+func (_e *MockUserService_Expecter) GetUserNotifications(ctx interface{}, id interface{}) *MockUserService_GetUserNotifications_Call {
+	return &MockUserService_GetUserNotifications_Call{Call: _e.mock.On("GetUserNotifications", ctx, id)}
+}
+
+func (_c *MockUserService_GetUserNotifications_Call) Run(run func(ctx context.Context, id int)) *MockUserService_GetUserNotifications_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockUserService_GetUserNotifications_Call) Return(notifications models.Notifications, err error) *MockUserService_GetUserNotifications_Call {
+	_c.Call.Return(notifications, err)
+	return _c
+}
+
+func (_c *MockUserService_GetUserNotifications_Call) RunAndReturn(run func(ctx context.Context, id int) (models.Notifications, error)) *MockUserService_GetUserNotifications_Call {
 	_c.Call.Return(run)
 	return _c
 }
