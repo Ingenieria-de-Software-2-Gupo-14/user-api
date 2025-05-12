@@ -40,6 +40,38 @@ definitions:
       password:
         type: string
     type: object
+  models.Notification:
+    properties:
+      created_time:
+        type: string
+      notification_text:
+        maxLength: 225
+        minLength: 1
+        type: string
+    required:
+    - notification_text
+    type: object
+  models.Notifications:
+    properties:
+      notifications:
+        items:
+          $ref: '#/definitions/models.Notification'
+        type: array
+    type: object
+  models.NotifyRequest:
+    properties:
+      notification_text:
+        maxLength: 225
+        minLength: 1
+        type: string
+      users:
+        items:
+          type: integer
+        type: array
+    required:
+    - notification_text
+    - users
+    type: object
   models.PasswordModifyRequest:
     properties:
       password:
@@ -467,6 +499,31 @@ paths:
       summary: Modify user location
       tags:
       - Users
+  /users/{id}/notifications:
+    get:
+      consumes:
+      - application/json
+      description: Send a notification to users sent in body
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users notified successfully
+          schema:
+            $ref: '#/definitions/models.Notifications'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Send a notification to users
+      tags:
+      - Users
   /users/{id}/password:
     put:
       consumes:
@@ -559,6 +616,34 @@ paths:
           schema:
             $ref: '#/definitions/utils.HTTPError'
       summary: Modify user
+      tags:
+      - Users
+  /users/notify:
+    post:
+      consumes:
+      - application/json
+      description: Send a notification to users sent in body
+      parameters:
+      - description: Notification payload
+        in: body
+        name: Notification
+        required: true
+        schema:
+          $ref: '#/definitions/models.NotifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users notified successfully
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Send a notification to users
       tags:
       - Users
 securityDefinitions:

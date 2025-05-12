@@ -521,6 +521,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/notify": {
+            "post": {
+                "description": "Send a notification to users sent in body",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Send a notification to users",
+                "parameters": [
+                    {
+                        "description": "Notification payload",
+                        "name": "Notification",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.NotifyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Users notified successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "get": {
                 "description": "Returns a specific user by their ID",
@@ -657,6 +700,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/{id}/notifications": {
+            "get": {
+                "description": "Send a notification to users sent in body",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Send a notification to users",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Users notified successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.Notifications"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}/password": {
             "put": {
                 "description": "Updates the password of a specific user",
@@ -765,6 +846,53 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Notification": {
+            "type": "object",
+            "required": [
+                "notification_text"
+            ],
+            "properties": {
+                "created_time": {
+                    "type": "string"
+                },
+                "notification_text": {
+                    "type": "string",
+                    "maxLength": 225,
+                    "minLength": 1
+                }
+            }
+        },
+        "models.Notifications": {
+            "type": "object",
+            "properties": {
+                "notifications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Notification"
+                    }
+                }
+            }
+        },
+        "models.NotifyRequest": {
+            "type": "object",
+            "required": [
+                "notification_text",
+                "users"
+            ],
+            "properties": {
+                "notification_text": {
+                    "type": "string",
+                    "maxLength": 225,
+                    "minLength": 1
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
