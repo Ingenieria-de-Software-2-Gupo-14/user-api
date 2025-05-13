@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	_ "github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -21,6 +22,8 @@ type Config struct {
 
 	// Telemetry configuration
 	DatadogClientType string
+	DatadogHost       string
+	DatadogStatsdPort string
 
 	// Secrets
 	GoogleKey    string
@@ -63,6 +66,8 @@ func LoadConfig() Config {
 		GoogleKey:         os.Getenv("GOOGLE_KEY"),
 		GoogleSecret:      os.Getenv("GOOGLE_SECRET"),
 		DatadogClientType: getEnvOrDefault("DD_CLIENT_TYPE", "default"),
+		DatadogHost:       getEnvOrDefault("DD_HOST", "localhost"),
+		DatadogStatsdPort: getEnvOrDefault("DD_STATSD_PORT", "8125"),
 	}
 }
 
@@ -79,4 +84,17 @@ func (config *Config) CreateDatabase() (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func (config *Config) CreateDatadogClient() (telemetry.Client, error) {
+	switch config.DatadogClientType {
+	case "api":
+		return telemetry.NewDatadogAPI()
+
+	case "statsd", "agent":
+		return telemetry.NewDatadog(config.DatadogHost + ":" + config.DatadogStatsdPort)
+
+	default:
+		return nil, nil
+	}
 }

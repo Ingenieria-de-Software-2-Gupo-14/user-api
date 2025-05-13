@@ -59,18 +59,9 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	userController := controller.CreateController(userService)
 
 	// Clients
-	var telemetryClient telemetry.Client
-	switch cfg.DatadogClientType {
-	case "api":
-		telemetryClient, err = telemetry.NewDatadogAPI()
-		if err != nil {
-			return nil, err
-		}
-	case "statsd", "agent":
-		telemetryClient, err = telemetry.NewDatadog("user-api")
-		if err != nil {
-			return nil, err
-		}
+	telemetryClient, err := cfg.CreateDatadogClient()
+	if err != nil {
+		return nil, err
 	}
 
 	return &Dependencies{
