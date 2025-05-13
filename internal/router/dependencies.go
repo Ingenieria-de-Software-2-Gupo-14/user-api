@@ -2,6 +2,8 @@ package router
 
 import (
 	"database/sql"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/controller"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
@@ -13,6 +15,7 @@ type Dependencies struct {
 	Controllers  Controllers
 	Services     Services
 	Repositories Repositories
+	Clients      Clients
 }
 
 type Controllers struct {
@@ -29,6 +32,10 @@ type Repositories struct {
 	UserRepository  repositories.UserRepository
 	LoginRepository repositories.LoginAttemptRepository
 	BlockRepository repositories.BlockedUserRepository
+}
+
+type Clients struct {
+	TelemetryClient telemetry.Client
 }
 
 func NewDependencies(cfg *config.Config) (*Dependencies, error) {
@@ -51,6 +58,21 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	authController := controller.NewAuthController(userService, loginService, verificationService)
 	userController := controller.CreateController(userService)
 
+	// Clients
+	var telemetryClient telemetry.Client
+	switch cfg.DatadogClientType {
+	case "api":
+		telemetryClient, err = telemetry.NewDatadogAPI()
+		if err != nil {
+			return nil, err
+		}
+	case "statsd", "agent":
+		telemetryClient, err = telemetry.NewDatadog("user-api")
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &Dependencies{
 		DB: db,
 		Controllers: Controllers{
@@ -65,6 +87,9 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 			UserRepository:  userRepo,
 			LoginRepository: loginRepo,
 			BlockRepository: blockRepo,
+		},
+		Clients: Clients{
+			TelemetryClient: telemetryClient,
 		},
 	}, nil
 

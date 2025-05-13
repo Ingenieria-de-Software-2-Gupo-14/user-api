@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/middleware"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 
 	"github.com/gin-contrib/cors"
@@ -27,6 +28,8 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating dependencies: %w", err)
 	}
+
+	r.Use(middleware.NewTelemetryStack(deps.Clients.TelemetryClient)...)
 
 	r.GET("/health", func(ctx *gin.Context) {
 		if err := deps.DB.Ping(); err != nil {

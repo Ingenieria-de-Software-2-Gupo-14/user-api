@@ -19,6 +19,9 @@ type Config struct {
 	// Database configuration
 	DatabaseURL string
 
+	// Telemetry configuration
+	DatadogClientType string
+
 	// Secrets
 	GoogleKey    string
 	GoogleSecret string
@@ -53,12 +56,13 @@ func LoadConfig() Config {
 	}
 
 	return Config{
-		Host:         getEnvOrDefault("HOST", "localhost"),
-		Port:         getEnvOrDefault("PORT", "8080"),
-		Environment:  getEnvOrDefault("ENVIRONMENT", "development"),
-		DatabaseURL:  dbUrl,
-		GoogleKey:    os.Getenv("GOOGLE_KEY"),
-		GoogleSecret: os.Getenv("GOOGLE_SECRET"),
+		Host:              getEnvOrDefault("HOST", "localhost"),
+		Port:              getEnvOrDefault("PORT", "8080"),
+		Environment:       getEnvOrDefault("ENVIRONMENT", "development"),
+		DatabaseURL:       dbUrl,
+		GoogleKey:         os.Getenv("GOOGLE_KEY"),
+		GoogleSecret:      os.Getenv("GOOGLE_SECRET"),
+		DatadogClientType: getEnvOrDefault("DD_CLIENT_TYPE", "default"),
 	}
 }
 
