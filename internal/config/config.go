@@ -1,11 +1,13 @@
 package config
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 
+	"github.com/DataDog/datadog-go/v5/statsd"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/log"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	_ "github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
@@ -43,7 +45,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 // LoadConfig loads environment variables a Config Struct containing relevant variables
 func LoadConfig() Config {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, loading environment variables from the system")
+		log.Warn(context.Background(), "No .env file found, loading environment variables from the system")
 	}
 
 	dbUrl := os.Getenv("DATABASE_URL")
@@ -92,7 +94,7 @@ func (config *Config) CreateDatadogClient() (telemetry.Client, error) {
 		return telemetry.NewDatadogAPI()
 
 	case "statsd", "agent":
-		return telemetry.NewDatadog(config.DatadogHost + ":" + config.DatadogStatsdPort)
+		return telemetry.NewDatadog(config.DatadogHost+":"+config.DatadogStatsdPort, statsd.WithTags([]string{"application:" + "user-api"}))
 
 	default:
 		return nil, nil

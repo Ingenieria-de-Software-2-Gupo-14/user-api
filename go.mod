@@ -4,7 +4,8 @@ go 1.24.1
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/Ingenieria-de-Software-2-Gupo-14/go-core v1.0.0
+	github.com/DataDog/datadog-go/v5 v5.5.0
+	github.com/Ingenieria-de-Software-2-Gupo-14/go-core v1.0.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.0
@@ -28,7 +29,6 @@ require (
 	cloud.google.com/go/compute v1.20.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/DataDog/datadog-api-client-go/v2 v2.37.1 // indirect
-	github.com/DataDog/datadog-go/v5 v5.5.0 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect

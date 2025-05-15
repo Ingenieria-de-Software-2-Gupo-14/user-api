@@ -1,8 +1,10 @@
 package main
 
 import (
-	"log"
+	"context"
+	"log/slog"
 
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/log"
 	_ "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/docs"
 	apiconfig "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/router"
@@ -35,7 +37,7 @@ import (
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
 	config := apiconfig.LoadConfig() // lee las variables de entorno
-
+	ctx := context.Background()
 	goth.UseProviders(
 		google.New(config.GoogleKey, config.GoogleSecret, "http://localhost:8080/auth/google/callback"),
 	)
@@ -44,11 +46,11 @@ func main() {
 
 	r, err := router.CreateRouter(config)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(ctx, "Error creating router", slog.String("error", err.Error()))
 	}
 	// use ginSwagger middleware to serve the API docs
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	if err := r.Run(":" + config.Port); err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(ctx, "Error running router", slog.String("error", err.Error()))
 	}
 }
