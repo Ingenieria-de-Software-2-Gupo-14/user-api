@@ -72,6 +72,9 @@ func (s *userService) ModifyUser(ctx context.Context, id int, user *models.User)
 		return err
 	}
 
+	// Update the existing user with the new values
+	tableUser.Update(user)
+
 	return s.userRepo.ModifyUser(ctx, tableUser)
 }
 

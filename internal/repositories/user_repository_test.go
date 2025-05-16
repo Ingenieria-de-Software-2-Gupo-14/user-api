@@ -32,14 +32,14 @@ func TestDatabase_AddUser(t *testing.T) {
 	password := "password123"
 	email := "test@example.com"
 	location := "Test Location"
-	admin := false
+	role := "student"
+	verified := false
 	profilePicture := "test_profile.jpg"
 	description := "Test description"
-	phone := "1234567890"
 
 	// Match the exact query pattern
-	mock.ExpectQuery(`INSERT INTO users \(name, surname, password, email, location, admin, profile_photo, description, phone\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9\) RETURNING id`).
-		WithArgs(name, surname, password, email, location, admin, &profilePicture, description, &phone).
+	mock.ExpectQuery(`INSERT INTO users \(name, surname, password, email, location, role, verified, profile_photo, description\) VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9\) RETURNING id`).
+		WithArgs(name, surname, password, email, location, role, verified, &profilePicture, description).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
 	ctx := context.Background()
@@ -51,10 +51,10 @@ func TestDatabase_AddUser(t *testing.T) {
 		Password:     password,
 		Email:        email,
 		Location:     location,
-		Admin:        admin,
+		Role:         role,
+		Verified:     verified,
 		ProfilePhoto: &profilePicture,
 		Description:  description,
-		Phone:        &phone,
 	}
 
 	id, err := database.AddUser(ctx, &user)
@@ -74,22 +74,22 @@ func TestDatabase_GetUser(t *testing.T) {
 	password := "password123"
 	email := "test@example.com"
 	location := "Test Location"
-	admin := false
+	role := "student"
+	verified := false
 	profilePicture := "test_profile.jpg"
 	description := "Test description"
-	phone := "1234567890"
 	createdAt := time.Now()
 	updatedAt := time.Now()
 	blocked := false
 
 	// Use the actual query pattern from the repository
-	mock.ExpectQuery(`SELECT\s+u\.id,\s*u\.name,\s*u\.surname,\s*u\.password,\s*u\.email,\s*u\.location,\s*u\.admin,\s*u\.profile_photo,\s*u\.description,\s*u\.phone,\s*u\.created_at,\s*u\.updated_at,\s*EXISTS`).
+	mock.ExpectQuery(`SELECT\s+u\.id,\s*u\.name,\s*u\.surname,\s*u\.password,\s*u\.email,\s*u\.location,\s*u\.role,\s*u\.verified,\s*u\.profile_photo,\s*u\.description,\s*u\.created_at,\s*u\.updated_at,\s*EXISTS`).
 		WithArgs(id).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "surname", "password", "email", "location", "admin",
-			"profile_photo", "description", "phone", "created_at", "updated_at", "blocked"}).
-			AddRow(id, name, surname, password, email, location, admin,
-				&profilePicture, description, &phone, createdAt, updatedAt, blocked))
+			"id", "name", "surname", "password", "email", "location", "role", "verified",
+			"profile_photo", "description", "created_at", "updated_at", "blocked"}).
+			AddRow(id, name, surname, password, email, location, role, verified,
+				&profilePicture, description, createdAt, updatedAt, blocked))
 
 	ctx := context.Background()
 	database := CreateUserRepo(db)
@@ -101,10 +101,10 @@ func TestDatabase_GetUser(t *testing.T) {
 		Password:     password,
 		Email:        email,
 		Location:     location,
-		Admin:        admin,
+		Role:         role,
+		Verified:     verified,
 		ProfilePhoto: &profilePicture,
 		Description:  description,
-		Phone:        &phone,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
 		Blocked:      blocked,
@@ -143,20 +143,19 @@ func TestDatabase_GetAllUsers(t *testing.T) {
 	password := "password123"
 	email := "test@example.com"
 	location := "Test Location"
-	admin := false
+	role := "student"
 	profilePicture := "test_profile.jpg"
 	description := "Test description"
-	phone := "1234567890"
 	createdAt := time.Now()
 	updatedAt := time.Now()
 
 	// Use the actual query pattern
-	mock.ExpectQuery(`SELECT id, name, surname, password, email, location, admin, profile_photo, description, phone, created_at, updated_at FROM users`).
+	mock.ExpectQuery(`SELECT id, name, surname, password, email, location, role, profile_photo, description, created_at, updated_at FROM users`).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "surname", "password", "email", "location", "admin",
-			"profile_photo", "description", "phone", "created_at", "updated_at"}).
-			AddRow(id, name, surname, password, email, location, admin,
-				&profilePicture, description, &phone, createdAt, updatedAt))
+			"id", "name", "surname", "password", "email", "location", "role",
+			"profile_photo", "description", "created_at", "updated_at"}).
+			AddRow(id, name, surname, password, email, location, role,
+				&profilePicture, description, createdAt, updatedAt))
 
 	ctx := context.Background()
 	database := CreateUserRepo(db)
@@ -168,10 +167,9 @@ func TestDatabase_GetAllUsers(t *testing.T) {
 		Password:     password,
 		Email:        email,
 		Location:     location,
-		Admin:        admin,
+		Role:         role,
 		ProfilePhoto: &profilePicture,
 		Description:  description,
-		Phone:        &phone,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
 	}
@@ -195,10 +193,10 @@ func TestDatabase_GetUserByEmail(t *testing.T) {
 	password := "password123"
 	email := "test@example.com"
 	location := "Test Location"
-	admin := false
+	role := "student"
+	verified := false
 	profilePicture := "test_profile.jpg"
 	description := "Test description"
-	phone := "1234567890"
 	createdAt := time.Now()
 	updatedAt := time.Now()
 	blocked := false
@@ -207,10 +205,10 @@ func TestDatabase_GetUserByEmail(t *testing.T) {
 	mock.ExpectQuery(`SELECT\s+u\.id,\s*u\.name`).
 		WithArgs(email).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "name", "surname", "password", "email", "location", "admin",
-			"profile_photo", "description", "phone", "created_at", "updated_at", "blocked"}).
-			AddRow(id, name, surname, password, email, location, admin,
-				&profilePicture, description, &phone, createdAt, updatedAt, blocked))
+			"id", "name", "surname", "password", "email", "location", "role", "verified",
+			"profile_photo", "description", "created_at", "updated_at", "blocked"}).
+			AddRow(id, name, surname, password, email, location, role, verified,
+				&profilePicture, description, createdAt, updatedAt, blocked))
 
 	ctx := context.Background()
 	database := CreateUserRepo(db)
@@ -222,10 +220,10 @@ func TestDatabase_GetUserByEmail(t *testing.T) {
 		Password:     password,
 		Email:        email,
 		Location:     location,
-		Admin:        admin,
+		Role:         role,
+		Verified:     verified,
 		ProfilePhoto: &profilePicture,
 		Description:  description,
-		Phone:        &phone,
 		CreatedAt:    createdAt,
 		UpdatedAt:    updatedAt,
 		Blocked:      blocked,
@@ -271,25 +269,6 @@ func TestDatabase_DeleteUser(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestDatabase_ModifyLocation(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	assert.NoError(t, err)
-	defer db.Close()
-
-	id := 1
-	location := "Test Location"
-
-	mock.ExpectExec(`UPDATE users SET location = \$1 where id = \$2`).
-		WithArgs(location, id).
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	ctx := context.Background()
-	database := CreateUserRepo(db)
-
-	err = database.ModifyLocation(ctx, id, location)
-	assert.NoError(t, err)
-}
-
 func TestDatabase_ModifyUser(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -301,14 +280,14 @@ func TestDatabase_ModifyUser(t *testing.T) {
 	password := "password123"
 	email := "test@example.com"
 	location := "Test Location"
-	admin := false
+	role := "student"
+	verified := false
 	profilePicture := "test_profile.jpg"
 	description := "Test description"
-	phone := "1234567890"
 	blocked := false
 
-	mock.ExpectExec(`UPDATE users SET name = \$1, surname = \$2, location = \$3, profile_photo = \$4, description = \$5, phone = \$6 WHERE id = \$7`).
-		WithArgs(name, surname, location, &profilePicture, description, &phone, id).
+	mock.ExpectExec(`UPDATE users SET name = \$1, surname = \$2, location = \$3, profile_photo = \$4, description = \$5, verified = \$6 WHERE id = \$7`).
+		WithArgs(name, surname, location, &profilePicture, description, verified, id).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	ctx := context.Background()
@@ -321,10 +300,10 @@ func TestDatabase_ModifyUser(t *testing.T) {
 		Password:     password,
 		Email:        email,
 		Location:     location,
-		Admin:        admin,
+		Role:         role,
+		Verified:     verified,
 		ProfilePhoto: &profilePicture,
 		Description:  description,
-		Phone:        &phone,
 		Blocked:      blocked,
 	}
 
