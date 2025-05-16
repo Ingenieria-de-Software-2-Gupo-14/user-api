@@ -312,8 +312,20 @@ func (ac *AuthController) CompleteAuth(c *gin.Context) {
 			return
 		}
 	}
+	if existingUser.Blocked {
+		utils.ErrorResponse(c, http.StatusForbidden, "User is blocked")
+		return
+	}
 
-	ac.finishAuth(c, *existingUser)
+	token, err := models.GenerateToken(existingUser.Id, user.Email, user.Name, existingUser.Role)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	ac.loginAttemptsService.AddLoginAttempt(ctx, existingUser.Id, c.Request.RemoteAddr, c.Request.UserAgent(), true)
+	c.Redirect(http.StatusFound, "myapp://auth?token="+token)
+	//ac.finishAuth(c, *existingUser)
 }
 
 // Logout godoc
