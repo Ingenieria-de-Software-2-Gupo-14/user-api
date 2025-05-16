@@ -1,4 +1,4 @@
 -- +goose Up
 -- +goose StatementBegin
-UPDATE users SET verfied = true;
+UPDATE users SET verified = true;
 -- +goose StatementEnd

@@ -745,6 +745,52 @@ func (_c *MockUserService_ModifyUser_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
+// VerifyUser provides a mock function for the type MockUserService
+func (_mock *MockUserService) VerifyUser(ctx context.Context, id int) error {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for VerifyUser")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserService_VerifyUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'VerifyUser'
+type MockUserService_VerifyUser_Call struct {
+	*mock.Call
+}
+
+// VerifyUser is a helper method to define mock.On call
+//   - ctx
+//   - id
+func (_e *MockUserService_Expecter) VerifyUser(ctx interface{}, id interface{}) *MockUserService_VerifyUser_Call {
+	return &MockUserService_VerifyUser_Call{Call: _e.mock.On("VerifyUser", ctx, id)}
+}
+
+func (_c *MockUserService_VerifyUser_Call) Run(run func(ctx context.Context, id int)) *MockUserService_VerifyUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockUserService_VerifyUser_Call) Return(err error) *MockUserService_VerifyUser_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserService_VerifyUser_Call) RunAndReturn(run func(ctx context.Context, id int) error) *MockUserService_VerifyUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockVerificationService creates a new instance of MockVerificationService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockVerificationService(t interface {
