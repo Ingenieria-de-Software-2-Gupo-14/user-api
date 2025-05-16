@@ -26,29 +26,3 @@ END;
 $$ language 'plpgsql';
 
 -- +goose StatementEnd
-
--- +goose Down
--- +goose StatementBegin
-
--- Revert timestamp columns to regular timestamp without timezone
-ALTER TABLE users
-    ALTER COLUMN created_at TYPE TIMESTAMP,
-    ALTER COLUMN updated_at TYPE TIMESTAMP;
-
-ALTER TABLE login_attempts
-    ALTER COLUMN created_at TYPE TIMESTAMP;
-
-ALTER TABLE blocked_users
-    ALTER COLUMN created_at TYPE TIMESTAMP,
-    ALTER COLUMN blocked_until TYPE TIMESTAMP;
-
--- Revert the function
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-   NEW.updated_at = NOW();
-   RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- +goose StatementEnd

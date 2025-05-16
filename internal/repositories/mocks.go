@@ -781,53 +781,6 @@ func (_c *MockUserRepository_GetUserNotifications_Call) RunAndReturn(run func(ct
 	return _c
 }
 
-// ModifyLocation provides a mock function for the type MockUserRepository
-func (_mock *MockUserRepository) ModifyLocation(ctx context.Context, id int, newLocation string) error {
-	ret := _mock.Called(ctx, id, newLocation)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ModifyLocation")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, string) error); ok {
-		r0 = returnFunc(ctx, id, newLocation)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockUserRepository_ModifyLocation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ModifyLocation'
-type MockUserRepository_ModifyLocation_Call struct {
-	*mock.Call
-}
-
-// ModifyLocation is a helper method to define mock.On call
-//   - ctx
-//   - id
-//   - newLocation
-func (_e *MockUserRepository_Expecter) ModifyLocation(ctx interface{}, id interface{}, newLocation interface{}) *MockUserRepository_ModifyLocation_Call {
-	return &MockUserRepository_ModifyLocation_Call{Call: _e.mock.On("ModifyLocation", ctx, id, newLocation)}
-}
-
-func (_c *MockUserRepository_ModifyLocation_Call) Run(run func(ctx context.Context, id int, newLocation string)) *MockUserRepository_ModifyLocation_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int), args[2].(string))
-	})
-	return _c
-}
-
-func (_c *MockUserRepository_ModifyLocation_Call) Return(err error) *MockUserRepository_ModifyLocation_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockUserRepository_ModifyLocation_Call) RunAndReturn(run func(ctx context.Context, id int, newLocation string) error) *MockUserRepository_ModifyLocation_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // ModifyPassword provides a mock function for the type MockUserRepository
 func (_mock *MockUserRepository) ModifyPassword(ctx context.Context, id int, password string) error {
 	ret := _mock.Called(ctx, id, password)
@@ -921,6 +874,52 @@ func (_c *MockUserRepository_ModifyUser_Call) RunAndReturn(run func(ctx context.
 	return _c
 }
 
+// SetVerifiedTrue provides a mock function for the type MockUserRepository
+func (_mock *MockUserRepository) SetVerifiedTrue(ctx context.Context, id int) error {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetVerifiedTrue")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserRepository_SetVerifiedTrue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetVerifiedTrue'
+type MockUserRepository_SetVerifiedTrue_Call struct {
+	*mock.Call
+}
+
+// SetVerifiedTrue is a helper method to define mock.On call
+//   - ctx
+//   - id
+func (_e *MockUserRepository_Expecter) SetVerifiedTrue(ctx interface{}, id interface{}) *MockUserRepository_SetVerifiedTrue_Call {
+	return &MockUserRepository_SetVerifiedTrue_Call{Call: _e.mock.On("SetVerifiedTrue", ctx, id)}
+}
+
+func (_c *MockUserRepository_SetVerifiedTrue_Call) Run(run func(ctx context.Context, id int)) *MockUserRepository_SetVerifiedTrue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_SetVerifiedTrue_Call) Return(err error) *MockUserRepository_SetVerifiedTrue_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserRepository_SetVerifiedTrue_Call) RunAndReturn(run func(ctx context.Context, id int) error) *MockUserRepository_SetVerifiedTrue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockVerificationRepository creates a new instance of MockVerificationRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockVerificationRepository(t interface {
@@ -949,8 +948,8 @@ func (_m *MockVerificationRepository) EXPECT() *MockVerificationRepository_Expec
 }
 
 // AddPendingVerification provides a mock function for the type MockVerificationRepository
-func (_mock *MockVerificationRepository) AddPendingVerification(ctx context.Context, user *models.UserVerification) (int, error) {
-	ret := _mock.Called(ctx, user)
+func (_mock *MockVerificationRepository) AddPendingVerification(ctx context.Context, verification *models.UserVerification) (int, error) {
+	ret := _mock.Called(ctx, verification)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddPendingVerification")
@@ -959,15 +958,15 @@ func (_mock *MockVerificationRepository) AddPendingVerification(ctx context.Cont
 	var r0 int
 	var r1 error
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *models.UserVerification) (int, error)); ok {
-		return returnFunc(ctx, user)
+		return returnFunc(ctx, verification)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, *models.UserVerification) int); ok {
-		r0 = returnFunc(ctx, user)
+		r0 = returnFunc(ctx, verification)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, *models.UserVerification) error); ok {
-		r1 = returnFunc(ctx, user)
+		r1 = returnFunc(ctx, verification)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -981,12 +980,12 @@ type MockVerificationRepository_AddPendingVerification_Call struct {
 
 // AddPendingVerification is a helper method to define mock.On call
 //   - ctx
-//   - user
-func (_e *MockVerificationRepository_Expecter) AddPendingVerification(ctx interface{}, user interface{}) *MockVerificationRepository_AddPendingVerification_Call {
-	return &MockVerificationRepository_AddPendingVerification_Call{Call: _e.mock.On("AddPendingVerification", ctx, user)}
+//   - verification
+func (_e *MockVerificationRepository_Expecter) AddPendingVerification(ctx interface{}, verification interface{}) *MockVerificationRepository_AddPendingVerification_Call {
+	return &MockVerificationRepository_AddPendingVerification_Call{Call: _e.mock.On("AddPendingVerification", ctx, verification)}
 }
 
-func (_c *MockVerificationRepository_AddPendingVerification_Call) Run(run func(ctx context.Context, user *models.UserVerification)) *MockVerificationRepository_AddPendingVerification_Call {
+func (_c *MockVerificationRepository_AddPendingVerification_Call) Run(run func(ctx context.Context, verification *models.UserVerification)) *MockVerificationRepository_AddPendingVerification_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(*models.UserVerification))
 	})
@@ -998,107 +997,63 @@ func (_c *MockVerificationRepository_AddPendingVerification_Call) Return(n int, 
 	return _c
 }
 
-func (_c *MockVerificationRepository_AddPendingVerification_Call) RunAndReturn(run func(ctx context.Context, user *models.UserVerification) (int, error)) *MockVerificationRepository_AddPendingVerification_Call {
+func (_c *MockVerificationRepository_AddPendingVerification_Call) RunAndReturn(run func(ctx context.Context, verification *models.UserVerification) (int, error)) *MockVerificationRepository_AddPendingVerification_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// DeleteByEmail provides a mock function for the type MockVerificationRepository
-func (_mock *MockVerificationRepository) DeleteByEmail(ctx context.Context, email string) error {
-	ret := _mock.Called(ctx, email)
+// DeleteByUserId provides a mock function for the type MockVerificationRepository
+func (_mock *MockVerificationRepository) DeleteByUserId(ctx context.Context, userId int) error {
+	ret := _mock.Called(ctx, userId)
 
 	if len(ret) == 0 {
-		panic("no return value specified for DeleteByEmail")
+		panic("no return value specified for DeleteByUserId")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) error); ok {
-		r0 = returnFunc(ctx, email)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = returnFunc(ctx, userId)
 	} else {
 		r0 = ret.Error(0)
 	}
 	return r0
 }
 
-// MockVerificationRepository_DeleteByEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteByEmail'
-type MockVerificationRepository_DeleteByEmail_Call struct {
+// MockVerificationRepository_DeleteByUserId_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteByUserId'
+type MockVerificationRepository_DeleteByUserId_Call struct {
 	*mock.Call
 }
 
-// DeleteByEmail is a helper method to define mock.On call
+// DeleteByUserId is a helper method to define mock.On call
 //   - ctx
-//   - email
-func (_e *MockVerificationRepository_Expecter) DeleteByEmail(ctx interface{}, email interface{}) *MockVerificationRepository_DeleteByEmail_Call {
-	return &MockVerificationRepository_DeleteByEmail_Call{Call: _e.mock.On("DeleteByEmail", ctx, email)}
+//   - userId
+func (_e *MockVerificationRepository_Expecter) DeleteByUserId(ctx interface{}, userId interface{}) *MockVerificationRepository_DeleteByUserId_Call {
+	return &MockVerificationRepository_DeleteByUserId_Call{Call: _e.mock.On("DeleteByUserId", ctx, userId)}
 }
 
-func (_c *MockVerificationRepository_DeleteByEmail_Call) Run(run func(ctx context.Context, email string)) *MockVerificationRepository_DeleteByEmail_Call {
+func (_c *MockVerificationRepository_DeleteByUserId_Call) Run(run func(ctx context.Context, userId int)) *MockVerificationRepository_DeleteByUserId_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(int))
 	})
 	return _c
 }
 
-func (_c *MockVerificationRepository_DeleteByEmail_Call) Return(err error) *MockVerificationRepository_DeleteByEmail_Call {
+func (_c *MockVerificationRepository_DeleteByUserId_Call) Return(err error) *MockVerificationRepository_DeleteByUserId_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockVerificationRepository_DeleteByEmail_Call) RunAndReturn(run func(ctx context.Context, email string) error) *MockVerificationRepository_DeleteByEmail_Call {
+func (_c *MockVerificationRepository_DeleteByUserId_Call) RunAndReturn(run func(ctx context.Context, userId int) error) *MockVerificationRepository_DeleteByUserId_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// DeleteExpired provides a mock function for the type MockVerificationRepository
-func (_mock *MockVerificationRepository) DeleteExpired() error {
-	ret := _mock.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for DeleteExpired")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func() error); ok {
-		r0 = returnFunc()
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockVerificationRepository_DeleteExpired_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteExpired'
-type MockVerificationRepository_DeleteExpired_Call struct {
-	*mock.Call
-}
-
-// DeleteExpired is a helper method to define mock.On call
-func (_e *MockVerificationRepository_Expecter) DeleteExpired() *MockVerificationRepository_DeleteExpired_Call {
-	return &MockVerificationRepository_DeleteExpired_Call{Call: _e.mock.On("DeleteExpired")}
-}
-
-func (_c *MockVerificationRepository_DeleteExpired_Call) Run(run func()) *MockVerificationRepository_DeleteExpired_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MockVerificationRepository_DeleteExpired_Call) Return(err error) *MockVerificationRepository_DeleteExpired_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockVerificationRepository_DeleteExpired_Call) RunAndReturn(run func() error) *MockVerificationRepository_DeleteExpired_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetPendingVerificationByEmail provides a mock function for the type MockVerificationRepository
-func (_mock *MockVerificationRepository) GetPendingVerificationByEmail(ctx context.Context, email string) (*models.UserVerification, error) {
+// GetVerificationByEmail provides a mock function for the type MockVerificationRepository
+func (_mock *MockVerificationRepository) GetVerificationByEmail(ctx context.Context, email string) (*models.UserVerification, error) {
 	ret := _mock.Called(ctx, email)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetPendingVerificationByEmail")
+		panic("no return value specified for GetVerificationByEmail")
 	}
 
 	var r0 *models.UserVerification
@@ -1121,46 +1076,103 @@ func (_mock *MockVerificationRepository) GetPendingVerificationByEmail(ctx conte
 	return r0, r1
 }
 
-// MockVerificationRepository_GetPendingVerificationByEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPendingVerificationByEmail'
-type MockVerificationRepository_GetPendingVerificationByEmail_Call struct {
+// MockVerificationRepository_GetVerificationByEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetVerificationByEmail'
+type MockVerificationRepository_GetVerificationByEmail_Call struct {
 	*mock.Call
 }
 
-// GetPendingVerificationByEmail is a helper method to define mock.On call
+// GetVerificationByEmail is a helper method to define mock.On call
 //   - ctx
 //   - email
-func (_e *MockVerificationRepository_Expecter) GetPendingVerificationByEmail(ctx interface{}, email interface{}) *MockVerificationRepository_GetPendingVerificationByEmail_Call {
-	return &MockVerificationRepository_GetPendingVerificationByEmail_Call{Call: _e.mock.On("GetPendingVerificationByEmail", ctx, email)}
+func (_e *MockVerificationRepository_Expecter) GetVerificationByEmail(ctx interface{}, email interface{}) *MockVerificationRepository_GetVerificationByEmail_Call {
+	return &MockVerificationRepository_GetVerificationByEmail_Call{Call: _e.mock.On("GetVerificationByEmail", ctx, email)}
 }
 
-func (_c *MockVerificationRepository_GetPendingVerificationByEmail_Call) Run(run func(ctx context.Context, email string)) *MockVerificationRepository_GetPendingVerificationByEmail_Call {
+func (_c *MockVerificationRepository_GetVerificationByEmail_Call) Run(run func(ctx context.Context, email string)) *MockVerificationRepository_GetVerificationByEmail_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
 
-func (_c *MockVerificationRepository_GetPendingVerificationByEmail_Call) Return(userVerification *models.UserVerification, err error) *MockVerificationRepository_GetPendingVerificationByEmail_Call {
+func (_c *MockVerificationRepository_GetVerificationByEmail_Call) Return(userVerification *models.UserVerification, err error) *MockVerificationRepository_GetVerificationByEmail_Call {
 	_c.Call.Return(userVerification, err)
 	return _c
 }
 
-func (_c *MockVerificationRepository_GetPendingVerificationByEmail_Call) RunAndReturn(run func(ctx context.Context, email string) (*models.UserVerification, error)) *MockVerificationRepository_GetPendingVerificationByEmail_Call {
+func (_c *MockVerificationRepository_GetVerificationByEmail_Call) RunAndReturn(run func(ctx context.Context, email string) (*models.UserVerification, error)) *MockVerificationRepository_GetVerificationByEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetVerificationById provides a mock function for the type MockVerificationRepository
+func (_mock *MockVerificationRepository) GetVerificationById(ctx context.Context, id int) (*models.UserVerification, error) {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetVerificationById")
+	}
+
+	var r0 *models.UserVerification
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) (*models.UserVerification, error)); ok {
+		return returnFunc(ctx, id)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) *models.UserVerification); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*models.UserVerification)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = returnFunc(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockVerificationRepository_GetVerificationById_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetVerificationById'
+type MockVerificationRepository_GetVerificationById_Call struct {
+	*mock.Call
+}
+
+// GetVerificationById is a helper method to define mock.On call
+//   - ctx
+//   - id
+func (_e *MockVerificationRepository_Expecter) GetVerificationById(ctx interface{}, id interface{}) *MockVerificationRepository_GetVerificationById_Call {
+	return &MockVerificationRepository_GetVerificationById_Call{Call: _e.mock.On("GetVerificationById", ctx, id)}
+}
+
+func (_c *MockVerificationRepository_GetVerificationById_Call) Run(run func(ctx context.Context, id int)) *MockVerificationRepository_GetVerificationById_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockVerificationRepository_GetVerificationById_Call) Return(userVerification *models.UserVerification, err error) *MockVerificationRepository_GetVerificationById_Call {
+	_c.Call.Return(userVerification, err)
+	return _c
+}
+
+func (_c *MockVerificationRepository_GetVerificationById_Call) RunAndReturn(run func(ctx context.Context, id int) (*models.UserVerification, error)) *MockVerificationRepository_GetVerificationById_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UpdatePin provides a mock function for the type MockVerificationRepository
-func (_mock *MockVerificationRepository) UpdatePin(ctx context.Context, email string, pin string) error {
-	ret := _mock.Called(ctx, email, pin)
+func (_mock *MockVerificationRepository) UpdatePin(ctx context.Context, userId int, pin string) error {
+	ret := _mock.Called(ctx, userId, pin)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdatePin")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = returnFunc(ctx, email, pin)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, string) error); ok {
+		r0 = returnFunc(ctx, userId, pin)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1174,15 +1186,15 @@ type MockVerificationRepository_UpdatePin_Call struct {
 
 // UpdatePin is a helper method to define mock.On call
 //   - ctx
-//   - email
+//   - userId
 //   - pin
-func (_e *MockVerificationRepository_Expecter) UpdatePin(ctx interface{}, email interface{}, pin interface{}) *MockVerificationRepository_UpdatePin_Call {
-	return &MockVerificationRepository_UpdatePin_Call{Call: _e.mock.On("UpdatePin", ctx, email, pin)}
+func (_e *MockVerificationRepository_Expecter) UpdatePin(ctx interface{}, userId interface{}, pin interface{}) *MockVerificationRepository_UpdatePin_Call {
+	return &MockVerificationRepository_UpdatePin_Call{Call: _e.mock.On("UpdatePin", ctx, userId, pin)}
 }
 
-func (_c *MockVerificationRepository_UpdatePin_Call) Run(run func(ctx context.Context, email string, pin string)) *MockVerificationRepository_UpdatePin_Call {
+func (_c *MockVerificationRepository_UpdatePin_Call) Run(run func(ctx context.Context, userId int, pin string)) *MockVerificationRepository_UpdatePin_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(int), args[2].(string))
 	})
 	return _c
 }
@@ -1192,7 +1204,7 @@ func (_c *MockVerificationRepository_UpdatePin_Call) Return(err error) *MockVeri
 	return _c
 }
 
-func (_c *MockVerificationRepository_UpdatePin_Call) RunAndReturn(run func(ctx context.Context, email string, pin string) error) *MockVerificationRepository_UpdatePin_Call {
+func (_c *MockVerificationRepository_UpdatePin_Call) RunAndReturn(run func(ctx context.Context, userId int, pin string) error) *MockVerificationRepository_UpdatePin_Call {
 	_c.Call.Return(run)
 	return _c
 }

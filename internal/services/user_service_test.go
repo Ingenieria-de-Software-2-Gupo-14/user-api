@@ -96,7 +96,7 @@ func TestUserService_CreateUser(t *testing.T) {
 	mockRepo.EXPECT().AddUser(ctx, mock.AnythingOfType("*models.User")).Return(1, nil)
 
 	// Act
-	user, err := service.CreateUser(ctx, createRequest, false)
+	user, err := service.CreateUser(ctx, createRequest)
 
 	// Assert
 	assert.NoError(t, err)
@@ -125,8 +125,9 @@ func TestUserService_ModifyUser(t *testing.T) {
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
 	service := services.NewUserService(mockRepo, mockBlockedRepo)
 
+	userId := 1
 	userToModify := &models.User{
-		Id:       1,
+		Id:       userId,
 		Name:     "John Updated",
 		Surname:  "Doe Updated",
 		Email:    "john@example.com",
@@ -134,10 +135,11 @@ func TestUserService_ModifyUser(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	mockRepo.EXPECT().GetUser(ctx, userId).Return(userToModify, nil)
 	mockRepo.EXPECT().ModifyUser(ctx, userToModify).Return(nil)
 
 	// Act
-	err := service.ModifyUser(ctx, userToModify)
+	err := service.ModifyUser(ctx, userId, userToModify)
 
 	// Assert
 	assert.NoError(t, err)
@@ -150,13 +152,39 @@ func TestUserService_ModifyLocation(t *testing.T) {
 	service := services.NewUserService(mockRepo, mockBlockedRepo)
 
 	ctx := context.Background()
-	mockRepo.EXPECT().ModifyLocation(ctx, 1, "New York").Return(nil)
+	userId := 1
+	newLocation := "New York"
+
+	existingUser := &models.User{
+		Id:       userId,
+		Name:     "John",
+		Surname:  "Doe",
+		Email:    "john@example.com",
+		Location: "Old Location",
+	}
+
+	// Mock GetUser to return the existing user
+	mockRepo.EXPECT().GetUser(ctx, userId).Return(existingUser, nil)
+
+	// Create a copy of the existing user and update it with the new location
+	expectedUpdatedUser := *existingUser
+	expectedUpdatedUser.Location = newLocation
+
+	// Mock ModifyUser with the expected updated user
+	mockRepo.EXPECT().ModifyUser(ctx, existingUser).Return(nil)
+
+	// Create a user with only the location field set for the input
+	locationUser := &models.User{
+		Location: newLocation,
+	}
 
 	// Act
-	err := service.ModifyLocation(ctx, 1, "New York")
+	err := service.ModifyUser(ctx, userId, locationUser)
 
 	// Assert
 	assert.NoError(t, err)
+	// Verify that the existing user was updated with the new location
+	assert.Equal(t, newLocation, existingUser.Location)
 }
 
 func TestUserService_GetUserByEmail(t *testing.T) {

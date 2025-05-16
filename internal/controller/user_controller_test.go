@@ -150,7 +150,7 @@ func TestModifyUser_Success(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodPut, "/api/users/"+strconv.Itoa(updatedUser.Id), bytes.NewBuffer(jsonValue))
 	c.Request.Header.Set("Content-Type", "application/json")
 
-	mockService.EXPECT().ModifyUser(mock.Anything, mock.MatchedBy(func(u *models.User) bool {
+	mockService.EXPECT().ModifyUser(mock.Anything, updatedUser.Id, mock.MatchedBy(func(u *models.User) bool {
 		return u.Id == updatedUser.Id &&
 			u.Name == updatedUser.Name &&
 			u.Location == updatedUser.Location
@@ -196,7 +196,9 @@ func TestModifyUserLocation_Success(t *testing.T) {
 	c.Request = req
 	c.AddParam("id", strconv.Itoa(userId))
 
-	mockService.EXPECT().ModifyLocation(mock.Anything, userId, newLocation).Return(nil)
+	mockService.EXPECT().ModifyUser(mock.Anything, userId, mock.MatchedBy(func(u *models.User) bool {
+		return u.Location == newLocation
+	})).Return(nil)
 
 	// Call the function
 	userController.ModifyUserLocation(c)

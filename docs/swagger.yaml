@@ -8,8 +8,13 @@ definitions:
         minLength: 3
         type: string
       password:
-        maxLength: 60
         minLength: 8
+        type: string
+      role:
+        enum:
+        - student
+        - teacher
+        - admin
         type: string
       surname:
         maxLength: 60
@@ -19,6 +24,7 @@ definitions:
     - email
     - name
     - password
+    - role
     - surname
     type: object
   models.EmailVerifiaction:
@@ -38,7 +44,11 @@ definitions:
       email:
         type: string
       password:
+        minLength: 8
         type: string
+    required:
+    - email
+    - password
     type: object
   models.Notification:
     properties:
@@ -83,10 +93,8 @@ definitions:
     type: object
   models.User:
     properties:
-      admin:
-        type: boolean
       blocked:
-        description: Ya no tiene etiqueta db directa, se calcula con JOIN
+        description: No direct db tag, calculated with JOIN
         type: boolean
       created_at:
         type: string
@@ -100,14 +108,16 @@ definitions:
         type: string
       name:
         type: string
-      phone:
-        type: string
       profile_photo:
+        type: string
+      role:
         type: string
       surname:
         type: string
       updated_at:
         type: string
+      verified:
+        type: boolean
     type: object
   utils.HTTPError:
     properties:
@@ -207,10 +217,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Registers a new user. The 'admin' flag (passed during route setup,
-        not an API param) determines if an admin user is created. Incase of user registration
-        it starts the verifcation process, the user won't be saved on the database
-        unless the process is finished
+      description: Registers a new Admin
       parameters:
       - description: User Registration Details
         in: body
@@ -239,7 +246,7 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
-      summary: Register a new user
+      summary: Register a new Admin
       tags:
       - Auth
   /auth/login:
@@ -301,10 +308,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Registers a new user. The 'admin' flag (passed during route setup,
-        not an API param) determines if an admin user is created. Incase of user registration
-        it starts the verifcation process, the user won't be saved on the database
-        unless the process is finished
+      description: Registers a new user
       parameters:
       - description: User Registration Details
         in: body
@@ -374,6 +378,12 @@ paths:
       consumes:
       - application/json
       description: Sends a new Verification Pin to email saved in verification cookie
+      parameters:
+      - description: Email
+        in: query
+        name: email
+        required: true
+        type: string
       produces:
       - text/plain
       responses:

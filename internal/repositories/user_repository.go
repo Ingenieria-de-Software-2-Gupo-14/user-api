@@ -9,10 +9,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const (
-	badLoginAttemptWindow = "-15 minutes"
-)
-
 type UserRepository interface {
 	GetUser(ctx context.Context, id int) (*models.User, error)
 	GetAllUsers(ctx context.Context) ([]models.User, error)
@@ -20,10 +16,10 @@ type UserRepository interface {
 	AddUser(ctx context.Context, user *models.User) (int, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	ModifyUser(ctx context.Context, user *models.User) error
-	ModifyLocation(ctx context.Context, id int, newLocation string) error
 	ModifyPassword(ctx context.Context, id int, password string) error
 	AddNotification(ctx context.Context, id int, text string) error
 	GetUserNotifications(ctx context.Context, id int) (models.Notifications, error)
+	SetVerifiedTrue(ctx context.Context, id int) error
 }
 
 type userRepository struct {
@@ -38,8 +34,8 @@ func CreateUserRepo(db *sql.DB) *userRepository {
 func (db userRepository) GetUser(ctx context.Context, id int) (*models.User, error) {
 	query := `
 		SELECT
-			u.id, u.name, u.surname, u.password, u.email, u.location, u.admin,
-			u.profile_photo, u.description, u.phone, u.created_at, u.updated_at,
+			u.id, u.name, u.surname, u.password, u.email, u.location, u.role, u.verified,
+			u.profile_photo, u.description, u.created_at, u.updated_at,
 			EXISTS(
 				SELECT 1 FROM blocked_users
 				WHERE blocked_user_id = u.id
@@ -54,7 +50,7 @@ func (db userRepository) GetUser(ctx context.Context, id int) (*models.User, err
 	var user models.User
 	err := row.Scan(
 		&user.Id, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location,
-		&user.Admin, &user.ProfilePhoto, &user.Description, &user.Phone, &user.CreatedAt,
+		&user.Role, &user.Verified, &user.ProfilePhoto, &user.Description, &user.CreatedAt,
 		&user.UpdatedAt, &user.Blocked,
 	)
 	if err != nil {
@@ -71,8 +67,8 @@ func (db userRepository) GetAllUsers(ctx context.Context) ([]models.User, error)
 	// Simplificado: No calcular BadLoginAttempts ni Blocked aquí por rendimiento.
 	// Estos campos tendrán su valor cero (0 y false).
 	rows, err := db.DB.QueryContext(ctx, `
-		SELECT id, name, surname, password, email, location, admin, profile_photo,
-		       description, phone, created_at, updated_at
+		SELECT id, name, surname, password, email, location, role, profile_photo,
+		       description, created_at, updated_at
 		FROM users`)
 	if err != nil {
 		return nil, err
@@ -84,7 +80,7 @@ func (db userRepository) GetAllUsers(ctx context.Context) ([]models.User, error)
 		// Scan sin bad_login_attempts ni blocked
 		err := rows.Scan(
 			&user.Id, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location,
-			&user.Admin, &user.ProfilePhoto, &user.Description, &user.Phone, &user.CreatedAt,
+			&user.Role, &user.ProfilePhoto, &user.Description, &user.CreatedAt,
 			&user.UpdatedAt,
 		)
 		if err != nil {
@@ -106,14 +102,14 @@ func (db userRepository) DeleteUser(ctx context.Context, id int) error {
 }
 
 func (db userRepository) AddUser(ctx context.Context, user *models.User) (int, error) {
-	// La consulta INSERT no necesita cambios relacionados con bad_login_attempts
 	query := `
-		INSERT INTO users (name, surname, password, email, location, admin, profile_photo, description, phone)
+		INSERT INTO users (name, surname, password, email, location, role, verified, profile_photo, description)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id`
 	var id int
 	err := db.DB.QueryRowContext(ctx, query,
-		&user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Admin, &user.ProfilePhoto, &user.Description, &user.Phone,
+		&user.Name, &user.Surname, &user.Password, &user.Email, &user.Location, &user.Role,
+		&user.Verified, &user.ProfilePhoto, &user.Description,
 	).Scan(&id)
 
 	if err != nil {
@@ -126,8 +122,8 @@ func (db userRepository) AddUser(ctx context.Context, user *models.User) (int, e
 func (db userRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
 		SELECT
-			u.id, u.name, u.surname, u.password, u.email, u.location, u.admin,
-			u.profile_photo, u.description, u.phone, u.created_at, u.updated_at,
+			u.id, u.name, u.surname, u.password, u.email, u.location, u.role, u.verified,
+			u.profile_photo, u.description, u.created_at, u.updated_at,
 			EXISTS(
 				SELECT 1 FROM blocked_users
 				WHERE blocked_user_id = u.id
@@ -142,7 +138,7 @@ func (db userRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 
 	err := row.Scan(
 		&user.Id, &user.Name, &user.Surname, &user.Password, &user.Email, &user.Location,
-		&user.Admin, &user.ProfilePhoto, &user.Description, &user.Phone, &user.CreatedAt,
+		&user.Role, &user.Verified, &user.ProfilePhoto, &user.Description, &user.CreatedAt,
 		&user.UpdatedAt, &user.Blocked,
 	)
 	if err != nil {
@@ -156,20 +152,13 @@ func (db userRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 }
 
 func (db userRepository) ModifyUser(ctx context.Context, user *models.User) error {
-	// No modificar bad_login_attempts ni blocked aquí directamente
 	query := `
-		UPDATE users SET name = $1, surname = $2, location = $3, profile_photo = $4, description = $5, phone = $6
+		UPDATE users SET name = $1, surname = $2, location = $3, profile_photo = $4, description = $5, verified = $6
 		WHERE id = $7`
 	_, err := db.DB.ExecContext(ctx, query,
-		&user.Name, &user.Surname, &user.Location, &user.ProfilePhoto, &user.Description, &user.Phone, &user.Id,
+		&user.Name, &user.Surname, &user.Location, &user.ProfilePhoto, &user.Description, &user.Verified, &user.Id,
 	)
-	// updated_at se actualiza por trigger
-	return err
-}
 
-func (db userRepository) ModifyLocation(ctx context.Context, id int, newLocation string) error {
-	// updated_at se actualizará automáticamente por el trigger
-	_, err := db.DB.ExecContext(ctx, "UPDATE users SET location = $1 where id = $2", newLocation, id)
 	return err
 }
 
@@ -188,7 +177,7 @@ func (db userRepository) AddNotification(ctx context.Context, id int, text strin
 
 func (db userRepository) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
 	query := `
-			SELECT notification_text, created_time 
+			SELECT notification_text, created_time
 			FROM notifications
 			WHERE user_id = $1`
 	rows, err := db.DB.QueryContext(ctx, query, id)
@@ -211,6 +200,11 @@ func (db userRepository) GetUserNotifications(ctx context.Context, id int) (mode
 		return models.Notifications{}, err
 	}
 	return notifications, nil
+}
+
+func (db userRepository) SetVerifiedTrue(ctx context.Context, id int) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE users SET verified = true where id = $1", id)
+	return err
 }
 
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description
