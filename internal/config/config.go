@@ -1,11 +1,14 @@
 package config
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 
+	"github.com/DataDog/datadog-go/v5/statsd"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/log"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	_ "github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -18,6 +21,11 @@ type Config struct {
 
 	// Database configuration
 	DatabaseURL string
+
+	// Telemetry configuration
+	DatadogClientType string
+	DatadogHost       string
+	DatadogStatsdPort string
 
 	// Secrets
 	GoogleKey    string
@@ -37,7 +45,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 // LoadConfig loads environment variables a Config Struct containing relevant variables
 func LoadConfig() Config {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, loading environment variables from the system")
+		log.Warn(context.Background(), "No .env file found, loading environment variables from the system")
 	}
 
 	dbUrl := os.Getenv("DATABASE_URL")
@@ -53,12 +61,15 @@ func LoadConfig() Config {
 	}
 
 	return Config{
-		Host:         getEnvOrDefault("HOST", "localhost"),
-		Port:         getEnvOrDefault("PORT", "8080"),
-		Environment:  getEnvOrDefault("ENVIRONMENT", "development"),
-		DatabaseURL:  dbUrl,
-		GoogleKey:    os.Getenv("GOOGLE_KEY"),
-		GoogleSecret: os.Getenv("GOOGLE_SECRET"),
+		Host:              getEnvOrDefault("HOST", "localhost"),
+		Port:              getEnvOrDefault("PORT", "8080"),
+		Environment:       getEnvOrDefault("ENVIRONMENT", "development"),
+		DatabaseURL:       dbUrl,
+		GoogleKey:         os.Getenv("GOOGLE_KEY"),
+		GoogleSecret:      os.Getenv("GOOGLE_SECRET"),
+		DatadogClientType: getEnvOrDefault("DD_CLIENT_TYPE", "default"),
+		DatadogHost:       getEnvOrDefault("DD_HOST", "localhost"),
+		DatadogStatsdPort: getEnvOrDefault("DD_STATSD_PORT", "8125"),
 	}
 }
 
@@ -75,4 +86,17 @@ func (config *Config) CreateDatabase() (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func (config *Config) CreateDatadogClient() (telemetry.Client, error) {
+	switch config.DatadogClientType {
+	case "api":
+		return telemetry.NewDatadogAPI()
+
+	case "statsd", "agent":
+		return telemetry.NewDatadog(config.DatadogHost+":"+config.DatadogStatsdPort, statsd.WithTags([]string{"application:" + "user-api"}))
+
+	default:
+		return nil, nil
+	}
 }

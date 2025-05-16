@@ -2,14 +2,16 @@ package controller
 
 import (
 	"errors"
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/log"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
@@ -323,8 +325,7 @@ func (ac *AuthController) AuthMiddlewarefunc(ctx *gin.Context) {
 	if claims.ExpiresAt < time.Now().Add(time.Minute*5).Unix() {
 		newToken, err := models.GenerateToken(uId, claims.Email, claims.Name, claims.Admin)
 		if err != nil {
-			//TODO change to our logger
-			//slog.Error("Error generating new token", err)
+			log.Error(ctx, "Error generating token", "error", err.Error())
 		} else {
 			ctx.SetCookie("Authorization", newToken, 3600, "/", "", false, true)
 		}
