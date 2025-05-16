@@ -2,12 +2,14 @@ package router
 
 import (
 	"database/sql"
+	"os"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/controller"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
+	"github.com/sendgrid/sendgrid-go"
 )
 
 type Dependencies struct {
@@ -52,7 +54,7 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	// Services
 	userService := services.NewUserService(userRepo, blockRepo)
 	loginService := services.NewLoginAttemptService(loginRepo, blockRepo)
-	verificationService := services.NewVerificationService(verificationRepo)
+	verificationService := services.NewVerificationService(verificationRepo, sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY")))
 
 	// Controllers
 	authController := controller.NewAuthController(userService, loginService, verificationService)

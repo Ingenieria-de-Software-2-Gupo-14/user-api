@@ -3,13 +3,9 @@ package controller
 import (
 	"errors"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/log"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
@@ -37,7 +33,7 @@ func NewAuthController(userRepo services.UserService, loginAttemptsService servi
 }
 
 // @Summary      Register a new user
-// @Description  Registers a new user. The 'admin' flag (passed during route setup, not an API param) determines if an admin user is created. Incase of user registration it starts the verifcation process, the user won't be saved on the database unless the process is finished
+// @Description  Registers a new user
 // @Tags         Auth
 // @Accept       json
 // @Produce      plain
@@ -47,30 +43,67 @@ func NewAuthController(userRepo services.UserService, loginAttemptsService servi
 // @Failure      409  {object}  utils.HTTPError "Email already exists"
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /auth/users [post]
-// @Router       /auth/admins [post]
-func (ac *AuthController) Register(admin bool) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var request models.CreateUserRequest
-		ctx := c.Request.Context()
-		if err := c.Bind(&request); err != nil {
-			utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
-			return
-		}
-
-		if _, err := ac.userRepo.GetUserByEmail(ctx, request.Email); err == nil {
-			utils.ErrorResponse(c, http.StatusConflict, "Email already exists")
-			return
-		}
-
-		if admin == true {
-			ac.registerAdmin(c, request)
-
-		} else {
-			ac.registerUser(c, request)
-		}
+func (ac *AuthController) Register(c *gin.Context) {
+	var request models.CreateUserRequest
+	ctx := c.Request.Context()
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
 		return
-
 	}
+
+	if _, err := ac.userRepo.GetUserByEmail(ctx, request.Email); err == nil {
+		utils.ErrorResponse(c, http.StatusConflict, "Email already exists")
+		return
+	}
+
+	id, err := ac.userRepo.CreateUser(ctx, request)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := ac.verificationService.SendVerificationEmail(ctx, id, request.Email); err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+// @Summary      Register a new Admin
+// @Description  Registers a new Admin
+// @Tags         Auth
+// @Accept       json
+// @Produce      plain
+// @Param        request body models.CreateUserRequest true "User Registration Details"
+// @Success      201  {object}  map[string]int  "User created successfully"
+// @Failure      400  {object}  utils.HTTPError "Invalid request format"
+// @Failure      409  {object}  utils.HTTPError "Email already exists"
+// @Failure      500  {object}  utils.HTTPError "Internal server error"
+// @Router       /auth/admins [post]
+func (ac *AuthController) RegisterAdmin(c *gin.Context) {
+	var request models.CreateUserRequest
+	ctx := c.Request.Context()
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+
+	if _, err := ac.userRepo.GetUserByEmail(ctx, request.Email); err == nil {
+		utils.ErrorResponse(c, http.StatusConflict, "Email already exists")
+		return
+	}
+
+	request.Role = "admin"
+	request.Verified = true
+
+	id, err := ac.userRepo.CreateUser(c.Request.Context(), request)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
 // @Summary      Verify a new user's registration
@@ -85,19 +118,24 @@ func (ac *AuthController) Register(admin bool) gin.HandlerFunc {
 // @Router       /auth/users/verify [post]
 func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 	var request models.EmailVerifiaction
-	tokenStr, _ := c.Cookie("Verification")
-	claims, err1 := models.ParseToken(tokenStr)
-	if err1 != nil {
-		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err1)
-		return
-	}
 	if err := c.Bind(&request); err != nil {
-		println(err)
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
 	}
-	println(claims.Email)
+
+	parts := strings.Split(request.VerificationPin, "-")
+	if len(parts) != 2 {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid verification pin format")
+		return
+	}
+
+	id, err := strconv.Atoi(parts[0])
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid verification pin format")
+		return
+	}
+
 	ctx := c.Request.Context()
-	verification, err := ac.verificationService.GetPendingVerificationByEmail(ctx, claims.Email)
+	verification, err := ac.verificationService.GetVerification(ctx, id)
 	if err != nil {
 		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 		return
@@ -109,30 +147,11 @@ func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 	}
 
 	if verification.VerificationPin != request.VerificationPin {
-		println("i sent " + request.VerificationPin)
-		println("i found " + verification.VerificationPin)
 		utils.ErrorResponseWithErr(c, http.StatusBadRequest, err)
 		return
 	}
 
-	id, err := ac.userRepo.CreateUser(ctx, models.CreateUserRequest{
-		Email:    verification.Email,
-		Password: verification.Password,
-		Name:     verification.Name,
-		Surname:  verification.Surname,
-	}, false)
-
-	if err != nil {
-		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-		return
-	}
-	err = ac.verificationService.DeleteByEmail(ctx, verification.Email)
-	if err != nil {
-		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-		return
-	}
-	c.JSON(http.StatusCreated, gin.H{"id": id})
-	c.SetCookie("Verification", "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"message": "User verified and created successfully"})
 }
 
 // finishAuth finish the authentication process by generating a token and setting it in the cookie
@@ -143,7 +162,7 @@ func (ac *AuthController) finishAuth(ctx *gin.Context, user models.User) {
 		return
 	}
 
-	token, err := models.GenerateToken(user.Id, user.Email, user.Name, user.Admin)
+	token, err := models.GenerateToken(user.Id, user.Email, user.Name, user.Role)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -186,14 +205,19 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
+	if err := utils.CompareHashPassword(user.Password, request.Password); err != nil {
+		ac.loginAttemptsService.AddLoginAttempt(c, user.Id, c.Request.RemoteAddr, c.Request.UserAgent(), false)
+		utils.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
+		return
+	}
+
 	if user.Blocked {
 		utils.ErrorResponse(c, http.StatusForbidden, "User is blocked")
 		return
 	}
 
-	if err := utils.CompareHashPassword(user.Password, request.Password); err != nil {
-		ac.loginAttemptsService.AddLoginAttempt(c, user.Id, c.Request.RemoteAddr, c.Request.UserAgent(), false)
-		utils.ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password")
+	if !user.Verified {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "User is not verified")
 		return
 	}
 
@@ -248,12 +272,14 @@ func (ac *AuthController) CompleteAuth(c *gin.Context) {
 		// User not found, create a new one
 		if errors.Is(err, repositories.ErrNotFound) {
 			newUser := models.CreateUserRequest{
-				Name:    user.Name,
-				Surname: user.LastName,
-				Email:   user.Email,
+				Name:     user.Name,
+				Surname:  user.LastName,
+				Email:    user.Email,
+				Role:     "student",
+				Verified: true,
 			}
 
-			id, err := ac.userRepo.CreateUser(ctx, newUser, false)
+			id, err := ac.userRepo.CreateUser(ctx, newUser)
 			if err != nil {
 				utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 				return
@@ -323,7 +349,7 @@ func (ac *AuthController) AuthMiddlewarefunc(ctx *gin.Context) {
 
 	// Refresh token if it is about to expire
 	if claims.ExpiresAt < time.Now().Add(time.Minute*5).Unix() {
-		newToken, err := models.GenerateToken(uId, claims.Email, claims.Name, claims.Admin)
+		newToken, err := models.GenerateToken(uId, claims.Email, claims.Name, claims.Role)
 		if err != nil {
 			log.Error(ctx, "Error generating token", "error", err.Error())
 		} else {
@@ -335,61 +361,6 @@ func (ac *AuthController) AuthMiddlewarefunc(ctx *gin.Context) {
 	ctx.Next()
 }
 
-func (ac *AuthController) registerAdmin(c *gin.Context, request models.CreateUserRequest) {
-	id, err := ac.userRepo.CreateUser(c.Request.Context(), request, true)
-	if err != nil {
-		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"id": id})
-}
-
-func (ac *AuthController) registerUser(c *gin.Context, request models.CreateUserRequest) {
-	//id, err := ac.userRepo.CreateUser(c.Request.Context(), request, admin)
-	_, err := ac.verificationService.GetPendingVerificationByEmail(c.Request.Context(), request.Email)
-	var pin string
-	if err == nil {
-		err = ac.verificationService.DeleteByEmail(c.Request.Context(), request.Email)
-		if err != nil {
-			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-			return
-		}
-	}
-	pin, err = ac.verificationService.CreatePendingVerification(c.Request.Context(), request, false)
-	if err != nil {
-		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	sendPinByEmail(pin, request.Email)
-	println(pin)
-	token, err := models.GenerateToken(0, request.Email, request.Name, false)
-	if err != nil {
-		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	c.SetSameSite(http.SameSiteLaxMode)
-
-	c.SetCookie("Verification", token, 3600, "/", "", false, true)
-	c.JSON(http.StatusOK, gin.H{
-		"token": token,
-	})
-}
-
-func sendPinByEmail(pin string, userEmail string) error {
-	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
-	subject := "Verification Code"
-	to := mail.NewEmail("User", userEmail)
-	content := mail.NewContent("text/plain", "Your verification code is "+pin)
-	message := mail.NewV3MailInit(from, subject, to, content)
-
-	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
-	_, err := client.Send(message)
-	return err
-}
-
 // @Summary      Sends a new Verification
 // @Description  Sends a new Verification Pin to email saved in verification cookie
 // @Tags         Auth
@@ -399,23 +370,30 @@ func sendPinByEmail(pin string, userEmail string) error {
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /auth/users/verify/resend [put]
 func (ac *AuthController) ResendPin(c *gin.Context) {
-	tokenStr, _ := c.Cookie("Verification")
-	claims, err := models.ParseToken(tokenStr)
+
+	//get email from query params
+	email := c.Query("email")
+	if email == "" {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Email is required")
+		return
+	}
+
+	//Get user by email
+	user, err := ac.userRepo.GetUserByEmail(c.Request.Context(), email)
+	if err != nil {
+		if errors.Is(err, repositories.ErrNotFound) {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Invalid verification")
+			return
+		}
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = ac.verificationService.UpdatePin(c.Request.Context(), user.Id, email)
 	if err != nil {
 		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 		return
 	}
-	println(claims.Email)
-	pin, err := ac.verificationService.UpdatePin(c.Request.Context(), claims.Email)
-	if err != nil {
-		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-		return
-	}
-	err = sendPinByEmail(pin, claims.Email)
-	if err != nil {
-		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-		return
-	}
-	println(pin)
+
 	c.JSON(http.StatusOK, nil)
 }

@@ -2,67 +2,110 @@ package services
 
 import (
 	"context"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	repo "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/sethvargo/go-password/password"
 )
 
 const PinLifeTime = 5
 
 type VerificationService interface {
-	CreatePendingVerification(ctx context.Context, request models.CreateUserRequest, admin bool) (string, error)
-	GetPendingVerificationByEmail(ctx context.Context, email string) (*models.UserVerification, error)
-	DeleteByEmail(ctx context.Context, email string) error
-	UpdatePin(ctx context.Context, email string) (string, error)
+	SendVerificationEmail(ctx context.Context, userId int, email string) error
+	GetVerification(ctx context.Context, id int) (*models.UserVerification, error)
+	DeleteByUserId(ctx context.Context, userId int) error
+	UpdatePin(ctx context.Context, userId int, email string) error
 }
 
 type verificationService struct {
 	verificationRepo repo.VerificationRepository
+	emailClient      *sendgrid.Client
 }
 
-func NewVerificationService(verificationRepo repo.VerificationRepository) *verificationService {
-	return &verificationService{verificationRepo}
+func NewVerificationService(verificationRepo repo.VerificationRepository, emailClient *sendgrid.Client) *verificationService {
+	return &verificationService{
+		verificationRepo: verificationRepo,
+		emailClient:      emailClient,
+	}
 }
 
-func (s *verificationService) CreatePendingVerification(ctx context.Context, request models.CreateUserRequest, admin bool) (string, error) {
-	hashPassword, err := utils.HashPassword(request.Password)
+func (s *verificationService) SendVerificationEmail(ctx context.Context, userId int, email string) error {
+	pin, err := password.Generate(6, 2, 0, false, true)
 	if err != nil {
-		return "", err
+		return err
 	}
-	pin, errPin := password.Generate(6, 2, 0, false, true)
-	if errPin != nil {
-		return "", errPin
-	}
-	user := &models.UserVerification{
-		Email:           request.Email,
-		Name:            request.Name,
-		Surname:         request.Surname,
-		Password:        hashPassword,
+
+	verification := &models.UserVerification{
+		UserId:          userId,
 		VerificationPin: pin,
 		PinExpiration:   time.Now().Add(PinLifeTime * time.Minute),
 	}
-	_, err = s.verificationRepo.AddPendingVerification(ctx, user)
+
+	id, err := s.verificationRepo.AddPendingVerification(ctx, verification)
 	if err != nil {
-		return "", err
+		return err
 	}
-	return pin, err
-}
 
-func (s *verificationService) GetPendingVerificationByEmail(ctx context.Context, email string) (*models.UserVerification, error) {
-	return s.verificationRepo.GetPendingVerificationByEmail(ctx, email)
-}
+	message := mail.NewV3MailInit(
+		mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar"),
+		"Verification Code",
+		mail.NewEmail("User", email),
+		mail.NewContent("text/plain", fmt.Sprintf("Your verification code is %d-%s", id, pin)),
+	)
 
-func (s *verificationService) DeleteByEmail(ctx context.Context, email string) error {
-	return s.verificationRepo.DeleteByEmail(ctx, email)
-}
-
-func (s *verificationService) UpdatePin(ctx context.Context, email string) (string, error) {
-	pin, errPin := password.Generate(6, 2, 0, false, true)
-	if errPin != nil {
-		return "", errPin
+	if _, err := s.emailClient.Send(message); err != nil {
+		return err
 	}
-	return pin, s.verificationRepo.UpdatePin(ctx, email, pin)
+
+	return nil
+}
+
+func (s *verificationService) GetVerification(ctx context.Context, id int) (*models.UserVerification, error) {
+	return s.verificationRepo.GetVerificationById(ctx, id)
+}
+
+func (s *verificationService) GetVerificationByEmail(ctx context.Context, email string) (*models.UserVerification, error) {
+	return s.verificationRepo.GetVerificationByEmail(ctx, email)
+}
+
+func (s *verificationService) DeleteByUserId(ctx context.Context, userId int) error {
+	return s.verificationRepo.DeleteByUserId(ctx, userId)
+}
+
+func (s *verificationService) UpdatePin(ctx context.Context, userId int, email string) error {
+	pin, err := password.Generate(6, 2, 0, false, true)
+	if err != nil {
+		return err
+	}
+
+	verification, err := s.GetVerificationByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, repo.ErrNotFound) {
+			return s.SendVerificationEmail(ctx, userId, email)
+		}
+		return err
+	}
+
+	err = s.verificationRepo.UpdatePin(ctx, verification.Id, pin)
+	if err != nil {
+		return err
+	}
+
+	message := mail.NewV3MailInit(
+		mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar"),
+		"Verification Code",
+		mail.NewEmail("User", email),
+		mail.NewContent("text/plain", fmt.Sprintf("Your verification code is %d-%s", verification.Id, pin)),
+	)
+
+	if _, err := s.emailClient.Send(message); err != nil {
+		return err
+	}
+
+	return nil
 }

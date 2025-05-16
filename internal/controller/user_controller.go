@@ -1,12 +1,13 @@
 package controller
 
 import (
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	services "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
@@ -114,7 +115,7 @@ func (c UserController) ModifyUser(context *gin.Context) {
 		return
 	}
 
-	if err := c.service.ModifyUser(context.Request.Context(), &user); err != nil {
+	if err := c.service.ModifyUser(context.Request.Context(), user.Id, &user); err != nil {
 		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
@@ -141,14 +142,17 @@ func (c UserController) ModifyUserLocation(context *gin.Context) {
 		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
+
 	if err := context.ShouldBindJSON(&user); err != nil {
 		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
 		return
 	}
-	if err := c.service.ModifyLocation(context, id, user.Location); err != nil {
+
+	if err := c.service.ModifyUser(context.Request.Context(), id, &models.User{Location: user.Location}); err != nil {
 		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
+
 	context.JSON(http.StatusOK, nil)
 }
 
@@ -197,6 +201,7 @@ func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
 	var user models.PasswordModifyRequest
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusBadRequest, err)
@@ -290,8 +295,4 @@ func (c UserController) GetUserNotifications(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, notifs)
-}
-
-func (ct UserController) ValidateToken(c *gin.Context) {
-	c.JSON(http.StatusOK, c.Request.Context().Value("jwt_info"))
 }
