@@ -86,9 +86,9 @@ func (db verificationRepository) DeleteByUserId(ctx context.Context, userId int)
 	return err
 }
 
-func (db verificationRepository) UpdatePin(ctx context.Context, userId int, pin string) error {
-	rows, err := db.DB.ExecContext(ctx, "UPDATE verification SET verification_pin = $2, pin_expiration = $3 WHERE user_id = $1",
-		userId, pin, time.Now().Add(PinLifeTime*time.Minute))
+func (db verificationRepository) UpdatePin(ctx context.Context, Id int, pin string) error {
+	rows, err := db.DB.ExecContext(ctx, "UPDATE verification SET verification_pin = $2, pin_expiration = $3 WHERE id = $1",
+		Id, pin, time.Now().Add(PinLifeTime*time.Minute))
 	if err != nil {
 		return err
 	}
