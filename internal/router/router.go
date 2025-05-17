@@ -17,9 +17,14 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"https://backoffice-three-theta.vercel.app", "http://localhost:8081", "https://backoffice-ruby-gamma.vercel.app/"}, // frontend address here
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowOrigins: []string{"https://backoffice-three-theta.vercel.app", "http://localhost:8081", "https://backoffice-ruby-gamma.vercel.app/"}, // frontend address here
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Requested-With",
+			"X-CSRF-Token"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true, // if you need cookies or auth headers
 	}))
