@@ -45,11 +45,6 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 		ctx.JSON(http.StatusOK, gin.H{"stats": deps.DB.Stats()})
 	})
 
-	//preflight options route
-	r.OPTIONS("/*path", func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
-
 	// Auth routes
 	auth := r.Group("/auth")
 	auth.GET("/:provider", deps.Controllers.AuthController.BeginAuth)
