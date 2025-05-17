@@ -17,7 +17,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"https://backoffice-three-theta.vercel.app", "http://localhost:8081", "https://backoffice-ruby-gamma.vercel.app/"}, // frontend address here
+		AllowOrigins: []string{"https://backoffice-three-theta.vercel.app", "http://localhost:8081", "https://backoffice-ruby-gamma.vercel.app"}, // frontend address here
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin",
 			"Content-Type",
@@ -43,6 +43,11 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{"stats": deps.DB.Stats()})
+	})
+
+	//preflight options route
+	r.OPTIONS("/*path", func(c *gin.Context) {
+		c.AbortWithStatus(200)
 	})
 
 	// Auth routes
