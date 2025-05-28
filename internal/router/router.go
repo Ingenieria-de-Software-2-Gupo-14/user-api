@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
@@ -17,7 +18,9 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"https://backoffice-three-theta.vercel.app", "http://localhost:8081", "https://backoffice-ruby-gamma.vercel.app"}, // frontend address here
+		AllowOriginFunc: func(origin string) bool {
+			return strings.HasSuffix(origin, ".vercel.app") || origin == "http://localhost:8081"
+		},
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin",
 			"Content-Type",
