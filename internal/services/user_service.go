@@ -2,6 +2,9 @@ package services
 
 import (
 	"context"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"os"
 	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
@@ -19,8 +22,10 @@ type UserService interface {
 	BlockUser(ctx context.Context, id int, reason string, blockerId *int, blockedUntil *time.Time) error
 	IsUserBlocked(ctx context.Context, id int) (bool, error)
 	ModifyPassword(ctx context.Context, id int, password string) error
-	AddNotification(ctx context.Context, id int, text string) error
-	GetUserNotifications(ctx context.Context, id int) (models.Notifications, error)
+	AddNotificationToken(ctx context.Context, id int, text string) error
+	GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error)
+	SendNotifByMobile(cont context.Context, userId int, notification models.NotifyRequest) error
+	SendNotifByEmail(cont context.Context, userId int, request models.NotifyRequest) error
 	VerifyUser(ctx context.Context, id int) error
 }
 
@@ -114,13 +119,33 @@ func (s *userService) ModifyPassword(ctx context.Context, id int, password strin
 	return s.userRepo.ModifyPassword(ctx, id, hashPassword)
 }
 
-func (s *userService) AddNotification(ctx context.Context, id int, text string) error {
-	return s.userRepo.AddNotification(ctx, id, text)
+func (s *userService) AddNotificationToken(ctx context.Context, id int, text string) error {
+	return s.userRepo.AddNotificationToken(ctx, id, text)
 }
-func (s *userService) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
-	return s.userRepo.GetUserNotifications(ctx, id)
+func (s *userService) GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error) {
+	return s.userRepo.GetUserNotificationsToken(ctx, id)
 }
 
 func (s *userService) VerifyUser(ctx context.Context, id int) error {
 	return s.userRepo.SetVerifiedTrue(ctx, id)
+}
+
+func (s *userService) SendNotifByMobile(cont context.Context, userId int, notification models.NotifyRequest) error {
+	return nil
+}
+
+func (s *userService) SendNotifByEmail(cont context.Context, userId int, request models.NotifyRequest) error {
+	user, err := s.userRepo.GetUser(cont, userId)
+	if err != nil {
+		return err
+	}
+	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
+	subject := request.NotificationTitle
+	to := mail.NewEmail("User", user.Email)
+	content := mail.NewContent("text/plain", request.NotificationText)
+	message := mail.NewV3MailInit(from, subject, to, content)
+
+	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
+	_, err2 := client.Send(message)
+	return err2
 }

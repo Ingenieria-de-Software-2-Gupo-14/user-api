@@ -175,11 +175,11 @@ func (_m *MockUserService) EXPECT() *MockUserService_Expecter {
 }
 
 // AddNotification provides a mock function for the type MockUserService
-func (_mock *MockUserService) AddNotification(ctx context.Context, id int, text string) error {
+func (_mock *MockUserService) AddNotificationToken(ctx context.Context, id int, text string) error {
 	ret := _mock.Called(ctx, id, text)
 
 	if len(ret) == 0 {
-		panic("no return value specified for AddNotification")
+		panic("no return value specified for AddNotificationToken")
 	}
 
 	var r0 error
@@ -191,7 +191,7 @@ func (_mock *MockUserService) AddNotification(ctx context.Context, id int, text 
 	return r0
 }
 
-// MockUserService_AddNotification_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddNotification'
+// MockUserService_AddNotification_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddNotificationToken'
 type MockUserService_AddNotification_Call struct {
 	*mock.Call
 }
@@ -201,7 +201,7 @@ type MockUserService_AddNotification_Call struct {
 //   - id
 //   - text
 func (_e *MockUserService_Expecter) AddNotification(ctx interface{}, id interface{}, text interface{}) *MockUserService_AddNotification_Call {
-	return &MockUserService_AddNotification_Call{Call: _e.mock.On("AddNotification", ctx, id, text)}
+	return &MockUserService_AddNotification_Call{Call: _e.mock.On("AddNotificationToken", ctx, id, text)}
 }
 
 func (_c *MockUserService_AddNotification_Call) Run(run func(ctx context.Context, id int, text string)) *MockUserService_AddNotification_Call {
@@ -542,11 +542,11 @@ func (_c *MockUserService_GetUserById_Call) RunAndReturn(run func(ctx context.Co
 }
 
 // GetUserNotifications provides a mock function for the type MockUserService
-func (_mock *MockUserService) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
+func (_mock *MockUserService) GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error) {
 	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetUserNotifications")
+		panic("no return value specified for GetUserNotificationsToken")
 	}
 
 	var r0 models.Notifications
@@ -567,7 +567,7 @@ func (_mock *MockUserService) GetUserNotifications(ctx context.Context, id int) 
 	return r0, r1
 }
 
-// MockUserService_GetUserNotifications_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserNotifications'
+// MockUserService_GetUserNotifications_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserNotificationsToken'
 type MockUserService_GetUserNotifications_Call struct {
 	*mock.Call
 }
@@ -576,7 +576,7 @@ type MockUserService_GetUserNotifications_Call struct {
 //   - ctx
 //   - id
 func (_e *MockUserService_Expecter) GetUserNotifications(ctx interface{}, id interface{}) *MockUserService_GetUserNotifications_Call {
-	return &MockUserService_GetUserNotifications_Call{Call: _e.mock.On("GetUserNotifications", ctx, id)}
+	return &MockUserService_GetUserNotifications_Call{Call: _e.mock.On("GetUserNotificationsToken", ctx, id)}
 }
 
 func (_c *MockUserService_GetUserNotifications_Call) Run(run func(ctx context.Context, id int)) *MockUserService_GetUserNotifications_Call {

@@ -2,14 +2,10 @@ package controller
 
 import (
 	"net/http"
-	"os"
 	"strconv"
 
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
-
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	services "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 
@@ -234,20 +230,12 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 	}
 	cont := ctx.Request.Context()
 	for _, userID := range notifyRequest.Users {
-		user, err := c.service.GetUserById(cont, userID)
-		if err != nil {
-			if err == repositories.ErrNotFound {
-				continue
-			}
-			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		errMobile := c.service.SendNotifByMobile(cont, userID, notifyRequest)
+		if errMobile != nil {
+			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMobile)
 			continue
 		}
-		err = c.service.AddNotification(cont, userID, notifyRequest.NotificationText)
-		if err != nil {
-			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
-			continue
-		}
-		errMail := sendNotifByEmail(user.Email, notifyRequest.NotificationText)
+		errMail := c.service.SendNotifByEmail(cont, userID, notifyRequest)
 		if errMail != nil {
 			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMail)
 			continue
@@ -256,16 +244,19 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, nil)
 }
 
-func sendNotifByEmail(email string, text string) error {
-	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
-	subject := "Verification Code"
-	to := mail.NewEmail("User", email)
-	content := mail.NewContent("text/plain", text)
-	message := mail.NewV3MailInit(from, subject, to, content)
-
-	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
-	_, err := client.Send(message)
-	return err
+func (c UserController) SetUserNotifications(ctx *gin.Context) {
+	var tokenRequest models.NotificationSetUpRequest
+	var id, err = strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	errToken := c.service.AddNotificationToken(ctx.Request.Context(), id, tokenRequest.Token)
+	if errToken != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errToken)
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
 }
 
 // GetUserNotifications godoc
@@ -285,7 +276,7 @@ func (c UserController) GetUserNotifications(ctx *gin.Context) {
 		return
 	}
 	var notifs models.Notifications
-	notifs, err = c.service.GetUserNotifications(ctx.Request.Context(), id)
+	notifs, err = c.service.GetUserNotificationsToken(ctx.Request.Context(), id)
 	if err != nil {
 		if err == repositories.ErrNotFound {
 			utils.ErrorResponse(ctx, http.StatusNotFound, "User not found")

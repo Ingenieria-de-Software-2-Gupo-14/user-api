@@ -17,8 +17,8 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	ModifyUser(ctx context.Context, user *models.User) error
 	ModifyPassword(ctx context.Context, id int, password string) error
-	AddNotification(ctx context.Context, id int, text string) error
-	GetUserNotifications(ctx context.Context, id int) (models.Notifications, error)
+	AddNotificationToken(ctx context.Context, id int, text string) error
+	GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error)
 	SetVerifiedTrue(ctx context.Context, id int) error
 }
 
@@ -167,17 +167,17 @@ func (db userRepository) ModifyPassword(ctx context.Context, id int, password st
 	return err
 }
 
-func (db userRepository) AddNotification(ctx context.Context, id int, text string) error {
+func (db userRepository) AddNotificationToken(ctx context.Context, id int, text string) error {
 	query := `
-		INSERT INTO notifications (user_id, notification_text)
+		INSERT INTO notifications (user_id, token)
 		VALUES ($1, $2)`
 	row := db.DB.QueryRowContext(ctx, query, id, text)
 	return row.Err()
 }
 
-func (db userRepository) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
+func (db userRepository) GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error) {
 	query := `
-			SELECT notification_text, created_time
+			SELECT token, created_time
 			FROM notifications
 			WHERE user_id = $1`
 	rows, err := db.DB.QueryContext(ctx, query, id)
