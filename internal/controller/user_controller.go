@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -229,21 +230,22 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 		return
 	}
 	cont := ctx.Request.Context()
+	log.Printf("notification title: %s", notifyRequest.NotificationTitle)
 	for _, userID := range notifyRequest.Users {
-		println(userID)
+		log.Printf("user id: %s", userID)
 		errMobile := c.service.SendNotifByMobile(cont, userID, notifyRequest)
 		if errMobile != nil {
 			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMobile)
 			continue
 		}
-		println("notif")
+		log.Printf("notif")
 		errMail := c.service.SendNotifByEmail(cont, userID, notifyRequest)
 
 		if errMail != nil {
 			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMail)
 			continue
 		}
-		println("email")
+		log.Printf("email")
 	}
 	ctx.JSON(http.StatusOK, nil)
 }
