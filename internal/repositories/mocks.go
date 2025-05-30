@@ -727,22 +727,22 @@ func (_c *MockUserRepository_GetUserByEmail_Call) RunAndReturn(run func(ctx cont
 }
 
 // GetUserNotificationsToken provides a mock function for the type MockUserRepository
-func (_mock *MockUserRepository) GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error) {
+func (_mock *MockUserRepository) GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error) {
 	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserNotificationsToken")
 	}
 
-	var r0 models.Notifications
+	var r0 models.NotificationTokens
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) (models.Notifications, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) (models.NotificationTokens, error)); ok {
 		return returnFunc(ctx, id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) models.Notifications); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) models.NotificationTokens); ok {
 		r0 = returnFunc(ctx, id)
 	} else {
-		r0 = ret.Get(0).(models.Notifications)
+		r0 = ret.Get(0).(models.NotificationTokens)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
 		r1 = returnFunc(ctx, id)
@@ -771,12 +771,12 @@ func (_c *MockUserRepository_GetUserNotifications_Call) Run(run func(ctx context
 	return _c
 }
 
-func (_c *MockUserRepository_GetUserNotifications_Call) Return(notifications models.Notifications, err error) *MockUserRepository_GetUserNotifications_Call {
+func (_c *MockUserRepository_GetUserNotifications_Call) Return(notifications models.NotificationTokens, err error) *MockUserRepository_GetUserNotifications_Call {
 	_c.Call.Return(notifications, err)
 	return _c
 }
 
-func (_c *MockUserRepository_GetUserNotifications_Call) RunAndReturn(run func(ctx context.Context, id int) (models.Notifications, error)) *MockUserRepository_GetUserNotifications_Call {
+func (_c *MockUserRepository_GetUserNotifications_Call) RunAndReturn(run func(ctx context.Context, id int) (models.NotificationTokens, error)) *MockUserRepository_GetUserNotifications_Call {
 	_c.Call.Return(run)
 	return _c
 }

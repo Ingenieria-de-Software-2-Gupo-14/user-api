@@ -8,13 +8,13 @@ type NotifyRequest struct {
 	NotificationText  string `json:"notification_text" db:"notification_text" validate:"required,min=1,max=225"`
 }
 
-type Notification struct {
-	NotificationText string    `json:"notification_text" db:"notification_text" validate:"required,min=1,max=225"`
-	CreatedTime      time.Time `json:"created_time" db:"created_time"`
+type NotificationToken struct {
+	NotificationToken string    `json:"notification_token" db:"token" validate:"required,min=1,max=225"`
+	CreatedTime       time.Time `json:"created_time" db:"created_time"`
 }
 
-type Notifications struct {
-	Notifications []Notification `json:"notifications"`
+type NotificationTokens struct {
+	NotificationTokens []NotificationToken `json:"notifications"`
 }
 
 type NotificationSetUpRequest struct {

@@ -735,7 +735,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Users notified successfully",
                         "schema": {
-                            "$ref": "#/definitions/models.Notifications"
+                            "$ref": "#/definitions/models.NotificationTokens"
                         }
                     },
                     "500": {
@@ -887,7 +887,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Notifications": {
+        "models.NotificationTokens": {
             "type": "object",
             "properties": {
                 "notifications": {

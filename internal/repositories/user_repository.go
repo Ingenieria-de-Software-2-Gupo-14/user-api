@@ -18,7 +18,7 @@ type UserRepository interface {
 	ModifyUser(ctx context.Context, user *models.User) error
 	ModifyPassword(ctx context.Context, id int, password string) error
 	AddNotificationToken(ctx context.Context, id int, text string) error
-	GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error)
+	GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error)
 	SetVerifiedTrue(ctx context.Context, id int) error
 }
 
@@ -175,29 +175,29 @@ func (db userRepository) AddNotificationToken(ctx context.Context, id int, text 
 	return row.Err()
 }
 
-func (db userRepository) GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error) {
+func (db userRepository) GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error) {
 	query := `
 			SELECT token, created_time
 			FROM notifications
 			WHERE user_id = $1`
 	rows, err := db.DB.QueryContext(ctx, query, id)
 	if err != nil {
-		return models.Notifications{}, err
+		return models.NotificationTokens{}, err
 	}
 
-	var notifications models.Notifications
+	var notifications models.NotificationTokens
 
 	for rows.Next() {
-		var n models.Notification
-		err := rows.Scan(&n.NotificationText, &n.CreatedTime)
+		var n models.NotificationToken
+		err := rows.Scan(&n.NotificationToken, &n.CreatedTime)
 		if err != nil {
-			return models.Notifications{}, err
+			return models.NotificationTokens{}, err
 		}
-		notifications.Notifications = append(notifications.Notifications, n)
+		notifications.NotificationTokens = append(notifications.NotificationTokens, n)
 	}
 
 	if err := rows.Err(); err != nil {
-		return models.Notifications{}, err
+		return models.NotificationTokens{}, err
 	}
 	return notifications, nil
 }

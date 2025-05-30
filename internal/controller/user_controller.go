@@ -217,7 +217,7 @@ func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
 // @Tags         Users
 // @Accept       json
 // @Produce      json
-// @Param        Notification  body  models.NotifyRequest true  "Notification payload"
+// @Param        NotificationToken  body  models.NotifyRequest true  "NotificationToken payload"
 // @Success      200       {object}  nil          "Users notified successfully"
 // @Failure      400       {object}  utils.HTTPError  "Invalid request"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
@@ -266,7 +266,7 @@ func (c UserController) SetUserNotifications(ctx *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        id        path      int         true  "User ID"
-// @Success      200       {object}  models.Notifications          "Users notified successfully"
+// @Success      200       {object}  models.NotificationTokens          "Users notified successfully"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/{id}/notifications [get]
 func (c UserController) GetUserNotifications(ctx *gin.Context) {
@@ -275,7 +275,7 @@ func (c UserController) GetUserNotifications(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	var notifs models.Notifications
+	var notifs models.NotificationTokens
 	notifs, err = c.service.GetUserNotificationsToken(ctx.Request.Context(), id)
 	if err != nil {
 		if err == repositories.ErrNotFound {

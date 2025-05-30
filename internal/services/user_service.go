@@ -1,9 +1,14 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"golang.org/x/oauth2/google"
+	"net/http"
 	"os"
 	"time"
 
@@ -23,7 +28,7 @@ type UserService interface {
 	IsUserBlocked(ctx context.Context, id int) (bool, error)
 	ModifyPassword(ctx context.Context, id int, password string) error
 	AddNotificationToken(ctx context.Context, id int, text string) error
-	GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error)
+	GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error)
 	SendNotifByMobile(cont context.Context, userId int, notification models.NotifyRequest) error
 	SendNotifByEmail(cont context.Context, userId int, request models.NotifyRequest) error
 	VerifyUser(ctx context.Context, id int) error
@@ -122,7 +127,7 @@ func (s *userService) ModifyPassword(ctx context.Context, id int, password strin
 func (s *userService) AddNotificationToken(ctx context.Context, id int, text string) error {
 	return s.userRepo.AddNotificationToken(ctx, id, text)
 }
-func (s *userService) GetUserNotificationsToken(ctx context.Context, id int) (models.Notifications, error) {
+func (s *userService) GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error) {
 	return s.userRepo.GetUserNotificationsToken(ctx, id)
 }
 
@@ -131,6 +136,63 @@ func (s *userService) VerifyUser(ctx context.Context, id int) error {
 }
 
 func (s *userService) SendNotifByMobile(cont context.Context, userId int, notification models.NotifyRequest) error {
+	tokens, _ := s.GetUserNotificationsToken(cont, userId)
+	for _, token := range tokens.NotificationTokens {
+		err := sendNotifToDevice(token.NotificationToken, notification)
+		if err != nil {
+			println(err)
+		}
+	}
+	return nil
+}
+
+func sendNotifToDevice(userToken string, notification models.NotifyRequest) error {
+	svcJSON := os.Getenv("FIREBASE_SERVICE_ACCOUNT")
+	if svcJSON == "" {
+		return fmt.Errorf("FIREBASE_SERVICE_ACCOUNT not set")
+	}
+
+	creds := []byte(svcJSON)
+
+	conf, err := google.JWTConfigFromJSON(creds, "https://www.googleapis.com/auth/firebase.messaging")
+	if err != nil {
+		return fmt.Errorf("invalid service account JSON: %v", err)
+	}
+
+	client := conf.Client(context.Background())
+
+	url := fmt.Sprintf("https://fcm.googleapis.com/v1/projects/%s/messages:send", os.Getenv("FCM_PROJECT_ID"))
+	payload := map[string]interface{}{
+		"message": map[string]interface{}{
+			"token": userToken,
+			"notification": map[string]string{
+				"title": notification.NotificationTitle,
+				"body":  notification.NotificationText,
+			},
+		},
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("error marshalling payload: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("error creating HTTP request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error sending FCM request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("non-200 response from FCM: %v", resp.Status)
+	}
 	return nil
 }
 
