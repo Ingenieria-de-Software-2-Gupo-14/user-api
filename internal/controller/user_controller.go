@@ -230,7 +230,8 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 		return
 	}
 	cont := ctx.Request.Context()
-	log.Printf("notification title: ")
+	log.Println("notification")
+	log.Println(notifyRequest.Users)
 	for _, userID := range notifyRequest.Users {
 		log.Printf("user id: %d", userID)
 		errMobile := c.service.SendNotifByMobile(cont, userID, notifyRequest)
