@@ -74,6 +74,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.PUT("/users/:id/location", deps.Controllers.UserController.ModifyUserLocation)
 	r.PUT("/users/:id/password", deps.Controllers.UserController.ModifyUserPasssword)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)
+	r.POST("/users/:id/notifications", deps.Controllers.UserController.SetUserNotifications)
 	return r, nil
 }
 
