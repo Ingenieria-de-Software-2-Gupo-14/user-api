@@ -230,16 +230,20 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 	}
 	cont := ctx.Request.Context()
 	for _, userID := range notifyRequest.Users {
+		println(userID)
 		errMobile := c.service.SendNotifByMobile(cont, userID, notifyRequest)
 		if errMobile != nil {
 			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMobile)
 			continue
 		}
+		println("notif")
 		errMail := c.service.SendNotifByEmail(cont, userID, notifyRequest)
+
 		if errMail != nil {
 			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMail)
 			continue
 		}
+		println("email")
 	}
 	ctx.JSON(http.StatusOK, nil)
 }
