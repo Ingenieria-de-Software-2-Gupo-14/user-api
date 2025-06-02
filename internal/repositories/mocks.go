@@ -874,6 +874,52 @@ func (_c *MockUserRepository_ModifyUser_Call) RunAndReturn(run func(ctx context.
 	return _c
 }
 
+// SetVerifiedTrue provides a mock function for the type MockUserRepository
+func (_mock *MockUserRepository) SetVerifiedTrue(ctx context.Context, id int) error {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetVerifiedTrue")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserRepository_SetVerifiedTrue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetVerifiedTrue'
+type MockUserRepository_SetVerifiedTrue_Call struct {
+	*mock.Call
+}
+
+// SetVerifiedTrue is a helper method to define mock.On call
+//   - ctx
+//   - id
+func (_e *MockUserRepository_Expecter) SetVerifiedTrue(ctx interface{}, id interface{}) *MockUserRepository_SetVerifiedTrue_Call {
+	return &MockUserRepository_SetVerifiedTrue_Call{Call: _e.mock.On("SetVerifiedTrue", ctx, id)}
+}
+
+func (_c *MockUserRepository_SetVerifiedTrue_Call) Run(run func(ctx context.Context, id int)) *MockUserRepository_SetVerifiedTrue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockUserRepository_SetVerifiedTrue_Call) Return(err error) *MockUserRepository_SetVerifiedTrue_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserRepository_SetVerifiedTrue_Call) RunAndReturn(run func(ctx context.Context, id int) error) *MockUserRepository_SetVerifiedTrue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewMockVerificationRepository creates a new instance of MockVerificationRepository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewMockVerificationRepository(t interface {

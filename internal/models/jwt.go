@@ -21,6 +21,7 @@ type Claims struct {
 	Email string `json:"email"`
 	Name  string `json:"full_name"`
 	Role  string `json:"role"`
+	Admin bool   `json:"admin"`
 }
 
 func GetJWTSecret() string {
@@ -43,6 +44,9 @@ func GenerateToken(id int, email string, name string, role string) (string, erro
 		Email: email,
 		Name:  name,
 		Role:  role,
+	}
+	if role == "admin" {
+		claims.Admin = true
 	}
 
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(GetJWTSecret()))

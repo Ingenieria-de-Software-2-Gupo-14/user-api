@@ -378,6 +378,12 @@ paths:
       consumes:
       - application/json
       description: Sends a new Verification Pin to email saved in verification cookie
+      parameters:
+      - description: Email
+        in: query
+        name: email
+        required: true
+        type: string
       produces:
       - text/plain
       responses:

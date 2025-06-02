@@ -19,6 +19,7 @@ type UserRepository interface {
 	ModifyPassword(ctx context.Context, id int, password string) error
 	AddNotification(ctx context.Context, id int, text string) error
 	GetUserNotifications(ctx context.Context, id int) (models.Notifications, error)
+	SetVerifiedTrue(ctx context.Context, id int) error
 }
 
 type userRepository struct {
@@ -199,6 +200,11 @@ func (db userRepository) GetUserNotifications(ctx context.Context, id int) (mode
 		return models.Notifications{}, err
 	}
 	return notifications, nil
+}
+
+func (db userRepository) SetVerifiedTrue(ctx context.Context, id int) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE users SET verified = true where id = $1", id)
+	return err
 }
 
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description

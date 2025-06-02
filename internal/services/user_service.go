@@ -21,6 +21,7 @@ type UserService interface {
 	ModifyPassword(ctx context.Context, id int, password string) error
 	AddNotification(ctx context.Context, id int, text string) error
 	GetUserNotifications(ctx context.Context, id int) (models.Notifications, error)
+	VerifyUser(ctx context.Context, id int) error
 }
 
 type userService struct {
@@ -49,6 +50,7 @@ func (s *userService) CreateUser(ctx context.Context, request models.CreateUserR
 		Name:     request.Name,
 		Surname:  request.Surname,
 		Role:     request.Role,
+		Verified: request.Verified,
 	}
 
 	return s.userRepo.AddUser(ctx, user)
@@ -117,4 +119,8 @@ func (s *userService) AddNotification(ctx context.Context, id int, text string) 
 }
 func (s *userService) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
 	return s.userRepo.GetUserNotifications(ctx, id)
+}
+
+func (s *userService) VerifyUser(ctx context.Context, id int) error {
+	return s.userRepo.SetVerifiedTrue(ctx, id)
 }

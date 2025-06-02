@@ -51,9 +51,17 @@ func (ac *AuthController) Register(c *gin.Context) {
 		return
 	}
 
-	if _, err := ac.userRepo.GetUserByEmail(ctx, request.Email); err == nil {
-		utils.ErrorResponse(c, http.StatusConflict, "Email already exists")
-		return
+	if user, err := ac.userRepo.GetUserByEmail(ctx, request.Email); err == nil {
+		if user.Verified == false {
+			err := ac.userRepo.DeleteUser(ctx, user.Id)
+			if err != nil {
+				utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+				return
+			}
+		} else {
+			utils.ErrorResponse(c, http.StatusConflict, "Email already exists")
+			return
+		}
 	}
 
 	id, err := ac.userRepo.CreateUser(ctx, request)
@@ -122,12 +130,12 @@ func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
 	}
 
+	println(request.VerificationPin)
 	parts := strings.Split(request.VerificationPin, "-")
 	if len(parts) != 2 {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid verification pin format")
 		return
 	}
-
 	id, err := strconv.Atoi(parts[0])
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid verification pin format")
@@ -145,9 +153,19 @@ func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 		utils.ErrorResponseWithErr(c, http.StatusGone, err)
 		return
 	}
-
-	if verification.VerificationPin != request.VerificationPin {
+	println(verification.VerificationPin)
+	if verification.VerificationPin != parts[1] {
 		utils.ErrorResponseWithErr(c, http.StatusBadRequest, err)
+		return
+	}
+	errVerif := ac.userRepo.VerifyUser(ctx, verification.UserId)
+	if errVerif != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+		return
+	}
+	err = ac.verificationService.DeleteByUserId(ctx, verification.UserId)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -366,6 +384,7 @@ func (ac *AuthController) AuthMiddlewarefunc(ctx *gin.Context) {
 // @Tags         Auth
 // @Accept       json
 // @Produce      plain
+// @Param        email  query     string  true  "Email"
 // @Success      200  {object}  nil  "New Pin sent successfully"
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /auth/users/verify/resend [put]

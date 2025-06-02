@@ -278,6 +278,15 @@ const docTemplate = `{
                     "Auth"
                 ],
                 "summary": "Sends a new Verification",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "New Pin sent successfully"

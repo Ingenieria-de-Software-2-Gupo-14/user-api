@@ -39,8 +39,9 @@ func (s *verificationService) SendVerificationEmail(ctx context.Context, userId 
 	if err != nil {
 		return err
 	}
-
+	println(userId)
 	verification := &models.UserVerification{
+		UserEmail:       email,
 		UserId:          userId,
 		VerificationPin: pin,
 		PinExpiration:   time.Now().Add(PinLifeTime * time.Minute),
