@@ -251,6 +251,17 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, nil)
 }
 
+// SetUserNotifications godoc
+// @Summary      Set a notification token to users
+// @Description  Set a notification token to users in order to be able to send push notifications
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        NotificationToken  body  models.NotificationSetUpRequest true  "NotificationSetUpRequest payload"
+// @Param        id        path      int         true  "User ID"
+// @Success      200       {object}  nil          "Token Setup successful"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Router       /users/{id}/notifications [post]
 func (c UserController) SetUserNotifications(ctx *gin.Context) {
 	var tokenRequest models.NotificationSetUpRequest
 	var id, err = strconv.Atoi(ctx.Param("id"))
