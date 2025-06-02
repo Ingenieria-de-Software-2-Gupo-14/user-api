@@ -104,8 +104,8 @@ func (controller UserController) UserDeleteById(context *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        id    path      int         true  "User ID"
-// @Param        user  body      models.User  true  "Updated user data"
-// @Success      200   {object}  map[string]models.User  "Updated user data"
+// @Param        user  body      models.UserUpdateDto  true  "Updated user data"
+// @Success      200   {object}  map[string]models.UserUpdateDto  "Updated user data"
 // @Failure      400   {object}  utils.HTTPError        "Invalid user ID format or request format"
 // @Failure      500   {object}  utils.HTTPError        "Internal server error"
 // @Router       /users/{id} [put]
@@ -116,51 +116,18 @@ func (c UserController) ModifyUser(context *gin.Context) {
 		return
 	}
 
-	var user models.User
+	var user models.UserUpdateDto
 	if err := context.ShouldBindJSON(&user); err != nil {
 		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 
-	if err := c.service.ModifyUser(context.Request.Context(), id, &user); err != nil {
+	if err := c.service.ModifyUser(context.Request.Context(), id, user); err != nil {
 		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 
 	context.JSON(http.StatusOK, gin.H{"data": user})
-}
-
-// ModifyUserLocation godoc
-// @Summary      Modify user location
-// @Description  Updates the location of a specific user
-// @Tags         Users
-// @Accept       json
-// @Produce      json
-// @Param        id        path      int         true  "User ID"
-// @Param        location  body      models.LocationModifyRequest  true  "User with updated location"
-// @Success      200       {object}  nil          "Location updated successfully"
-// @Failure      400       {object}  utils.HTTPError  "Invalid user ID format or request"
-// @Failure      500       {object}  utils.HTTPError  "Internal server error"
-// @Router       /users/{id}/location [put]
-func (c UserController) ModifyUserLocation(context *gin.Context) {
-	var id, err = strconv.Atoi(context.Param("id"))
-	var user models.LocationModifyRequest
-	if err != nil {
-		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
-		return
-	}
-
-	if err := context.ShouldBindJSON(&user); err != nil {
-		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
-		return
-	}
-
-	if err := c.service.ModifyUser(context.Request.Context(), id, &models.User{Location: user.Location}); err != nil {
-		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
-		return
-	}
-
-	context.JSON(http.StatusOK, nil)
 }
 
 // BlockUserById godoc

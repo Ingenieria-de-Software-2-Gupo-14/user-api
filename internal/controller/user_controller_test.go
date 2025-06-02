@@ -138,22 +138,21 @@ func TestUserDeleteById_Success(t *testing.T) {
 func TestModifyUser_Success(t *testing.T) {
 	mockService, c, recorder, userController := setupTest(t)
 
-	updatedUser := models.User{
-		Id:       1,
+	updatedUserDto := models.UserUpdateDto{
 		Name:     "Updated",
 		Surname:  "User",
-		Email:    "test@example.com",
 		Location: "New Location",
 	}
 
-	jsonValue, _ := json.Marshal(updatedUser)
-	c.Request = httptest.NewRequest(http.MethodPut, "/api/users/"+strconv.Itoa(updatedUser.Id), bytes.NewBuffer(jsonValue))
+	jsonValue, _ := json.Marshal(updatedUserDto)
+	c.Request = httptest.NewRequest(http.MethodPut, "/api/users/1", bytes.NewBuffer(jsonValue))
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.AddParam("id", strconv.Itoa(updatedUser.Id))
+	c.AddParam("id", "1")
 
-	mockService.EXPECT().ModifyUser(mock.Anything, updatedUser.Id, mock.MatchedBy(func(u *models.User) bool {
-		return u.Name == updatedUser.Name &&
-			u.Location == updatedUser.Location
+	mockService.EXPECT().ModifyUser(mock.Anything, 1, mock.MatchedBy(func(u models.UserUpdateDto) bool {
+		return u.Name == updatedUserDto.Name &&
+			u.Surname == updatedUserDto.Surname &&
+			u.Location == updatedUserDto.Location
 	})).Return(nil)
 
 	// Call the function
@@ -175,33 +174,6 @@ func TestBlockUserById_Success(t *testing.T) {
 
 	// Call the function
 	userController.BlockUserById(c)
-
-	// Check response
-	assert.Equal(t, http.StatusOK, recorder.Code)
-}
-
-func TestModifyUserLocation_Success(t *testing.T) {
-	mockService, c, recorder, userController := setupTest(t)
-
-	userId := 1
-	newLocation := "New Location"
-
-	updateData := models.User{
-		Location: newLocation,
-	}
-
-	jsonValue, _ := json.Marshal(updateData)
-	req := httptest.NewRequest(http.MethodPatch, "/api/users/"+strconv.Itoa(userId)+"/location", bytes.NewBuffer(jsonValue))
-	req.Header.Set("Content-Type", "application/json")
-	c.Request = req
-	c.AddParam("id", strconv.Itoa(userId))
-
-	mockService.EXPECT().ModifyUser(mock.Anything, userId, mock.MatchedBy(func(u *models.User) bool {
-		return u.Location == newLocation
-	})).Return(nil)
-
-	// Call the function
-	userController.ModifyUserLocation(c)
 
 	// Check response
 	assert.Equal(t, http.StatusOK, recorder.Code)

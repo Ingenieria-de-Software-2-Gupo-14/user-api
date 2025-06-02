@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/log"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
@@ -52,7 +51,7 @@ func (ac *AuthController) Register(c *gin.Context) {
 	}
 
 	if user, err := ac.userRepo.GetUserByEmail(ctx, request.Email); err == nil {
-		if user.Verified == false {
+		if !user.Verified {
 			err := ac.userRepo.DeleteUser(ctx, user.Id)
 			if err != nil {
 				utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
@@ -192,7 +191,6 @@ func (ac *AuthController) finishAuth(ctx *gin.Context, user models.User) {
 
 	ctx.SetCookie("Authorization", token, 3600, "/", "", false, true)
 	ctx.JSON(http.StatusOK, gin.H{
-		"user":  user,
 		"token": token,
 	})
 }
@@ -328,55 +326,6 @@ func (ac *AuthController) CompleteAuth(c *gin.Context) {
 func (ac *AuthController) Logout(c *gin.Context) {
 	c.SetCookie("Authorization", "", -1, "/", "", false, true)
 	c.Redirect(http.StatusTemporaryRedirect, "/")
-}
-
-func getAuthToken(c *gin.Context) string {
-	auth, _ := c.Cookie("Authorization")
-	if auth == "" {
-		if parts := strings.Fields(c.GetHeader("Authorization")); len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-			auth = parts[1]
-		}
-	}
-	return auth
-}
-
-func (ac *AuthController) AuthMiddlewarefunc(ctx *gin.Context) {
-	tokenStr := getAuthToken(ctx)
-	claims, err := models.ParseToken(tokenStr)
-	if err != nil {
-		utils.ErrorResponseWithErr(ctx, http.StatusUnauthorized, err)
-		ctx.Abort()
-		return
-	}
-
-	uId, _ := strconv.Atoi(claims.Subject)
-	blocked, err := ac.userRepo.IsUserBlocked(ctx.Request.Context(), uId)
-	if err != nil {
-		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
-		ctx.Abort()
-		return
-	}
-
-	if blocked {
-		utils.ErrorResponse(ctx, http.StatusForbidden, "User is blocked")
-		// Make Cookie Expire
-		ctx.SetCookie("Authorization", "", -1, "/", "", false, true)
-		ctx.Abort()
-		return
-	}
-
-	// Refresh token if it is about to expire
-	if claims.ExpiresAt < time.Now().Add(time.Minute*5).Unix() {
-		newToken, err := models.GenerateToken(uId, claims.Email, claims.Name, claims.Role)
-		if err != nil {
-			log.Error(ctx, "Error generating token", "error", err.Error())
-		} else {
-			ctx.SetCookie("Authorization", newToken, 3600, "/", "", false, true)
-		}
-	}
-
-	ctx.Set("claims", claims)
-	ctx.Next()
 }
 
 // @Summary      Sends a new Verification
