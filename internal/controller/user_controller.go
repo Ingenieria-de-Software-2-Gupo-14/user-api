@@ -103,19 +103,26 @@ func (controller UserController) UserDeleteById(context *gin.Context) {
 // @Tags         Users
 // @Accept       json
 // @Produce      json
+// @Param        id    path      int         true  "User ID"
 // @Param        user  body      models.User  true  "Updated user data"
 // @Success      200   {object}  map[string]models.User  "Updated user data"
-// @Failure      400   {object}  utils.HTTPError        "Invalid request format"
+// @Failure      400   {object}  utils.HTTPError        "Invalid user ID format or request format"
 // @Failure      500   {object}  utils.HTTPError        "Internal server error"
-// @Router       /users/modify [post]
+// @Router       /users/{id} [put]
 func (c UserController) ModifyUser(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	if err != nil {
+		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
+		return
+	}
+
 	var user models.User
 	if err := context.ShouldBindJSON(&user); err != nil {
 		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 
-	if err := c.service.ModifyUser(context.Request.Context(), user.Id, &user); err != nil {
+	if err := c.service.ModifyUser(context.Request.Context(), id, &user); err != nil {
 		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}

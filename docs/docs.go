@@ -26,7 +26,7 @@ const docTemplate = `{
     "paths": {
         "/auth/admins": {
             "post": {
-                "description": "Registers a new user. The 'admin' flag (passed during route setup, not an API param) determines if an admin user is created. Incase of user registration it starts the verifcation process, the user won't be saved on the database unless the process is finished",
+                "description": "Registers a new Admin",
                 "consumes": [
                     "application/json"
                 ],
@@ -36,7 +36,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Register a new user",
+                "summary": "Register a new Admin",
                 "parameters": [
                     {
                         "description": "User Registration Details",
@@ -163,7 +163,7 @@ const docTemplate = `{
         },
         "/auth/users": {
             "post": {
-                "description": "Registers a new user. The 'admin' flag (passed during route setup, not an API param) determines if an admin user is created. Incase of user registration it starts the verifcation process, the user won't be saved on the database unless the process is finished",
+                "description": "Registers a new user",
                 "consumes": [
                     "application/json"
                 ],
@@ -472,55 +472,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/modify": {
-            "post": {
-                "description": "Updates user information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Modify user",
-                "parameters": [
-                    {
-                        "description": "Updated user data",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Updated user data",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "$ref": "#/definitions/models.User"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request format",
-                        "schema": {
-                            "$ref": "#/definitions/utils.HTTPError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.HTTPError"
-                        }
-                    }
-                }
-            }
-        },
         "/users/notify": {
             "post": {
                 "description": "Send a notification to users sent in body",
@@ -604,6 +555,60 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates user information",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Modify user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated user data",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated user data",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/models.User"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid user ID format or request format",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/utils.HTTPError"
                         }
@@ -796,6 +801,7 @@ const docTemplate = `{
                 "email",
                 "name",
                 "password",
+                "role",
                 "surname"
             ],
             "properties": {
@@ -809,8 +815,15 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string",
-                    "maxLength": 60,
                     "minLength": 8
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "student",
+                        "teacher",
+                        "admin"
+                    ]
                 },
                 "surname": {
                     "type": "string",
@@ -840,12 +853,17 @@ const docTemplate = `{
         },
         "models.LoginRequest": {
             "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 8
                 }
             }
         },
@@ -912,11 +930,8 @@ const docTemplate = `{
         "models.User": {
             "type": "object",
             "properties": {
-                "admin": {
-                    "type": "boolean"
-                },
                 "blocked": {
-                    "description": "Ya no tiene etiqueta db directa, se calcula con JOIN",
+                    "description": "No direct db tag, calculated with JOIN",
                     "type": "boolean"
                 },
                 "created_at": {
@@ -937,10 +952,10 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "phone": {
+                "profile_photo": {
                     "type": "string"
                 },
-                "profile_photo": {
+                "role": {
                     "type": "string"
                 },
                 "surname": {
@@ -948,6 +963,9 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "verified": {
+                    "type": "boolean"
                 }
             }
         },

@@ -53,11 +53,11 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 
 	// User routes
 	r.GET("/users", deps.Controllers.UserController.UsersGet)
-	r.POST("/users/modify", deps.Controllers.UserController.ModifyUser)
+	r.PUT("/users/:id", deps.Controllers.UserController.ModifyUser)
 	r.GET("/users/:id", deps.Controllers.UserController.UserGetById)
 	r.GET("/users/:id/notifications", deps.Controllers.UserController.GetUserNotifications)
 	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
-	r.PUT("/users/block/:id", deps.Controllers.UserController.BlockUserById)
+	r.PUT("/users/:id/block", deps.Controllers.UserController.BlockUserById)
 	r.PUT("/users/:id/location", deps.Controllers.UserController.ModifyUserLocation)
 	r.PUT("/users/:id/password", deps.Controllers.UserController.ModifyUserPasssword)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)

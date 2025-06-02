@@ -149,10 +149,10 @@ func TestModifyUser_Success(t *testing.T) {
 	jsonValue, _ := json.Marshal(updatedUser)
 	c.Request = httptest.NewRequest(http.MethodPut, "/api/users/"+strconv.Itoa(updatedUser.Id), bytes.NewBuffer(jsonValue))
 	c.Request.Header.Set("Content-Type", "application/json")
+	c.AddParam("id", strconv.Itoa(updatedUser.Id))
 
 	mockService.EXPECT().ModifyUser(mock.Anything, updatedUser.Id, mock.MatchedBy(func(u *models.User) bool {
-		return u.Id == updatedUser.Id &&
-			u.Name == updatedUser.Name &&
+		return u.Name == updatedUser.Name &&
 			u.Location == updatedUser.Location
 	})).Return(nil)
 
