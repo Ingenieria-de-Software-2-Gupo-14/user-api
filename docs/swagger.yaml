@@ -91,6 +91,36 @@ definitions:
     required:
     - password
     type: object
+  models.Rule:
+    properties:
+      ApplicationCondition:
+        type: string
+      Description:
+        type: string
+      Title:
+        type: string
+      effectiveDate:
+        type: string
+      id:
+        type: integer
+    required:
+    - ApplicationCondition
+    - Description
+    - Title
+    type: object
+  models.RuleModify:
+    properties:
+      ApplicationCondition:
+        type: string
+      Description:
+        type: string
+      Title:
+        type: string
+    required:
+    - ApplicationCondition
+    - Description
+    - Title
+    type: object
   models.User:
     properties:
       blocked:
@@ -396,6 +426,113 @@ paths:
       summary: Sends a new Verification
       tags:
       - Auth
+  /rules:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of all rules in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of users
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.Rule'
+              type: array
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Get all rules
+      tags:
+      - Rules
+    post:
+      consumes:
+      - application/json
+      description: Create a new rule
+      parameters:
+      - description: Rule creation Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Rule'
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: Rule created correctly
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Create a new rule
+      tags:
+      - Rules
+  /rules/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a user from the database
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Rule successfully deleted
+        "400":
+          description: Invalid user ID format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Delete user by ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Updates the contents of a rule
+      parameters:
+      - description: Rule ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Elements to modify
+        in: body
+        name: modifications
+        required: true
+        schema:
+          $ref: '#/definitions/models.RuleModify'
+      responses:
+        "200":
+          description: rule updated successfully
+        "400":
+          description: Invalid user ID format or request
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Modify rule password
+      tags:
+      - Rules
   /users:
     get:
       consumes:

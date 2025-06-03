@@ -18,9 +18,9 @@ func main() {
 	if err != nil {
 		log.Fatal(ctx, "Error creating database", slog.String("error", err.Error()))
 	}
-
 	// Run migrations
 	if err := goose.Up(db, "internal/migrations"); err != nil {
 		log.Error(ctx, "Error running migrations", slog.String("error", err.Error()))
 	}
+
 }
