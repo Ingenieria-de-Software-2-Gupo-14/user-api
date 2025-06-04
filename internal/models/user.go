@@ -70,9 +70,21 @@ type LoginRequest struct {
 }
 
 type PasswordModifyRequest struct {
+	Token    string `json:"token" binding:"required,max=6"`
 	Password string `json:"password" binding:"required,min=8,max=60"`
 }
 
 type LocationModifyRequest struct {
 	Location string `json:"location" binding:"required"`
+}
+
+type PasswordResetRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+type PasswordResetData struct {
+	Email  string
+	UserId int
+	Exp    time.Time
+	Used   bool
 }

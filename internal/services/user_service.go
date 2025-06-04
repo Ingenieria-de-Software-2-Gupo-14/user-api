@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"github.com/sethvargo/go-password/password"
 	"golang.org/x/oauth2/google"
 	"net/http"
 	"os"
@@ -32,6 +34,9 @@ type UserService interface {
 	SendNotifByMobile(cont context.Context, userId int, notification models.NotifyRequest) error
 	SendNotifByEmail(cont context.Context, userId int, request models.NotifyRequest) error
 	VerifyUser(ctx context.Context, id int) error
+	StartPasswordReset(ctx context.Context, id int, email string) error
+	ValidatePasswordResetToken(ctx context.Context, token string) (*models.PasswordResetData, error)
+	SetPasswordTokenUsed(ctx context.Context, token string) error
 }
 
 type userService struct {
@@ -210,4 +215,39 @@ func (s *userService) SendNotifByEmail(cont context.Context, userId int, request
 	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
 	_, err2 := client.Send(message)
 	return err2
+}
+
+func (s *userService) StartPasswordReset(ctx context.Context, id int, email string) error {
+	token, err := password.Generate(6, 2, 0, false, true)
+	if err != nil {
+		return err
+	}
+	err = s.userRepo.AddPasswordResetToken(ctx, id, email, token, time.Now().Add(5*time.Minute))
+	if err != nil {
+		return err
+	}
+	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
+	subject := "Password Reset"
+	to := mail.NewEmail("User", email)
+	content := mail.NewContent("text/plain", "link de reseteo"+token)
+	message := mail.NewV3MailInit(from, subject, to, content)
+
+	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
+	_, err2 := client.Send(message)
+	return err2
+}
+
+func (s *userService) ValidatePasswordResetToken(ctx context.Context, token string) (*models.PasswordResetData, error) {
+	info, err := s.userRepo.GetPasswordResetTokenInfo(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+	if info.Exp.Before(time.Now()) {
+		return nil, errors.New("Token Expired")
+	}
+	return info, nil
+}
+
+func (s *userService) SetPasswordTokenUsed(ctx context.Context, token string) error {
+	return s.userRepo.SetPasswordTokenUsed(ctx, token)
 }

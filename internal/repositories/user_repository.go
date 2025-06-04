@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 
@@ -20,6 +21,9 @@ type UserRepository interface {
 	AddNotificationToken(ctx context.Context, id int, text string) error
 	GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error)
 	SetVerifiedTrue(ctx context.Context, id int) error
+	AddPasswordResetToken(ctx context.Context, id int, email string, token string, tokenExpiration time.Time) error
+	GetPasswordResetTokenInfo(ctx context.Context, token string) (*models.PasswordResetData, error)
+	SetPasswordTokenUsed(ctx context.Context, token string) error
 }
 
 type userRepository struct {
@@ -204,6 +208,29 @@ func (db userRepository) GetUserNotificationsToken(ctx context.Context, id int) 
 
 func (db userRepository) SetVerifiedTrue(ctx context.Context, id int) error {
 	_, err := db.DB.ExecContext(ctx, "UPDATE users SET verified = true where id = $1", id)
+	return err
+}
+
+func (db userRepository) AddPasswordResetToken(ctx context.Context, id int, email string, token string, tokenExpiration time.Time) error {
+	_, err := db.DB.ExecContext(ctx, "INSERT INTO password_reset (user_id, email, token, token_expiration)", id, email, token, tokenExpiration)
+	return err
+}
+
+func (db userRepository) GetPasswordResetTokenInfo(ctx context.Context, token string) (*models.PasswordResetData, error) {
+	row, err := db.DB.QueryContext(ctx, "SELECT Email, UserId, Exp, Used FROM password_reset WHERE token = $1", token)
+	if err != nil {
+		return nil, err
+	}
+	var data models.PasswordResetData
+	err = row.Scan(&data.Email, &data.UserId, &data.Exp, &data.Used)
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+func (db userRepository) SetPasswordTokenUsed(ctx context.Context, token string) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE password_reset SET used = true where token = $1", token)
 	return err
 }
 

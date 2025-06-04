@@ -72,7 +72,8 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
 	r.PUT("/users/block/:id", deps.Controllers.UserController.BlockUserById)
 	r.PUT("/users/:id/location", deps.Controllers.UserController.ModifyUserLocation)
-	r.PUT("/users/:id/password", deps.Controllers.UserController.ModifyUserPasssword)
+	r.PUT("/users/password", deps.Controllers.UserController.ModifyUserPasssword)
+	r.POST("/users/reset/password", deps.Controllers.UserController.PasswordReset)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)
 	r.POST("/users/:id/notifications", deps.Controllers.UserController.SetUserNotifications)
 	return r, nil

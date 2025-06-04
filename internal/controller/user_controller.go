@@ -191,20 +191,24 @@ func (c UserController) BlockUserById(context *gin.Context) {
 // @Success      200       {object}  nil          "Pasword updated successfully"
 // @Failure      400       {object}  utils.HTTPError  "Invalid user ID format or request"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
-// @Router       /users/{id}/password [put]
+// @Router       /users/password [put]
 func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
-	var id, err = strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
 	var user models.PasswordModifyRequest
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if c.service.ModifyPassword(ctx.Request.Context(), id, user.Password) != nil {
+	data, err := c.service.ValidatePasswordResetToken(ctx.Request.Context(), user.Token)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if c.service.ModifyPassword(ctx.Request.Context(), data.UserId, user.Password) != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	err = c.service.SetPasswordTokenUsed(ctx.Request.Context(), user.Token)
+	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -304,4 +308,23 @@ func (c UserController) GetUserNotifications(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, notifs)
+}
+
+func (c UserController) PasswordReset(ctx *gin.Context) {
+	var passwordResetRquest models.PasswordResetRequest
+	if err := ctx.ShouldBindJSON(&passwordResetRquest); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	user, err := c.service.GetUserByEmail(ctx.Request.Context(), passwordResetRquest.Email)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	err = c.service.StartPasswordReset(ctx.Request.Context(), user.Id, user.Email)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
 }
