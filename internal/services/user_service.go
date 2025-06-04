@@ -25,7 +25,7 @@ type UserService interface {
 	GetUserById(ctx context.Context, id int) (*models.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	GetAllUsers(ctx context.Context) (users []models.User, err error)
-	ModifyUser(ctx context.Context, id int, user *models.User) error
+	ModifyUser(ctx context.Context, id int, user models.UserUpdateDto) error
 	BlockUser(ctx context.Context, id int, reason string, blockerId *int, blockedUntil *time.Time) error
 	IsUserBlocked(ctx context.Context, id int) (bool, error)
 	ModifyPassword(ctx context.Context, id int, password string) error
@@ -83,7 +83,7 @@ func (s *userService) GetAllUsers(ctx context.Context) (users []models.User, err
 	return s.userRepo.GetAllUsers(ctx)
 }
 
-func (s *userService) ModifyUser(ctx context.Context, id int, user *models.User) error {
+func (s *userService) ModifyUser(ctx context.Context, id int, user models.UserUpdateDto) error {
 	tableUser, err := s.userRepo.GetUser(ctx, id)
 	if err != nil {
 		return err

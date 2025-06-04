@@ -15,12 +15,13 @@ import (
 
 // UserController struct that contains a database with users
 type UserController struct {
-	service services.UserService
+	service     services.UserService
+	ruleService services.RulesService
 }
 
 // CreateController creates a controller
-func CreateController(service services.UserService) *UserController {
-	return &UserController{service: service}
+func CreateController(service services.UserService, ruleService services.RulesService) *UserController {
+	return &UserController{service: service, ruleService: ruleService}
 }
 
 // UsersGet godoc
@@ -100,57 +101,31 @@ func (controller UserController) UserDeleteById(context *gin.Context) {
 // @Tags         Users
 // @Accept       json
 // @Produce      json
-// @Param        user  body      models.User  true  "Updated user data"
-// @Success      200   {object}  map[string]models.User  "Updated user data"
-// @Failure      400   {object}  utils.HTTPError        "Invalid request format"
+// @Param        id    path      int         true  "User ID"
+// @Param        user  body      models.UserUpdateDto  true  "Updated user data"
+// @Success      200   {object}  map[string]models.UserUpdateDto  "Updated user data"
+// @Failure      400   {object}  utils.HTTPError        "Invalid user ID format or request format"
 // @Failure      500   {object}  utils.HTTPError        "Internal server error"
-// @Router       /users/modify [post]
+// @Router       /users/{id} [put]
 func (c UserController) ModifyUser(context *gin.Context) {
-	var user models.User
-	if err := context.ShouldBindJSON(&user); err != nil {
-		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
-		return
-	}
-
-	if err := c.service.ModifyUser(context.Request.Context(), user.Id, &user); err != nil {
-		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
-		return
-	}
-
-	context.JSON(http.StatusOK, gin.H{"data": user})
-}
-
-// ModifyUserLocation godoc
-// @Summary      Modify user location
-// @Description  Updates the location of a specific user
-// @Tags         Users
-// @Accept       json
-// @Produce      json
-// @Param        id        path      int         true  "User ID"
-// @Param        location  body      models.LocationModifyRequest  true  "User with updated location"
-// @Success      200       {object}  nil          "Location updated successfully"
-// @Failure      400       {object}  utils.HTTPError  "Invalid user ID format or request"
-// @Failure      500       {object}  utils.HTTPError  "Internal server error"
-// @Router       /users/{id}/location [put]
-func (c UserController) ModifyUserLocation(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
-	var user models.LocationModifyRequest
 	if err != nil {
 		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
 		return
 	}
 
+	var user models.UserUpdateDto
 	if err := context.ShouldBindJSON(&user); err != nil {
 		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid request format")
 		return
 	}
 
-	if err := c.service.ModifyUser(context.Request.Context(), id, &models.User{Location: user.Location}); err != nil {
+	if err := c.service.ModifyUser(context.Request.Context(), id, user); err != nil {
 		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
 		return
 	}
 
-	context.JSON(http.StatusOK, nil)
+	context.JSON(http.StatusOK, gin.H{"data": user})
 }
 
 // BlockUserById godoc
@@ -322,6 +297,155 @@ func (c UserController) PasswordReset(ctx *gin.Context) {
 		return
 	}
 	err = c.service.StartPasswordReset(ctx.Request.Context(), user.Id, user.Email)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
+}
+
+// AddRule godoc
+// @Summary      Create a new rule
+// @Description  Create a new rule
+// @Tags         Rules
+// @Accept       json
+// @Produce      plain
+// @Param        request body models.Rule true "Rule creation Details"
+// @Success      201       {object}  nil          "Rule created correctly"
+// @Failure      400  {object}  utils.HTTPError "Invalid request format"
+// @Failure      500  {object}  utils.HTTPError "Internal server error"
+// @Router       /rules [post]
+func (c UserController) AddRule(ctx *gin.Context) {
+	auth, _ := ctx.Cookie("Authorization")
+	claims, err := models.ParseToken(auth)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	userId, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	var rule models.Rule
+	if err := ctx.ShouldBindJSON(&rule); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	err = c.ruleService.CreateRule(ctx, rule, userId)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusCreated, nil)
+}
+
+// DeleteRule godoc
+// @Summary      Delete user by ID
+// @Description  Removes a user from the database
+// @Tags         Rules
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "Rule ID"
+// @Success      204  {object}  nil  "Rule successfully deleted"
+// @Failure      400  {object}  utils.HTTPError  "Invalid user ID format"
+// @Failure      500  {object}  utils.HTTPError  "Internal server error"
+// @Router       /rules/{id} [delete]
+func (c UserController) DeleteRule(ctx *gin.Context) {
+	var id, err = strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	auth, _ := ctx.Cookie("Authorization")
+	claims, err := models.ParseToken(auth)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	userId, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	err = c.ruleService.DeleteRule(ctx, id, userId)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
+}
+
+// GetRules godoc
+// @Summary      Get all rules
+// @Description  Returns a list of all rules in the system
+// @Tags         Rules
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string][]models.Rule  "List of rules"
+// @Failure      500  {object}  utils.HTTPError          "Internal server error"
+// @Router       /rules [get]
+func (c UserController) GetRules(ctx *gin.Context) {
+	rules, err := c.ruleService.GetRules(ctx)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"data": rules})
+}
+
+// GetAudits godoc
+// @Summary      Get all audits
+// @Description  Returns a list of all audits in the system
+// @Tags         Rules
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string][]models.Audit  "List of audits"
+// @Failure      500  {object}  utils.HTTPError          "Internal server error"
+// @Router       /rules [get]
+func (c UserController) GetAudits(ctx *gin.Context) {
+	audits, err := c.ruleService.GetAudits(ctx)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"data": audits})
+}
+
+// ModifyRule godoc
+// @Summary      Modify rule password
+// @Description  Updates the contents of a rule
+// @Tags         Rules
+// @Accept       json
+// @Param        id        path      int         true  "Rule ID"
+// @Param        modifications  body      models.RuleModify  true  "Elements to modify"
+// @Success      200       {object}  nil          "rule updated successfully"
+// @Failure      400       {object}  utils.HTTPError  "Invalid user ID format or request"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Router       /rules/{id} [put]
+func (c UserController) ModifyRule(ctx *gin.Context) {
+	var id, err = strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	auth, _ := ctx.Cookie("Authorization")
+	claims, err := models.ParseToken(auth)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	userId, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	var rule models.RuleModify
+	if err := ctx.ShouldBindJSON(&rule); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	err = c.ruleService.ModifyRule(ctx.Request.Context(), id, rule, userId)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return

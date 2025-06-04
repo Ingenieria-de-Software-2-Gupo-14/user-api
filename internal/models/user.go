@@ -18,7 +18,15 @@ type User struct {
 	Blocked      bool      `json:"blocked"` // No direct db tag, calculated with JOIN
 }
 
-func (u *User) Update(user *User) {
+type UserUpdateDto struct {
+	Name         string  `json:"name" db:"name"`
+	Surname      string  `json:"surname" db:"surname"`
+	Location     string  `json:"location,omitempty" db:"location"`
+	ProfilePhoto *string `json:"profile_photo,omitempty" db:"profile_photo"`
+	Description  string  `json:"description,omitempty" db:"description"`
+}
+
+func (u *User) Update(user UserUpdateDto) {
 	if user.Name != "" {
 		u.Name = user.Name
 	}
@@ -30,6 +38,9 @@ func (u *User) Update(user *User) {
 	}
 	if user.Description != "" {
 		u.Description = user.Description
+	}
+	if user.ProfilePhoto != nil {
+		u.ProfilePhoto = user.ProfilePhoto
 	}
 }
 

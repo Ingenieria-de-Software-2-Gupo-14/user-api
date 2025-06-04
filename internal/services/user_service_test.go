@@ -126,17 +126,27 @@ func TestUserService_ModifyUser(t *testing.T) {
 	service := services.NewUserService(mockRepo, mockBlockedRepo)
 
 	userId := 1
-	userToModify := &models.User{
-		Id:       userId,
+	userToModify := models.UserUpdateDto{
 		Name:     "John Updated",
 		Surname:  "Doe Updated",
-		Email:    "john@example.com",
 		Location: "New York",
 	}
 
+	existingUser := &models.User{
+		Id:       userId,
+		Name:     "John",
+		Surname:  "Doe",
+		Location: "Old Location",
+	}
+
 	ctx := context.Background()
-	mockRepo.EXPECT().GetUser(ctx, userId).Return(userToModify, nil)
-	mockRepo.EXPECT().ModifyUser(ctx, userToModify).Return(nil)
+	mockRepo.EXPECT().GetUser(ctx, userId).Return(existingUser, nil)
+	mockRepo.EXPECT().ModifyUser(ctx, mock.MatchedBy(func(u *models.User) bool {
+		return u.Id == userId &&
+			u.Name == "John Updated" &&
+			u.Surname == "Doe Updated" &&
+			u.Location == "New York"
+	})).Return(nil)
 
 	// Act
 	err := service.ModifyUser(ctx, userId, userToModify)
@@ -174,7 +184,7 @@ func TestUserService_ModifyLocation(t *testing.T) {
 	mockRepo.EXPECT().ModifyUser(ctx, existingUser).Return(nil)
 
 	// Create a user with only the location field set for the input
-	locationUser := &models.User{
+	locationUser := models.UserUpdateDto{
 		Location: newLocation,
 	}
 
