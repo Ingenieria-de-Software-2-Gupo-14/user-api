@@ -402,6 +402,168 @@ const docTemplate = `{
                 }
             }
         },
+        "/rules": {
+            "get": {
+                "description": "Returns a list of all rules in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rules"
+                ],
+                "summary": "Get all rules",
+                "responses": {
+                    "200": {
+                        "description": "List of users",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.Rule"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new rule",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Rules"
+                ],
+                "summary": "Create a new rule",
+                "parameters": [
+                    {
+                        "description": "Rule creation Details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.Rule"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Rule created correctly"
+                    },
+                    "400": {
+                        "description": "Invalid request format",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/rules/{id}": {
+            "put": {
+                "description": "Updates the contents of a rule",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rules"
+                ],
+                "summary": "Modify rule password",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Rule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Elements to modify",
+                        "name": "modifications",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RuleModify"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "rule updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid user ID format or request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes a user from the database",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Delete user by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Rule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Rule successfully deleted"
+                    },
+                    "400": {
+                        "description": "Invalid user ID format",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "description": "Returns a list of all users in the system",
@@ -933,6 +1095,50 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 60,
                     "minLength": 8
+                }
+            }
+        },
+        "models.Rule": {
+            "type": "object",
+            "required": [
+                "ApplicationCondition",
+                "Description",
+                "Title"
+            ],
+            "properties": {
+                "ApplicationCondition": {
+                    "type": "string"
+                },
+                "Description": {
+                    "type": "string"
+                },
+                "Title": {
+                    "type": "string"
+                },
+                "effectiveDate": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RuleModify": {
+            "type": "object",
+            "required": [
+                "ApplicationCondition",
+                "Description",
+                "Title"
+            ],
+            "properties": {
+                "ApplicationCondition": {
+                    "type": "string"
+                },
+                "Description": {
+                    "type": "string"
+                },
+                "Title": {
+                    "type": "string"
                 }
             }
         },

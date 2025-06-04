@@ -51,14 +51,16 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	loginRepo := repositories.NewLoginAttemptRepository(db)
 	blockRepo := repositories.NewBlockedUserRepository(db)
 	verificationRepo := repositories.CreateVerificationRepo(db)
+	rulesRepo := repositories.CreateRulesRepo(db)
 	// Services
 	userService := services.NewUserService(userRepo, blockRepo)
 	loginService := services.NewLoginAttemptService(loginRepo, blockRepo)
 	verificationService := services.NewVerificationService(verificationRepo, sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY")))
+	rulesService := services.NewRulesService(rulesRepo)
 
 	// Controllers
 	authController := controller.NewAuthController(userService, loginService, verificationService)
-	userController := controller.CreateController(userService)
+	userController := controller.CreateController(userService, rulesService)
 
 	// Clients
 	telemetryClient, err := cfg.CreateDatadogClient()

@@ -21,15 +21,17 @@ import (
 func setupTest(t *testing.T) (*s.MockUserService, *gin.Context, *httptest.ResponseRecorder, *controller.UserController) {
 	gin.SetMode(gin.TestMode)
 	mockService := s.NewMockUserService(t)
+	mockRulesService := s.NewMockRulesService(t)
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
-	userController := controller.CreateController(mockService)
+	userController := controller.CreateController(mockService, mockRulesService)
 	return mockService, c, recorder, userController
 }
 
 func TestCreateController(t *testing.T) {
 	mockService := s.NewMockUserService(t)
-	result := controller.CreateController(mockService)
+	mockRulesService := s.NewMockRulesService(t)
+	result := controller.CreateController(mockService, mockRulesService)
 	assert.NotNil(t, result)
 }
 

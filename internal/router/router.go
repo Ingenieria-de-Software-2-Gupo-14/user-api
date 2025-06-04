@@ -74,6 +74,13 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.PUT("/users/:id/block", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.BlockUserById)
 	r.PUT("/users/:id/password", deps.Controllers.UserController.ModifyUserPasssword)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)
+
+	// Rules routes
+	r.POST("/rules", deps.Controllers.UserController.AddRule)
+	r.DELETE("/rules/:id", deps.Controllers.UserController.DeleteRule)
+	r.GET("/rules", deps.Controllers.UserController.GetRules)
+	r.PUT("/rules/:id", deps.Controllers.UserController.ModifyRule)
+	r.GET("/rules/audit", deps.Controllers.UserController.GetAudits)
 	return r, nil
 }
 
