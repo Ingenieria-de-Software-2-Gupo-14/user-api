@@ -212,17 +212,14 @@ func (db userRepository) SetVerifiedTrue(ctx context.Context, id int) error {
 }
 
 func (db userRepository) AddPasswordResetToken(ctx context.Context, id int, email string, token string, tokenExpiration time.Time) error {
-	_, err := db.DB.ExecContext(ctx, "INSERT INTO password_reset (user_id, email, token, token_expiration)", id, email, token, tokenExpiration)
+	_, err := db.DB.ExecContext(ctx, "INSERT INTO password_reset (user_id, email, token, token_expiration) VALUES ($1, $2, $3, $4)", id, email, token, tokenExpiration)
 	return err
 }
 
 func (db userRepository) GetPasswordResetTokenInfo(ctx context.Context, token string) (*models.PasswordResetData, error) {
-	row, err := db.DB.QueryContext(ctx, "SELECT Email, UserId, Exp, Used FROM password_reset WHERE token = $1", token)
-	if err != nil {
-		return nil, err
-	}
+	row := db.DB.QueryRowContext(ctx, "SELECT email, user_id, token_expiration, used FROM password_reset WHERE token = $1", token)
 	var data models.PasswordResetData
-	err = row.Scan(&data.Email, &data.UserId, &data.Exp, &data.Used)
+	err := row.Scan(&data.Email, &data.UserId, &data.Exp, &data.Used)
 	if err != nil {
 		return nil, err
 	}

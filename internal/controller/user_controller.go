@@ -248,6 +248,10 @@ func (c UserController) SetUserNotifications(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	if err := ctx.ShouldBindJSON(&tokenRequest); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
 	errToken := c.service.AddNotificationToken(ctx.Request.Context(), id, tokenRequest.Token)
 	if errToken != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errToken)
@@ -285,13 +289,23 @@ func (c UserController) GetUserNotifications(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, notifs)
 }
 
+// PasswordReset godoc
+// @Summary      Start the process to reset password
+// @Description  Start the process to reset password, sends and email with a link to make a new password
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        PasswordResetRequest  body  models.PasswordResetRequest true  "PasswordResetRequest payload"
+// @Success      200       {object}  nil          "Link sent successfully"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Router       /users/{id}/notifications [get]
 func (c UserController) PasswordReset(ctx *gin.Context) {
-	var passwordResetRquest models.PasswordResetRequest
-	if err := ctx.ShouldBindJSON(&passwordResetRquest); err != nil {
+	var passwordResetRequest models.PasswordResetRequest
+	if err := ctx.ShouldBindJSON(&passwordResetRequest); err != nil {
 		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
 		return
 	}
-	user, err := c.service.GetUserByEmail(ctx.Request.Context(), passwordResetRquest.Email)
+	user, err := c.service.GetUserByEmail(ctx.Request.Context(), passwordResetRequest.Email)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return

@@ -229,7 +229,7 @@ func (s *userService) StartPasswordReset(ctx context.Context, id int, email stri
 	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
 	subject := "Password Reset"
 	to := mail.NewEmail("User", email)
-	content := mail.NewContent("text/plain", "link de reseteo"+token)
+	content := mail.NewContent("text/plain", "myapp://reset-password?token="+token)
 	message := mail.NewV3MailInit(from, subject, to, content)
 
 	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
