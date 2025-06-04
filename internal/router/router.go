@@ -7,6 +7,7 @@ import (
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/middleware"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 
 	"github.com/gin-contrib/cors"
@@ -65,13 +66,12 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	auth.PUT("/users/verify/resend", deps.Controllers.AuthController.ResendPin)
 
 	// User routes
-	r.GET("/users", deps.Controllers.UserController.UsersGet)
-	r.POST("/users/modify", deps.Controllers.UserController.ModifyUser)
-	r.GET("/users/:id", deps.Controllers.UserController.UserGetById)
+	r.GET("/users", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.UserController.UsersGet)
+	r.PUT("/users/:id", middleware.UserOrAdminMiddleware(deps.Services.UserService), deps.Controllers.UserController.ModifyUser)
+	r.GET("/users/:id", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.UserController.UserGetById)
 	r.GET("/users/:id/notifications", deps.Controllers.UserController.GetUserNotifications)
 	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
-	r.PUT("/users/block/:id", deps.Controllers.UserController.BlockUserById)
-	r.PUT("/users/:id/location", deps.Controllers.UserController.ModifyUserLocation)
+	r.PUT("/users/:id/block", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.BlockUserById)
 	r.PUT("/users/:id/password", deps.Controllers.UserController.ModifyUserPasssword)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)
 	return r, nil

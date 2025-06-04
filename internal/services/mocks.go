@@ -699,7 +699,7 @@ func (_c *MockUserService_ModifyPassword_Call) RunAndReturn(run func(ctx context
 }
 
 // ModifyUser provides a mock function for the type MockUserService
-func (_mock *MockUserService) ModifyUser(ctx context.Context, id int, user *models.User) error {
+func (_mock *MockUserService) ModifyUser(ctx context.Context, id int, user models.UserUpdateDto) error {
 	ret := _mock.Called(ctx, id, user)
 
 	if len(ret) == 0 {
@@ -707,7 +707,7 @@ func (_mock *MockUserService) ModifyUser(ctx context.Context, id int, user *mode
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int, *models.User) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, models.UserUpdateDto) error); ok {
 		r0 = returnFunc(ctx, id, user)
 	} else {
 		r0 = ret.Error(0)
@@ -728,9 +728,9 @@ func (_e *MockUserService_Expecter) ModifyUser(ctx interface{}, id interface{}, 
 	return &MockUserService_ModifyUser_Call{Call: _e.mock.On("ModifyUser", ctx, id, user)}
 }
 
-func (_c *MockUserService_ModifyUser_Call) Run(run func(ctx context.Context, id int, user *models.User)) *MockUserService_ModifyUser_Call {
+func (_c *MockUserService_ModifyUser_Call) Run(run func(ctx context.Context, id int, user models.UserUpdateDto)) *MockUserService_ModifyUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int), args[2].(*models.User))
+		run(args[0].(context.Context), args[1].(int), args[2].(models.UserUpdateDto))
 	})
 	return _c
 }
@@ -740,7 +740,7 @@ func (_c *MockUserService_ModifyUser_Call) Return(err error) *MockUserService_Mo
 	return _c
 }
 
-func (_c *MockUserService_ModifyUser_Call) RunAndReturn(run func(ctx context.Context, id int, user *models.User) error) *MockUserService_ModifyUser_Call {
+func (_c *MockUserService_ModifyUser_Call) RunAndReturn(run func(ctx context.Context, id int, user models.UserUpdateDto) error) *MockUserService_ModifyUser_Call {
 	_c.Call.Return(run)
 	return _c
 }

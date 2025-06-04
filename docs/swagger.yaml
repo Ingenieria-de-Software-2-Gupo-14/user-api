@@ -476,6 +476,42 @@ paths:
       summary: Get user by ID
       tags:
       - Users
+    put:
+      consumes:
+      - application/json
+      description: Updates user information
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated user data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated user data
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/models.User'
+            type: object
+        "400":
+          description: Invalid user ID format or request format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Modify user
+      tags:
+      - Users
   /users/{id}/location:
     put:
       consumes:
@@ -594,38 +630,6 @@ paths:
           schema:
             $ref: '#/definitions/utils.HTTPError'
       summary: Block user
-      tags:
-      - Users
-  /users/modify:
-    post:
-      consumes:
-      - application/json
-      description: Updates user information
-      parameters:
-      - description: Updated user data
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/models.User'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Updated user data
-          schema:
-            additionalProperties:
-              $ref: '#/definitions/models.User'
-            type: object
-        "400":
-          description: Invalid request format
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-      summary: Modify user
       tags:
       - Users
   /users/notify:
