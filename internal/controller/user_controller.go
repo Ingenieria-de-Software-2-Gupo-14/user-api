@@ -5,12 +5,12 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	services "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -335,8 +335,8 @@ func (c UserController) PasswordReset(ctx *gin.Context) {
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /rules [post]
 func (c UserController) AddRule(ctx *gin.Context) {
-	auth, _ := ctx.Cookie("Authorization")
-	claims, err := models.ParseToken(auth)
+	tokenStr := getAuthToken(ctx)
+	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -376,8 +376,8 @@ func (c UserController) DeleteRule(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	auth, _ := ctx.Cookie("Authorization")
-	claims, err := models.ParseToken(auth)
+	tokenStr := getAuthToken(ctx)
+	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -448,8 +448,8 @@ func (c UserController) ModifyRule(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	auth, _ := ctx.Cookie("Authorization")
-	claims, err := models.ParseToken(auth)
+	tokenStr := getAuthToken(ctx)
+	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -554,4 +554,14 @@ func (c UserController) PasswordResetRedirect(ctx *gin.Context) {
 	`, deepLink, deepLink, deepLink)
 
 	ctx.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+}
+
+func getAuthToken(c *gin.Context) string {
+	auth, _ := c.Cookie("Authorization")
+	if auth == "" {
+		if parts := strings.Fields(c.GetHeader("Authorization")); len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+			auth = parts[1]
+		}
+	}
+	return auth
 }
