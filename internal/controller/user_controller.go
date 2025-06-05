@@ -298,7 +298,7 @@ func (c UserController) GetUserNotifications(ctx *gin.Context) {
 // @Param        PasswordResetRequest  body  models.PasswordResetRequest true  "PasswordResetRequest payload"
 // @Success      200       {object}  nil          "Link sent successfully"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
-// @Router       /users/{id}/notifications [get]
+// @Router       /users/reset/password [post]
 func (c UserController) PasswordReset(ctx *gin.Context) {
 	var passwordResetRequest models.PasswordResetRequest
 	if err := ctx.ShouldBindJSON(&passwordResetRequest); err != nil {
@@ -414,7 +414,7 @@ func (c UserController) GetRules(ctx *gin.Context) {
 // @Tags         Rules
 // @Accept       json
 // @Produce      json
-// @Success      200  {object}  map[string][]models.Audit  "List of audits"
+// @Success      200  {object}  map[string][]models.AuditData  "List of audits"
 // @Failure      500  {object}  utils.HTTPError          "Internal server error"
 // @Router       /rules [get]
 func (c UserController) GetAudits(ctx *gin.Context) {
