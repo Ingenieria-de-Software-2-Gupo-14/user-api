@@ -38,7 +38,7 @@ func GenerateToken(id int, email string, name string, role string) (string, erro
 		StandardClaims: jwt.StandardClaims{
 			Subject:   strconv.Itoa(id),
 			Issuer:    "user-api",
-			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+			ExpiresAt: time.Now().Add(time.Hour * 24 * 7).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
 		Email: email,
