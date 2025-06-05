@@ -20,7 +20,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 
 	r.Use(cors.New(cors.Config{
 		AllowOriginFunc: func(origin string) bool {
-			return strings.HasSuffix(origin, ".vercel.app") || origin == "http://localhost:8081"
+			return strings.HasSuffix(origin, ".vercel.app") || origin == "http://localhost:8081" || origin == "https://backoffice-seven-fawn.vercel.app"
 		},
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin",
@@ -76,6 +76,8 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.PUT("/users/password", deps.Controllers.UserController.ModifyUserPasssword)
 	r.POST("/users/reset/password", deps.Controllers.UserController.PasswordReset)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)
+	r.PUT("/users/:id/notifications/preference", deps.Controllers.UserController.ModifyNotifPreference)
+	//r.GET("/users/:id/notifications/preference", deps.Controllers.UserController.GetNotifPreferences)
 
 	// Rules routes
 	r.POST("/rules", deps.Controllers.UserController.AddRule)
