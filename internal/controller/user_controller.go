@@ -510,7 +510,7 @@ func (c UserController) ModifyNotifPreference(ctx *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        id        path      int         true  "User ID"
-// @Success      200       {object}  map[string]models.NotificationPreference          "preferences"
+// @Success      200       {object}  models.NotificationPreference          "preferences"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
 // @Failure      400       {object}  utils.HTTPError  "Invalid request format"
 // @Router      /users/:id/notifications/preference [get]
@@ -525,7 +525,7 @@ func (c UserController) GetNotifPreferences(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"data": preferences})
+	ctx.JSON(http.StatusOK, preferences)
 }
 
 func (c UserController) PasswordResetRedirect(ctx *gin.Context) {

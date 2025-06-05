@@ -661,9 +661,7 @@ paths:
         "200":
           description: preferences
           schema:
-            additionalProperties:
-              $ref: '#/definitions/models.NotificationPreference'
-            type: object
+            $ref: '#/definitions/models.NotificationPreference'
         "400":
           description: Invalid request format
           schema:

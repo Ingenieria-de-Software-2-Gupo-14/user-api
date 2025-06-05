@@ -660,10 +660,7 @@ const docTemplate = `{
                     "200": {
                         "description": "preferences",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "$ref": "#/definitions/models.NotificationPreference"
-                            }
+                            "$ref": "#/definitions/models.NotificationPreference"
                         }
                     },
                     "400": {
