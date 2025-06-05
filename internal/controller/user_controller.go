@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -525,4 +526,32 @@ func (c UserController) GetNotifPreferences(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"data": preferences})
+}
+
+func (c UserController) PasswordResetRedirect(ctx *gin.Context) {
+	token := ctx.Query("token")
+	if token == "" {
+		ctx.String(http.StatusBadRequest, "Missing token")
+		return
+	}
+
+	deepLink := fmt.Sprintf("myapp://reset-password?token=%s", token)
+
+	html := fmt.Sprintf(`
+		<!DOCTYPE html>
+		<html>
+			<head>
+				<title>Redirecting...</title>
+				<meta http-equiv="refresh" content="0; url=%s" />
+				<script>
+					window.location.href = "%s";
+				</script>
+			</head>
+			<body>
+				<p>If you're not redirected, <a href="%s">click here</a>.</p>
+			</body>
+		</html>
+	`, deepLink, deepLink, deepLink)
+
+	ctx.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }
