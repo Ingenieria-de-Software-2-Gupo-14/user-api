@@ -37,6 +37,9 @@ type UserService interface {
 	StartPasswordReset(ctx context.Context, id int, email string) error
 	ValidatePasswordResetToken(ctx context.Context, token string) (*models.PasswordResetData, error)
 	SetPasswordTokenUsed(ctx context.Context, token string) error
+	SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error
+	CheckPreference(ctx context.Context, id int, notificationType string) (bool, error)
+	GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error)
 }
 
 type userService struct {
@@ -250,4 +253,16 @@ func (s *userService) ValidatePasswordResetToken(ctx context.Context, token stri
 
 func (s *userService) SetPasswordTokenUsed(ctx context.Context, token string) error {
 	return s.userRepo.SetPasswordTokenUsed(ctx, token)
+}
+
+func (s *userService) SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error {
+	return s.userRepo.SetNotificationPreference(ctx, id, preference)
+}
+
+func (s *userService) CheckPreference(ctx context.Context, id int, notificationType string) (bool, error) {
+	return s.userRepo.CheckPreference(ctx, id, notificationType)
+}
+
+func (s *userService) GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error) {
+	return s.userRepo.GetNotificationPreference(ctx, id)
 }

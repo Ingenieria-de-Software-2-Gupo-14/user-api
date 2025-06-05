@@ -404,7 +404,7 @@ const docTemplate = `{
         },
         "/rules": {
             "get": {
-                "description": "Returns a list of all audits in the system",
+                "description": "Returns a list of all rules in the system",
                 "consumes": [
                     "application/json"
                 ],
@@ -414,16 +414,16 @@ const docTemplate = `{
                 "tags": [
                     "Rules"
                 ],
-                "summary": "Get all audits",
+                "summary": "Get all rules",
                 "responses": {
                     "200": {
-                        "description": "List of audits",
+                        "description": "List of rules",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/definitions/models.AuditData"
+                                    "$ref": "#/definitions/models.Rule"
                                 }
                             }
                         }
@@ -467,6 +467,41 @@ const docTemplate = `{
                         "description": "Invalid request format",
                         "schema": {
                             "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/rules/audit": {
+            "get": {
+                "description": "Returns a list of all audits in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rules"
+                ],
+                "summary": "Get all audits",
+                "responses": {
+                    "200": {
+                        "description": "List of audits",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.AuditData"
+                                }
+                            }
                         }
                     },
                     "500": {
@@ -588,6 +623,101 @@ const docTemplate = `{
                                     "$ref": "#/definitions/models.User"
                                 }
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/:id/notifications/preference": {
+            "get": {
+                "description": "Modify the preference of a notification type between exam_notification homework_notification or social_notification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Modify the preference of a notification type",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "preferences",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "$ref": "#/definitions/models.NotificationPreference"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Modify the preference of a notification type between exam_notification homework_notification or social_notification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Modify the preference of a notification type",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "NotificationPreferenceRequest payload",
+                        "name": "NotificationPreferenceRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.NotificationPreferenceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "preference changed successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request format",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
                         }
                     },
                     "500": {
@@ -1076,6 +1206,40 @@ const docTemplate = `{
                 }
             }
         },
+        "models.NotificationPreference": {
+            "type": "object",
+            "required": [
+                "exam_notification",
+                "homework_notification",
+                "social_notification"
+            ],
+            "properties": {
+                "exam_notification": {
+                    "type": "boolean"
+                },
+                "homework_notification": {
+                    "type": "boolean"
+                },
+                "social_notification": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.NotificationPreferenceRequest": {
+            "type": "object",
+            "required": [
+                "notification_preference",
+                "notification_type"
+            ],
+            "properties": {
+                "notification_preference": {
+                    "type": "boolean"
+                },
+                "notification_type": {
+                    "type": "string"
+                }
+            }
+        },
         "models.NotificationSetUpRequest": {
             "type": "object",
             "required": [
@@ -1119,6 +1283,7 @@ const docTemplate = `{
             "required": [
                 "notification_text",
                 "notification_title",
+                "notification_type",
                 "users"
             ],
             "properties": {
@@ -1131,6 +1296,9 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 225,
                     "minLength": 1
+                },
+                "notification_type": {
+                    "type": "string"
                 },
                 "users": {
                     "type": "array",

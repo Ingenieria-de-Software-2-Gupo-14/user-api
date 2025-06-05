@@ -213,6 +213,10 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 	log.Println(notifyRequest.Users)
 	for _, userID := range notifyRequest.Users {
 		log.Printf("user id: %d", userID)
+		preference, err := c.service.CheckPreference(cont, userID, notifyRequest.NotificationType)
+		if preference == false || err != nil {
+			continue
+		}
 		errMobile := c.service.SendNotifByMobile(cont, userID, notifyRequest)
 		if errMobile != nil {
 			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMobile)
@@ -416,7 +420,7 @@ func (c UserController) GetRules(ctx *gin.Context) {
 // @Produce      json
 // @Success      200  {object}  map[string][]models.AuditData  "List of audits"
 // @Failure      500  {object}  utils.HTTPError          "Internal server error"
-// @Router       /rules [get]
+// @Router       /rules/audit [get]
 func (c UserController) GetAudits(ctx *gin.Context) {
 	audits, err := c.ruleService.GetAudits(ctx)
 	if err != nil {
@@ -465,4 +469,60 @@ func (c UserController) ModifyRule(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, nil)
+}
+
+// ModifyNotifPreference godoc
+// @Summary      Modify the preference of a notification type
+// @Description  Modify the preference of a notification type between exam_notification homework_notification or social_notification
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id        path      int         true  "User ID"
+// @Param        NotificationPreferenceRequest  body  models.NotificationPreferenceRequest true  "NotificationPreferenceRequest payload"
+// @Success      200       {object}  nil          "preference changed successfully"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Failure      400       {object}  utils.HTTPError  "Invalid request format"
+// @Router      /users/:id/notifications/preference [put]
+func (c UserController) ModifyNotifPreference(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	var notifPreference models.NotificationPreferenceRequest
+	if err := ctx.ShouldBindJSON(&notifPreference); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	err = c.service.SetNotificationPreference(ctx.Request.Context(), id, notifPreference)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
+}
+
+// GetNotifPreferences godoc
+// @Summary      Modify the preference of a notification type
+// @Description  Modify the preference of a notification type between exam_notification homework_notification or social_notification
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id        path      int         true  "User ID"
+// @Success      200       {object}  map[string]models.NotificationPreference          "preferences"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Failure      400       {object}  utils.HTTPError  "Invalid request format"
+// @Router      /users/:id/notifications/preference [get]
+func (c UserController) GetNotifPreferences(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	preferences, err := c.service.GetNotificationPreference(ctx.Request.Context(), id)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"data": preferences})
 }

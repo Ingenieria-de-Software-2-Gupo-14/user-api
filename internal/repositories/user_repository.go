@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
@@ -24,6 +25,9 @@ type UserRepository interface {
 	AddPasswordResetToken(ctx context.Context, id int, email string, token string, tokenExpiration time.Time) error
 	GetPasswordResetTokenInfo(ctx context.Context, token string) (*models.PasswordResetData, error)
 	SetPasswordTokenUsed(ctx context.Context, token string) error
+	SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error
+	CheckPreference(ctx context.Context, id int, notificationType string) (bool, error)
+	GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error)
 }
 
 type userRepository struct {
@@ -229,6 +233,32 @@ func (db userRepository) GetPasswordResetTokenInfo(ctx context.Context, token st
 func (db userRepository) SetPasswordTokenUsed(ctx context.Context, token string) error {
 	_, err := db.DB.ExecContext(ctx, "UPDATE password_reset SET used = true where token = $1", token)
 	return err
+}
+
+func (db userRepository) SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error {
+	query := fmt.Sprintf("UPDATE users SET %s = $2 WHERE id = $1", preference.NotificationType)
+	_, err := db.DB.ExecContext(ctx, query, id, preference.NotificationPreference)
+	return err
+}
+
+func (db userRepository) CheckPreference(ctx context.Context, id int, notificationType string) (bool, error) {
+	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", notificationType)
+	row := db.DB.QueryRowContext(ctx, query, id)
+	var preference bool
+	if err := row.Scan(&preference); err != nil {
+		return false, err
+	}
+	return preference, nil
+}
+
+func (db userRepository) GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error) {
+	row := db.DB.QueryRowContext(ctx, "SELECT exam_notification, homework_notification, social_notification FROM users WHERE id = $1", id)
+	var preferences models.NotificationPreference
+	err := row.Scan(&preferences.ExamNotification, &preferences.HomeworkNotification, &preferences.SocialNotification)
+	if err != nil {
+		return nil, err
+	}
+	return &preferences, nil
 }
 
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description

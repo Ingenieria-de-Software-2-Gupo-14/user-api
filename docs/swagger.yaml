@@ -56,6 +56,29 @@ definitions:
     - email
     - password
     type: object
+  models.NotificationPreference:
+    properties:
+      exam_notification:
+        type: boolean
+      homework_notification:
+        type: boolean
+      social_notification:
+        type: boolean
+    required:
+    - exam_notification
+    - homework_notification
+    - social_notification
+    type: object
+  models.NotificationPreferenceRequest:
+    properties:
+      notification_preference:
+        type: boolean
+      notification_type:
+        type: string
+    required:
+    - notification_preference
+    - notification_type
+    type: object
   models.NotificationSetUpRequest:
     properties:
       token:
@@ -91,6 +114,8 @@ definitions:
         maxLength: 225
         minLength: 1
         type: string
+      notification_type:
+        type: string
       users:
         items:
           type: integer
@@ -98,6 +123,7 @@ definitions:
     required:
     - notification_text
     - notification_title
+    - notification_type
     - users
     type: object
   models.PasswordModifyRequest:
@@ -468,23 +494,23 @@ paths:
     get:
       consumes:
       - application/json
-      description: Returns a list of all audits in the system
+      description: Returns a list of all rules in the system
       produces:
       - application/json
       responses:
         "200":
-          description: List of audits
+          description: List of rules
           schema:
             additionalProperties:
               items:
-                $ref: '#/definitions/models.AuditData'
+                $ref: '#/definitions/models.Rule'
               type: array
             type: object
         "500":
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
-      summary: Get all audits
+      summary: Get all rules
       tags:
       - Rules
     post:
@@ -571,6 +597,29 @@ paths:
       summary: Modify rule password
       tags:
       - Rules
+  /rules/audit:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of all audits in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of audits
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.AuditData'
+              type: array
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Get all audits
+      tags:
+      - Rules
   /users:
     get:
       consumes:
@@ -592,6 +641,71 @@ paths:
           schema:
             $ref: '#/definitions/utils.HTTPError'
       summary: Get all users
+      tags:
+      - Users
+  /users/:id/notifications/preference:
+    get:
+      consumes:
+      - application/json
+      description: Modify the preference of a notification type between exam_notification
+        homework_notification or social_notification
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: preferences
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/models.NotificationPreference'
+            type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Modify the preference of a notification type
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Modify the preference of a notification type between exam_notification
+        homework_notification or social_notification
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: NotificationPreferenceRequest payload
+        in: body
+        name: NotificationPreferenceRequest
+        required: true
+        schema:
+          $ref: '#/definitions/models.NotificationPreferenceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: preference changed successfully
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Modify the preference of a notification type
       tags:
       - Users
   /users/{id}:

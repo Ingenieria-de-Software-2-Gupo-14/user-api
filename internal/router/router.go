@@ -76,8 +76,8 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.PUT("/users/password", deps.Controllers.UserController.ModifyUserPasssword)
 	r.POST("/users/reset/password", deps.Controllers.UserController.PasswordReset)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)
-	//r.PUT("/users/:id/notifications/preference", deps.Controllers.UserController.ModifyNotifPreference)
-	//r.GET("/users/:id/notifications/preference", deps.Controllers.UserController.GetNotifPreferences)
+	r.PUT("/users/:id/notifications/preference", deps.Controllers.UserController.ModifyNotifPreference)
+	r.GET("/users/:id/notifications/preference", deps.Controllers.UserController.GetNotifPreferences)
 
 	// Rules routes
 	r.POST("/rules", deps.Controllers.UserController.AddRule)
