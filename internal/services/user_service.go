@@ -148,7 +148,7 @@ func (s *userService) SendNotifByMobile(cont context.Context, userId int, notifi
 	for _, token := range tokens.NotificationTokens {
 		err := sendNotifToDevice(token.NotificationToken, notification)
 		if err != nil {
-			println(err)
+			println(err.Error())
 		}
 	}
 	return nil
