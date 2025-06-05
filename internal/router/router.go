@@ -83,7 +83,6 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.GET("/rules", deps.Controllers.UserController.GetRules)
 	r.PUT("/rules/:id", deps.Controllers.UserController.ModifyRule)
 	r.GET("/rules/audit", deps.Controllers.UserController.GetAudits)
-	r.POST("/users/:id/notifications", deps.Controllers.UserController.SetUserNotifications)
 	return r, nil
 }
 
