@@ -241,7 +241,7 @@ func (s *userService) StartPasswordReset(ctx context.Context, id int, email stri
 			<p>Click the link below to reset your password:</p>
 			<p><a href="%s">Reset password</a></p>
 		</body>
-	</html>`, resetLink, resetLink)
+	</html>`, resetLink)
 
 	message := mail.NewV3Mail()
 	message.SetFrom(from)
