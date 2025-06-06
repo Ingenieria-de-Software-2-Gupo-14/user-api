@@ -10,6 +10,7 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/sethvargo/go-password/password"
 	"golang.org/x/oauth2/google"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -197,8 +198,31 @@ func sendNotifToDevice(userToken string, notification models.NotifyRequest) erro
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusForbidden {
 		return fmt.Errorf("non-200 response from FCM: %v", resp.Status)
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		req, err := http.NewRequest("POST", "https://exp.host/--/api/v2/push/send", bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("Expo push failed: %s", string(body))
+		}
+
+		return nil
 	}
 	return nil
 }
