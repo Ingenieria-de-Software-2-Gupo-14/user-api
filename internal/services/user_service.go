@@ -203,13 +203,15 @@ func sendNotifToDevice(userToken string, notification models.NotifyRequest) erro
 		return fmt.Errorf("non-200 response from FCM: %v", resp.Status)
 	}
 	if resp.StatusCode == http.StatusForbidden {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		fmt.Printf("Response FCM body: %s", string(bodyBytes))
 		return sendNotifExpo(userToken, notification)
 	}
 	return nil
 }
 
 func sendNotifExpo(userToken string, notification models.NotifyRequest) error {
-	log.Printf(userToken)
+	log.Printf("%s", userToken)
 	type ExpoPushMessage struct {
 		To    string `json:"to"`
 		Title string `json:"title,omitempty"`
@@ -249,7 +251,7 @@ func sendNotifExpo(userToken string, notification models.NotifyRequest) error {
 	}
 	log.Printf("mando por expo sin problemas")
 	bodyBytes, err := io.ReadAll(resp.Body)
-	log.Printf("Response body: %s", string(bodyBytes))
+	fmt.Printf("Response body: %s", string(bodyBytes))
 	return nil
 }
 
