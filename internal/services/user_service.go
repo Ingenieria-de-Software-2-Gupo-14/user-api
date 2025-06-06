@@ -158,7 +158,7 @@ func (s *userService) SendNotifByMobile(cont context.Context, userId int, notifi
 }
 
 func sendNotifToDevice(userToken string, notification models.NotifyRequest) error {
-	if strings.Contains(userToken, "Expo[") {
+	if strings.Contains(userToken, "ExponentPushToken[") {
 		return sendNotifExpo(userToken, notification)
 	}
 	svcJSON := os.Getenv("FIREBASE_SERVICE_ACCOUNT")
