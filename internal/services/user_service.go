@@ -11,6 +11,7 @@ import (
 	"github.com/sethvargo/go-password/password"
 	"golang.org/x/oauth2/google"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -208,6 +209,7 @@ func sendNotifToDevice(userToken string, notification models.NotifyRequest) erro
 }
 
 func sendNotifExpo(userToken string, notification models.NotifyRequest) error {
+	log.Printf(userToken)
 	type ExpoPushMessage struct {
 		To    string `json:"to"`
 		Title string `json:"title,omitempty"`
@@ -245,7 +247,7 @@ func sendNotifExpo(userToken string, notification models.NotifyRequest) error {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("non-200 response from Expo: %v\nBody: %s", resp.StatusCode, string(bodyBytes))
 	}
-
+	log.Printf("mando por expo sin problemas")
 	return nil
 }
 
