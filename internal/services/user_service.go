@@ -202,28 +202,50 @@ func sendNotifToDevice(userToken string, notification models.NotifyRequest) erro
 		return fmt.Errorf("non-200 response from FCM: %v", resp.Status)
 	}
 	if resp.StatusCode == http.StatusForbidden {
-		req, err := http.NewRequest("POST", "https://exp.host/--/api/v2/push/send", bytes.NewBuffer(jsonPayload))
-		if err != nil {
-			return err
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Accept", "application/json")
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			return fmt.Errorf("Expo push failed: %s", string(body))
-		}
-
-		return nil
+		return sendNotifExpo(userToken, notification)
 	}
+	return nil
+}
+
+func sendNotifExpo(userToken string, notification models.NotifyRequest) error {
+	type ExpoPushMessage struct {
+		To    string `json:"to"`
+		Title string `json:"title,omitempty"`
+		Body  string `json:"body,omitempty"`
+		Sound string `json:"sound,omitempty"`
+	}
+	message := ExpoPushMessage{
+		To:    userToken,
+		Title: notification.NotificationTitle,
+		Body:  notification.NotificationText,
+		Sound: "default", // optional
+	}
+
+	payload, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", "https://exp.host/--/api/v2/push/send", bytes.NewBuffer(payload))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("non-200 response from Expo: %v\nBody: %s", resp.StatusCode, string(bodyBytes))
+	}
+
 	return nil
 }
 
