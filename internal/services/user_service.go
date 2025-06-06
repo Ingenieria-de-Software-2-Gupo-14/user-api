@@ -12,6 +12,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
@@ -159,7 +160,7 @@ func sendNotifToDevice(userToken string, notification models.NotifyRequest) erro
 	if svcJSON == "" {
 		return fmt.Errorf("FIREBASE_SERVICE_ACCOUNT not set")
 	}
-
+	svcJSON = strings.ReplaceAll(svcJSON, `\n`, "\n")
 	creds := []byte(svcJSON)
 
 	conf, err := google.JWTConfigFromJSON(creds, "https://www.googleapis.com/auth/firebase.messaging")
