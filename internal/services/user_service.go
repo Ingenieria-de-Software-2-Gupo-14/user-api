@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
@@ -157,6 +158,9 @@ func (s *userService) SendNotifByMobile(cont context.Context, userId int, notifi
 }
 
 func sendNotifToDevice(userToken string, notification models.NotifyRequest) error {
+	if strings.Contains(userToken, "Expo[") {
+		return sendNotifExpo(userToken, notification)
+	}
 	svcJSON := os.Getenv("FIREBASE_SERVICE_ACCOUNT")
 	if svcJSON == "" {
 		return fmt.Errorf("FIREBASE_SERVICE_ACCOUNT not set")
@@ -199,13 +203,8 @@ func sendNotifToDevice(userToken string, notification models.NotifyRequest) erro
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusForbidden {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("non-200 response from FCM: %v", resp.Status)
-	}
-	if resp.StatusCode == http.StatusForbidden {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		fmt.Printf("Response FCM body: %s", string(bodyBytes))
-		return sendNotifExpo(userToken, notification)
 	}
 	return nil
 }
