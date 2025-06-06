@@ -1,18 +1,16 @@
 package controller
 
 import (
+	"fmt"
+	"log"
 	"net/http"
-	"os"
 	"strconv"
-
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
-	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"strings"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	services "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -169,20 +167,24 @@ func (c UserController) BlockUserById(context *gin.Context) {
 // @Success      200       {object}  nil          "Pasword updated successfully"
 // @Failure      400       {object}  utils.HTTPError  "Invalid user ID format or request"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
-// @Router       /users/{id}/password [put]
+// @Router       /users/password [put]
 func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
-	var id, err = strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
 	var user models.PasswordModifyRequest
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if c.service.ModifyPassword(ctx.Request.Context(), id, user.Password) != nil {
+	data, err := c.service.ValidatePasswordResetToken(ctx.Request.Context(), user.Token)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if c.service.ModifyPassword(ctx.Request.Context(), data.UserId, user.Password) != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	err = c.service.SetPasswordTokenUsed(ctx.Request.Context(), user.Token)
+	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -196,7 +198,7 @@ func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
 // @Tags         Users
 // @Accept       json
 // @Produce      json
-// @Param        Notification  body  models.NotifyRequest true  "Notification payload"
+// @Param        NotificationToken  body  models.NotifyRequest true  "NotificationToken payload"
 // @Success      200       {object}  nil          "Users notified successfully"
 // @Failure      400       {object}  utils.HTTPError  "Invalid request"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
@@ -208,39 +210,59 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 		return
 	}
 	cont := ctx.Request.Context()
+	log.Println("notification")
+	log.Println(notifyRequest.Users)
 	for _, userID := range notifyRequest.Users {
-		user, err := c.service.GetUserById(cont, userID)
-		if err != nil {
-			if err == repositories.ErrNotFound {
-				continue
-			}
-			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		log.Printf("user id: %d", userID)
+		preference, err := c.service.CheckPreference(cont, userID, notifyRequest.NotificationType)
+		if preference == false || err != nil {
 			continue
 		}
-		err = c.service.AddNotification(cont, userID, notifyRequest.NotificationText)
-		if err != nil {
-			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		errMobile := c.service.SendNotifByMobile(cont, userID, notifyRequest)
+		if errMobile != nil {
+			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMobile)
 			continue
 		}
-		errMail := sendNotifByEmail(user.Email, notifyRequest.NotificationText)
+		log.Printf("notif")
+		errMail := c.service.SendNotifByEmail(cont, userID, notifyRequest)
+
 		if errMail != nil {
 			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMail)
 			continue
 		}
+		log.Printf("email")
 	}
 	ctx.JSON(http.StatusOK, nil)
 }
 
-func sendNotifByEmail(email string, text string) error {
-	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
-	subject := "Verification Code"
-	to := mail.NewEmail("User", email)
-	content := mail.NewContent("text/plain", text)
-	message := mail.NewV3MailInit(from, subject, to, content)
-
-	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
-	_, err := client.Send(message)
-	return err
+// SetUserNotifications godoc
+// @Summary      Set a notification token to users
+// @Description  Set a notification token to users in order to be able to send push notifications
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        NotificationToken  body  models.NotificationSetUpRequest true  "NotificationSetUpRequest payload"
+// @Param        id        path      int         true  "User ID"
+// @Success      200       {object}  nil          "Token Setup successful"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Router       /users/{id}/notifications [post]
+func (c UserController) SetUserNotifications(ctx *gin.Context) {
+	var tokenRequest models.NotificationSetUpRequest
+	var id, err = strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err := ctx.ShouldBindJSON(&tokenRequest); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	errToken := c.service.AddNotificationToken(ctx.Request.Context(), id, tokenRequest.Token)
+	if errToken != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errToken)
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
 }
 
 // GetUserNotifications godoc
@@ -250,7 +272,7 @@ func sendNotifByEmail(email string, text string) error {
 // @Accept       json
 // @Produce      json
 // @Param        id        path      int         true  "User ID"
-// @Success      200       {object}  models.Notifications          "Users notified successfully"
+// @Success      200       {object}  models.NotificationTokens          "Users notified successfully"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/{id}/notifications [get]
 func (c UserController) GetUserNotifications(ctx *gin.Context) {
@@ -259,8 +281,8 @@ func (c UserController) GetUserNotifications(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	var notifs models.Notifications
-	notifs, err = c.service.GetUserNotifications(ctx.Request.Context(), id)
+	var notifs models.NotificationTokens
+	notifs, err = c.service.GetUserNotificationsToken(ctx.Request.Context(), id)
 	if err != nil {
 		if err == repositories.ErrNotFound {
 			utils.ErrorResponse(ctx, http.StatusNotFound, "User not found")
@@ -270,6 +292,35 @@ func (c UserController) GetUserNotifications(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, notifs)
+}
+
+// PasswordReset godoc
+// @Summary      Start the process to reset password
+// @Description  Start the process to reset password, sends and email with a link to make a new password
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        PasswordResetRequest  body  models.PasswordResetRequest true  "PasswordResetRequest payload"
+// @Success      200       {object}  nil          "Link sent successfully"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Router       /users/reset/password [post]
+func (c UserController) PasswordReset(ctx *gin.Context) {
+	var passwordResetRequest models.PasswordResetRequest
+	if err := ctx.ShouldBindJSON(&passwordResetRequest); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	user, err := c.service.GetUserByEmail(ctx.Request.Context(), passwordResetRequest.Email)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	err = c.service.StartPasswordReset(ctx.Request.Context(), user.Id, user.Email)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
 }
 
 // AddRule godoc
@@ -284,8 +335,8 @@ func (c UserController) GetUserNotifications(ctx *gin.Context) {
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /rules [post]
 func (c UserController) AddRule(ctx *gin.Context) {
-	auth, _ := ctx.Cookie("Authorization")
-	claims, err := models.ParseToken(auth)
+	tokenStr := getAuthToken(ctx)
+	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -325,8 +376,8 @@ func (c UserController) DeleteRule(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	auth, _ := ctx.Cookie("Authorization")
-	claims, err := models.ParseToken(auth)
+	tokenStr := getAuthToken(ctx)
+	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -368,9 +419,9 @@ func (c UserController) GetRules(ctx *gin.Context) {
 // @Tags         Rules
 // @Accept       json
 // @Produce      json
-// @Success      200  {object}  map[string][]models.Audit  "List of audits"
+// @Success      200  {object}  map[string][]models.AuditData  "List of audits"
 // @Failure      500  {object}  utils.HTTPError          "Internal server error"
-// @Router       /rules [get]
+// @Router       /rules/audit [get]
 func (c UserController) GetAudits(ctx *gin.Context) {
 	audits, err := c.ruleService.GetAudits(ctx)
 	if err != nil {
@@ -397,8 +448,8 @@ func (c UserController) ModifyRule(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	auth, _ := ctx.Cookie("Authorization")
-	claims, err := models.ParseToken(auth)
+	tokenStr := getAuthToken(ctx)
+	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -419,4 +470,98 @@ func (c UserController) ModifyRule(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, nil)
+}
+
+// ModifyNotifPreference godoc
+// @Summary      Modify the preference of a notification type
+// @Description  Modify the preference of a notification type between exam_notification homework_notification or social_notification
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id        path      int         true  "User ID"
+// @Param        NotificationPreferenceRequest  body  models.NotificationPreferenceRequest true  "NotificationPreferenceRequest payload"
+// @Success      200       {object}  nil          "preference changed successfully"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Failure      400       {object}  utils.HTTPError  "Invalid request format"
+// @Router      /users/:id/notifications/preference [put]
+func (c UserController) ModifyNotifPreference(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	var notifPreference models.NotificationPreferenceRequest
+	if err := ctx.ShouldBindJSON(&notifPreference); err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	err = c.service.SetNotificationPreference(ctx.Request.Context(), id, notifPreference)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, nil)
+}
+
+// GetNotifPreferences godoc
+// @Summary      Modify the preference of a notification type
+// @Description  Modify the preference of a notification type between exam_notification homework_notification or social_notification
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        id        path      int         true  "User ID"
+// @Success      200       {object}  models.NotificationPreference          "preferences"
+// @Failure      500       {object}  utils.HTTPError  "Internal server error"
+// @Failure      400       {object}  utils.HTTPError  "Invalid request format"
+// @Router      /users/:id/notifications/preference [get]
+func (c UserController) GetNotifPreferences(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		utils.ErrorResponse(ctx, http.StatusBadRequest, "Invalid request format")
+		return
+	}
+	preferences, err := c.service.GetNotificationPreference(ctx.Request.Context(), id)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, preferences)
+}
+
+func (c UserController) PasswordResetRedirect(ctx *gin.Context) {
+	token := ctx.Query("token")
+	if token == "" {
+		ctx.String(http.StatusBadRequest, "Missing token")
+		return
+	}
+
+	deepLink := fmt.Sprintf("myapp://reset-password?token=%s", token)
+
+	html := fmt.Sprintf(`
+		<!DOCTYPE html>
+		<html>
+			<head>
+				<title>Redirecting...</title>
+				<meta http-equiv="refresh" content="0; url=%s" />
+				<script>
+					window.location.href = "%s";
+				</script>
+			</head>
+			<body>
+				<p>If you're not redirected, <a href="%s">click here</a>.</p>
+			</body>
+		</html>
+	`, deepLink, deepLink, deepLink)
+
+	ctx.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
+}
+
+func getAuthToken(c *gin.Context) string {
+	auth, _ := c.Cookie("Authorization")
+	if auth == "" {
+		if parts := strings.Fields(c.GetHeader("Authorization")); len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+			auth = parts[1]
+		}
+	}
+	return auth
 }

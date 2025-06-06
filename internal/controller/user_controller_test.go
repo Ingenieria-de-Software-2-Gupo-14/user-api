@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/controller"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
@@ -189,17 +190,25 @@ func TestUserController_ModifyPassword(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	expectedRequest := models.PasswordModifyRequest{
+		Token:    "123456",
 		Password: newPassword,
+	}
+	expectedPasswordResetData := models.PasswordResetData{
+		Email:  "TEST_EMAIL",
+		UserId: 1,
+		Exp:    time.Now(),
+		Used:   false,
 	}
 
 	jsonBody, _ := json.Marshal(expectedRequest)
 
-	req, _ := http.NewRequest(http.MethodPost, "/users/1/password", bytes.NewBuffer(jsonBody))
+	req, _ := http.NewRequest(http.MethodPut, "/users/password", bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	c.Request = req
 
+	mockService.On("ValidatePasswordResetToken", c.Request.Context(), expectedRequest.Token).Return(&expectedPasswordResetData, nil)
 	mockService.On("ModifyPassword", c.Request.Context(), 1, newPassword).Return(nil)
+	mockService.On("SetPasswordTokenUsed", c.Request.Context(), expectedRequest.Token).Return(nil)
 
 	controller.ModifyUserPasssword(c)
 
@@ -226,12 +235,12 @@ func TestUserController_ModifyPassword_WrongParam(t *testing.T) {
 
 	controller.ModifyUserPasssword(c)
 
-	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	var result models.ErrorResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &result)
 	if err != nil {
 		return
 	}
 
-	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }

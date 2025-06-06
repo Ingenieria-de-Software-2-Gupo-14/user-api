@@ -417,7 +417,7 @@ const docTemplate = `{
                 "summary": "Get all rules",
                 "responses": {
                     "200": {
-                        "description": "List of users",
+                        "description": "List of rules",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -467,6 +467,41 @@ const docTemplate = `{
                         "description": "Invalid request format",
                         "schema": {
                             "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/rules/audit": {
+            "get": {
+                "description": "Returns a list of all audits in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Rules"
+                ],
+                "summary": "Get all audits",
+                "responses": {
+                    "200": {
+                        "description": "List of audits",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.AuditData"
+                                }
+                            }
                         }
                     },
                     "500": {
@@ -533,7 +568,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Users"
+                    "Rules"
                 ],
                 "summary": "Delete user by ID",
                 "parameters": [
@@ -588,6 +623,98 @@ const docTemplate = `{
                                     "$ref": "#/definitions/models.User"
                                 }
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/:id/notifications/preference": {
+            "get": {
+                "description": "Modify the preference of a notification type between exam_notification homework_notification or social_notification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Modify the preference of a notification type",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "preferences",
+                        "schema": {
+                            "$ref": "#/definitions/models.NotificationPreference"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Modify the preference of a notification type between exam_notification homework_notification or social_notification",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Modify the preference of a notification type",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "NotificationPreferenceRequest payload",
+                        "name": "NotificationPreferenceRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.NotificationPreferenceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "preference changed successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request format",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
                         }
                     },
                     "500": {
@@ -658,8 +785,8 @@ const docTemplate = `{
                 "summary": "Send a notification to users",
                 "parameters": [
                     {
-                        "description": "Notification payload",
-                        "name": "Notification",
+                        "description": "NotificationToken payload",
+                        "name": "NotificationToken",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -676,6 +803,93 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/utils.HTTPError"
                         }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/password": {
+            "put": {
+                "description": "Updates the password of a specific user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Modify user password",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "User with updated password",
+                        "name": "password",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PasswordModifyRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pasword updated successfully"
+                    },
+                    "400": {
+                        "description": "Invalid user ID format or request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/reset/password": {
+            "post": {
+                "description": "Start the process to reset password, sends and email with a link to make a new password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Start the process to reset password",
+                "parameters": [
+                    {
+                        "description": "PasswordResetRequest payload",
+                        "name": "PasswordResetRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.PasswordResetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Link sent successfully"
                     },
                     "500": {
                         "description": "Internal server error",
@@ -758,7 +972,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/models.UserUpdateDto"
                         }
                     }
                 ],
@@ -768,7 +982,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
-                                "$ref": "#/definitions/models.User"
+                                "$ref": "#/definitions/models.UserUpdateDto"
                             }
                         }
                     },
@@ -826,56 +1040,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/users/{id}/location": {
-            "put": {
-                "description": "Updates the location of a specific user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Modify user location",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "User with updated location",
-                        "name": "location",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.LocationModifyRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Location updated successfully"
-                    },
-                    "400": {
-                        "description": "Invalid user ID format or request",
-                        "schema": {
-                            "$ref": "#/definitions/utils.HTTPError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.HTTPError"
-                        }
-                    }
-                }
-            }
-        },
         "/users/{id}/notifications": {
             "get": {
                 "description": "Send a notification to users sent in body",
@@ -902,7 +1066,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Users notified successfully",
                         "schema": {
-                            "$ref": "#/definitions/models.Notifications"
+                            "$ref": "#/definitions/models.NotificationTokens"
                         }
                     },
                     "500": {
@@ -912,11 +1076,9 @@ const docTemplate = `{
                         }
                     }
                 }
-            }
-        },
-        "/users/{id}/password": {
-            "put": {
-                "description": "Updates the password of a specific user",
+            },
+            "post": {
+                "description": "Set a notification token to users in order to be able to send push notifications",
                 "consumes": [
                     "application/json"
                 ],
@@ -926,34 +1088,28 @@ const docTemplate = `{
                 "tags": [
                     "Users"
                 ],
-                "summary": "Modify user password",
+                "summary": "Set a notification token to users",
                 "parameters": [
+                    {
+                        "description": "NotificationSetUpRequest payload",
+                        "name": "NotificationToken",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.NotificationSetUpRequest"
+                        }
+                    },
                     {
                         "type": "integer",
                         "description": "User ID",
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "User with updated password",
-                        "name": "password",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.PasswordModifyRequest"
-                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Pasword updated successfully"
-                    },
-                    "400": {
-                        "description": "Invalid user ID format or request",
-                        "schema": {
-                            "$ref": "#/definitions/utils.HTTPError"
-                        }
+                        "description": "Token Setup successful"
                     },
                     "500": {
                         "description": "Internal server error",
@@ -966,6 +1122,26 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "models.AuditData": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "modificationDate": {
+                    "type": "string"
+                },
+                "natureOfModification": {
+                    "type": "string"
+                },
+                "ruleId": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.CreateUserRequest": {
             "type": "object",
             "required": [
@@ -1011,17 +1187,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.LocationModifyRequest": {
-            "type": "object",
-            "required": [
-                "location"
-            ],
-            "properties": {
-                "location": {
-                    "type": "string"
-                }
-            }
-        },
         "models.LoginRequest": {
             "type": "object",
             "required": [
@@ -1038,29 +1203,74 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Notification": {
+        "models.NotificationPreference": {
             "type": "object",
             "required": [
-                "notification_text"
+                "exam_notification",
+                "homework_notification",
+                "social_notification"
+            ],
+            "properties": {
+                "exam_notification": {
+                    "type": "boolean"
+                },
+                "homework_notification": {
+                    "type": "boolean"
+                },
+                "social_notification": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.NotificationPreferenceRequest": {
+            "type": "object",
+            "required": [
+                "notification_preference",
+                "notification_type"
+            ],
+            "properties": {
+                "notification_preference": {
+                    "type": "boolean"
+                },
+                "notification_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.NotificationSetUpRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.NotificationToken": {
+            "type": "object",
+            "required": [
+                "notification_token"
             ],
             "properties": {
                 "created_time": {
                     "type": "string"
                 },
-                "notification_text": {
+                "notification_token": {
                     "type": "string",
                     "maxLength": 225,
                     "minLength": 1
                 }
             }
         },
-        "models.Notifications": {
+        "models.NotificationTokens": {
             "type": "object",
             "properties": {
                 "notifications": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Notification"
+                        "$ref": "#/definitions/models.NotificationToken"
                     }
                 }
             }
@@ -1069,6 +1279,8 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "notification_text",
+                "notification_title",
+                "notification_type",
                 "users"
             ],
             "properties": {
@@ -1076,6 +1288,14 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 225,
                     "minLength": 1
+                },
+                "notification_title": {
+                    "type": "string",
+                    "maxLength": 225,
+                    "minLength": 1
+                },
+                "notification_type": {
+                    "type": "string"
                 },
                 "users": {
                     "type": "array",
@@ -1088,13 +1308,29 @@ const docTemplate = `{
         "models.PasswordModifyRequest": {
             "type": "object",
             "required": [
-                "password"
+                "password",
+                "token"
             ],
             "properties": {
                 "password": {
                     "type": "string",
                     "maxLength": 60,
                     "minLength": 8
+                },
+                "token": {
+                    "type": "string",
+                    "maxLength": 6
+                }
+            }
+        },
+        "models.PasswordResetRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
                 }
             }
         },
@@ -1125,11 +1361,6 @@ const docTemplate = `{
         },
         "models.RuleModify": {
             "type": "object",
-            "required": [
-                "ApplicationCondition",
-                "Description",
-                "Title"
-            ],
             "properties": {
                 "ApplicationCondition": {
                     "type": "string"
@@ -1181,6 +1412,26 @@ const docTemplate = `{
                 },
                 "verified": {
                     "type": "boolean"
+                }
+            }
+        },
+        "models.UserUpdateDto": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "profile_photo": {
+                    "type": "string"
+                },
+                "surname": {
+                    "type": "string"
                 }
             }
         },

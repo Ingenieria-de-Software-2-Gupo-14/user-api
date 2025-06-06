@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 
@@ -17,9 +19,15 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	ModifyUser(ctx context.Context, user *models.User) error
 	ModifyPassword(ctx context.Context, id int, password string) error
-	AddNotification(ctx context.Context, id int, text string) error
-	GetUserNotifications(ctx context.Context, id int) (models.Notifications, error)
+	AddNotificationToken(ctx context.Context, id int, text string) error
+	GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error)
 	SetVerifiedTrue(ctx context.Context, id int) error
+	AddPasswordResetToken(ctx context.Context, id int, email string, token string, tokenExpiration time.Time) error
+	GetPasswordResetTokenInfo(ctx context.Context, token string) (*models.PasswordResetData, error)
+	SetPasswordTokenUsed(ctx context.Context, token string) error
+	SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error
+	CheckPreference(ctx context.Context, id int, notificationType string) (bool, error)
+	GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error)
 }
 
 type userRepository struct {
@@ -167,37 +175,37 @@ func (db userRepository) ModifyPassword(ctx context.Context, id int, password st
 	return err
 }
 
-func (db userRepository) AddNotification(ctx context.Context, id int, text string) error {
+func (db userRepository) AddNotificationToken(ctx context.Context, id int, text string) error {
 	query := `
-		INSERT INTO notifications (user_id, notification_text)
+		INSERT INTO notifications (user_id, token)
 		VALUES ($1, $2)`
 	row := db.DB.QueryRowContext(ctx, query, id, text)
 	return row.Err()
 }
 
-func (db userRepository) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
+func (db userRepository) GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error) {
 	query := `
-			SELECT notification_text, created_time
+			SELECT token, created_time
 			FROM notifications
 			WHERE user_id = $1`
 	rows, err := db.DB.QueryContext(ctx, query, id)
 	if err != nil {
-		return models.Notifications{}, err
+		return models.NotificationTokens{}, err
 	}
 
-	var notifications models.Notifications
+	var notifications models.NotificationTokens
 
 	for rows.Next() {
-		var n models.Notification
-		err := rows.Scan(&n.NotificationText, &n.CreatedTime)
+		var n models.NotificationToken
+		err := rows.Scan(&n.NotificationToken, &n.CreatedTime)
 		if err != nil {
-			return models.Notifications{}, err
+			return models.NotificationTokens{}, err
 		}
-		notifications.Notifications = append(notifications.Notifications, n)
+		notifications.NotificationTokens = append(notifications.NotificationTokens, n)
 	}
 
 	if err := rows.Err(); err != nil {
-		return models.Notifications{}, err
+		return models.NotificationTokens{}, err
 	}
 	return notifications, nil
 }
@@ -205,6 +213,52 @@ func (db userRepository) GetUserNotifications(ctx context.Context, id int) (mode
 func (db userRepository) SetVerifiedTrue(ctx context.Context, id int) error {
 	_, err := db.DB.ExecContext(ctx, "UPDATE users SET verified = true where id = $1", id)
 	return err
+}
+
+func (db userRepository) AddPasswordResetToken(ctx context.Context, id int, email string, token string, tokenExpiration time.Time) error {
+	_, err := db.DB.ExecContext(ctx, "INSERT INTO password_reset (user_id, email, token, token_expiration) VALUES ($1, $2, $3, $4)", id, email, token, tokenExpiration)
+	return err
+}
+
+func (db userRepository) GetPasswordResetTokenInfo(ctx context.Context, token string) (*models.PasswordResetData, error) {
+	row := db.DB.QueryRowContext(ctx, "SELECT email, user_id, token_expiration, used FROM password_reset WHERE token = $1", token)
+	var data models.PasswordResetData
+	err := row.Scan(&data.Email, &data.UserId, &data.Exp, &data.Used)
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+func (db userRepository) SetPasswordTokenUsed(ctx context.Context, token string) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE password_reset SET used = true where token = $1", token)
+	return err
+}
+
+func (db userRepository) SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error {
+	query := fmt.Sprintf("UPDATE users SET %s = $2 WHERE id = $1", preference.NotificationType)
+	_, err := db.DB.ExecContext(ctx, query, id, preference.NotificationPreference)
+	return err
+}
+
+func (db userRepository) CheckPreference(ctx context.Context, id int, notificationType string) (bool, error) {
+	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", notificationType)
+	row := db.DB.QueryRowContext(ctx, query, id)
+	var preference bool
+	if err := row.Scan(&preference); err != nil {
+		return false, err
+	}
+	return preference, nil
+}
+
+func (db userRepository) GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error) {
+	row := db.DB.QueryRowContext(ctx, "SELECT exam_notification, homework_notification, social_notification FROM users WHERE id = $1", id)
+	var preferences models.NotificationPreference
+	err := row.Scan(&preferences.ExamNotification, &preferences.HomeworkNotification, &preferences.SocialNotification)
+	if err != nil {
+		return nil, err
+	}
+	return &preferences, nil
 }
 
 //id, username, name, surname,  password,email, location, admin, blocked_user, profile_photo,description

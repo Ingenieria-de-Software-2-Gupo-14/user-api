@@ -1,4 +1,17 @@
 definitions:
+  models.AuditData:
+    properties:
+      id:
+        type: integer
+      modificationDate:
+        type: string
+      natureOfModification:
+        type: string
+      ruleId:
+        type: integer
+      userId:
+        type: integer
+    type: object
   models.CreateUserRequest:
     properties:
       email:
@@ -32,13 +45,6 @@ definitions:
       pin:
         type: string
     type: object
-  models.LocationModifyRequest:
-    properties:
-      location:
-        type: string
-    required:
-    - location
-    type: object
   models.LoginRequest:
     properties:
       email:
@@ -50,22 +56,52 @@ definitions:
     - email
     - password
     type: object
-  models.Notification:
+  models.NotificationPreference:
+    properties:
+      exam_notification:
+        type: boolean
+      homework_notification:
+        type: boolean
+      social_notification:
+        type: boolean
+    required:
+    - exam_notification
+    - homework_notification
+    - social_notification
+    type: object
+  models.NotificationPreferenceRequest:
+    properties:
+      notification_preference:
+        type: boolean
+      notification_type:
+        type: string
+    required:
+    - notification_preference
+    - notification_type
+    type: object
+  models.NotificationSetUpRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  models.NotificationToken:
     properties:
       created_time:
         type: string
-      notification_text:
+      notification_token:
         maxLength: 225
         minLength: 1
         type: string
     required:
-    - notification_text
+    - notification_token
     type: object
-  models.Notifications:
+  models.NotificationTokens:
     properties:
       notifications:
         items:
-          $ref: '#/definitions/models.Notification'
+          $ref: '#/definitions/models.NotificationToken'
         type: array
     type: object
   models.NotifyRequest:
@@ -74,12 +110,20 @@ definitions:
         maxLength: 225
         minLength: 1
         type: string
+      notification_title:
+        maxLength: 225
+        minLength: 1
+        type: string
+      notification_type:
+        type: string
       users:
         items:
           type: integer
         type: array
     required:
     - notification_text
+    - notification_title
+    - notification_type
     - users
     type: object
   models.PasswordModifyRequest:
@@ -88,8 +132,19 @@ definitions:
         maxLength: 60
         minLength: 8
         type: string
+      token:
+        maxLength: 6
+        type: string
     required:
     - password
+    - token
+    type: object
+  models.PasswordResetRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
     type: object
   models.Rule:
     properties:
@@ -116,10 +171,6 @@ definitions:
         type: string
       Title:
         type: string
-    required:
-    - ApplicationCondition
-    - Description
-    - Title
     type: object
   models.User:
     properties:
@@ -148,6 +199,19 @@ definitions:
         type: string
       verified:
         type: boolean
+    type: object
+  models.UserUpdateDto:
+    properties:
+      description:
+        type: string
+      location:
+        type: string
+      name:
+        type: string
+      profile_photo:
+        type: string
+      surname:
+        type: string
     type: object
   utils.HTTPError:
     properties:
@@ -435,7 +499,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: List of users
+          description: List of rules
           schema:
             additionalProperties:
               items:
@@ -502,7 +566,7 @@ paths:
             $ref: '#/definitions/utils.HTTPError'
       summary: Delete user by ID
       tags:
-      - Users
+      - Rules
     put:
       consumes:
       - application/json
@@ -533,6 +597,29 @@ paths:
       summary: Modify rule password
       tags:
       - Rules
+  /rules/audit:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of all audits in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of audits
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.AuditData'
+              type: array
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Get all audits
+      tags:
+      - Rules
   /users:
     get:
       consumes:
@@ -554,6 +641,69 @@ paths:
           schema:
             $ref: '#/definitions/utils.HTTPError'
       summary: Get all users
+      tags:
+      - Users
+  /users/:id/notifications/preference:
+    get:
+      consumes:
+      - application/json
+      description: Modify the preference of a notification type between exam_notification
+        homework_notification or social_notification
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: preferences
+          schema:
+            $ref: '#/definitions/models.NotificationPreference'
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Modify the preference of a notification type
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Modify the preference of a notification type between exam_notification
+        homework_notification or social_notification
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: NotificationPreferenceRequest payload
+        in: body
+        name: NotificationPreferenceRequest
+        required: true
+        schema:
+          $ref: '#/definitions/models.NotificationPreferenceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: preference changed successfully
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Modify the preference of a notification type
       tags:
       - Users
   /users/{id}:
@@ -628,7 +778,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.UserUpdateDto'
       produces:
       - application/json
       responses:
@@ -636,7 +786,7 @@ paths:
           description: Updated user data
           schema:
             additionalProperties:
-              $ref: '#/definitions/models.User'
+              $ref: '#/definitions/models.UserUpdateDto'
             type: object
         "400":
           description: Invalid user ID format or request format
@@ -647,39 +797,6 @@ paths:
           schema:
             $ref: '#/definitions/utils.HTTPError'
       summary: Modify user
-      tags:
-      - Users
-  /users/{id}/location:
-    put:
-      consumes:
-      - application/json
-      description: Updates the location of a specific user
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: User with updated location
-        in: body
-        name: location
-        required: true
-        schema:
-          $ref: '#/definitions/models.LocationModifyRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Location updated successfully
-        "400":
-          description: Invalid user ID format or request
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-      summary: Modify user location
       tags:
       - Users
   /users/{id}/notifications:
@@ -699,7 +816,7 @@ paths:
         "200":
           description: Users notified successfully
           schema:
-            $ref: '#/definitions/models.Notifications'
+            $ref: '#/definitions/models.NotificationTokens'
         "500":
           description: Internal server error
           schema:
@@ -707,37 +824,33 @@ paths:
       summary: Send a notification to users
       tags:
       - Users
-  /users/{id}/password:
-    put:
+    post:
       consumes:
       - application/json
-      description: Updates the password of a specific user
+      description: Set a notification token to users in order to be able to send push
+        notifications
       parameters:
+      - description: NotificationSetUpRequest payload
+        in: body
+        name: NotificationToken
+        required: true
+        schema:
+          $ref: '#/definitions/models.NotificationSetUpRequest'
       - description: User ID
         in: path
         name: id
         required: true
         type: integer
-      - description: User with updated password
-        in: body
-        name: password
-        required: true
-        schema:
-          $ref: '#/definitions/models.PasswordModifyRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: Pasword updated successfully
-        "400":
-          description: Invalid user ID format or request
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
+          description: Token Setup successful
         "500":
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
-      summary: Modify user password
+      summary: Set a notification token to users
       tags:
       - Users
   /users/block/{id}:
@@ -775,9 +888,9 @@ paths:
       - application/json
       description: Send a notification to users sent in body
       parameters:
-      - description: Notification payload
+      - description: NotificationToken payload
         in: body
-        name: Notification
+        name: NotificationToken
         required: true
         schema:
           $ref: '#/definitions/models.NotifyRequest'
@@ -795,6 +908,64 @@ paths:
           schema:
             $ref: '#/definitions/utils.HTTPError'
       summary: Send a notification to users
+      tags:
+      - Users
+  /users/password:
+    put:
+      consumes:
+      - application/json
+      description: Updates the password of a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User with updated password
+        in: body
+        name: password
+        required: true
+        schema:
+          $ref: '#/definitions/models.PasswordModifyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pasword updated successfully
+        "400":
+          description: Invalid user ID format or request
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Modify user password
+      tags:
+      - Users
+  /users/reset/password:
+    post:
+      consumes:
+      - application/json
+      description: Start the process to reset password, sends and email with a link
+        to make a new password
+      parameters:
+      - description: PasswordResetRequest payload
+        in: body
+        name: PasswordResetRequest
+        required: true
+        schema:
+          $ref: '#/definitions/models.PasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Link sent successfully
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Start the process to reset password
       tags:
       - Users
 securityDefinitions:

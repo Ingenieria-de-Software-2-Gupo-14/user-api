@@ -1,7 +1,20 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"github.com/sethvargo/go-password/password"
+	"golang.org/x/oauth2/google"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
@@ -19,9 +32,17 @@ type UserService interface {
 	BlockUser(ctx context.Context, id int, reason string, blockerId *int, blockedUntil *time.Time) error
 	IsUserBlocked(ctx context.Context, id int) (bool, error)
 	ModifyPassword(ctx context.Context, id int, password string) error
-	AddNotification(ctx context.Context, id int, text string) error
-	GetUserNotifications(ctx context.Context, id int) (models.Notifications, error)
+	AddNotificationToken(ctx context.Context, id int, text string) error
+	GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error)
+	SendNotifByMobile(cont context.Context, userId int, notification models.NotifyRequest) error
+	SendNotifByEmail(cont context.Context, userId int, request models.NotifyRequest) error
 	VerifyUser(ctx context.Context, id int) error
+	StartPasswordReset(ctx context.Context, id int, email string) error
+	ValidatePasswordResetToken(ctx context.Context, token string) (*models.PasswordResetData, error)
+	SetPasswordTokenUsed(ctx context.Context, token string) error
+	SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error
+	CheckPreference(ctx context.Context, id int, notificationType string) (bool, error)
+	GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error)
 }
 
 type userService struct {
@@ -114,13 +135,203 @@ func (s *userService) ModifyPassword(ctx context.Context, id int, password strin
 	return s.userRepo.ModifyPassword(ctx, id, hashPassword)
 }
 
-func (s *userService) AddNotification(ctx context.Context, id int, text string) error {
-	return s.userRepo.AddNotification(ctx, id, text)
+func (s *userService) AddNotificationToken(ctx context.Context, id int, text string) error {
+	return s.userRepo.AddNotificationToken(ctx, id, text)
 }
-func (s *userService) GetUserNotifications(ctx context.Context, id int) (models.Notifications, error) {
-	return s.userRepo.GetUserNotifications(ctx, id)
+func (s *userService) GetUserNotificationsToken(ctx context.Context, id int) (models.NotificationTokens, error) {
+	return s.userRepo.GetUserNotificationsToken(ctx, id)
 }
 
 func (s *userService) VerifyUser(ctx context.Context, id int) error {
 	return s.userRepo.SetVerifiedTrue(ctx, id)
+}
+
+func (s *userService) SendNotifByMobile(cont context.Context, userId int, notification models.NotifyRequest) error {
+	tokens, _ := s.GetUserNotificationsToken(cont, userId)
+	for _, token := range tokens.NotificationTokens {
+		err := sendNotifToDevice(token.NotificationToken, notification)
+		if err != nil {
+			println(err.Error())
+		}
+	}
+	return nil
+}
+
+func sendNotifToDevice(userToken string, notification models.NotifyRequest) error {
+	if strings.Contains(userToken, "ExponentPushToken[") {
+		return sendNotifExpo(userToken, notification)
+	}
+	svcJSON := os.Getenv("FIREBASE_SERVICE_ACCOUNT")
+	if svcJSON == "" {
+		return fmt.Errorf("FIREBASE_SERVICE_ACCOUNT not set")
+	}
+	creds := []byte(svcJSON)
+
+	conf, err := google.JWTConfigFromJSON(creds, "https://www.googleapis.com/auth/firebase.messaging")
+	if err != nil {
+		return fmt.Errorf("invalid service account JSON: %v", err)
+	}
+
+	client := conf.Client(context.Background())
+
+	url := fmt.Sprintf("https://fcm.googleapis.com/v1/projects/%s/messages:send", os.Getenv("FCM_PROJECT_ID"))
+	payload := map[string]interface{}{
+		"message": map[string]interface{}{
+			"token": userToken,
+			"notification": map[string]string{
+				"title": notification.NotificationTitle,
+				"body":  notification.NotificationText,
+			},
+		},
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("error marshalling payload: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("error creating HTTP request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error sending FCM request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("non-200 response from FCM: %v", resp.Status)
+	}
+	return nil
+}
+
+func sendNotifExpo(userToken string, notification models.NotifyRequest) error {
+	log.Printf("%s", userToken)
+	type ExpoPushMessage struct {
+		To    string `json:"to"`
+		Title string `json:"title,omitempty"`
+		Body  string `json:"body,omitempty"`
+		Sound string `json:"sound,omitempty"`
+	}
+	message := ExpoPushMessage{
+		To:    userToken,
+		Title: notification.NotificationTitle,
+		Body:  notification.NotificationText,
+		Sound: "default", // optional
+	}
+
+	payload, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", "https://exp.host/--/api/v2/push/send", bytes.NewBuffer(payload))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("non-200 response from Expo: %v\nBody: %s", resp.StatusCode, string(bodyBytes))
+	}
+	log.Printf("mando por expo sin problemas")
+	bodyBytes, err := io.ReadAll(resp.Body)
+	fmt.Printf("Response body: %s", string(bodyBytes))
+	return nil
+}
+
+func (s *userService) SendNotifByEmail(cont context.Context, userId int, request models.NotifyRequest) error {
+	user, err := s.userRepo.GetUser(cont, userId)
+	if err != nil {
+		return err
+	}
+	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
+	subject := request.NotificationTitle
+	to := mail.NewEmail("User", user.Email)
+	content := mail.NewContent("text/plain", request.NotificationText)
+	message := mail.NewV3MailInit(from, subject, to, content)
+
+	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
+	_, err2 := client.Send(message)
+	return err2
+}
+
+func (s *userService) StartPasswordReset(ctx context.Context, id int, email string) error {
+	token, err := password.Generate(6, 2, 0, false, true)
+	if err != nil {
+		return err
+	}
+	err = s.userRepo.AddPasswordResetToken(ctx, id, email, token, time.Now().Add(5*time.Minute))
+	if err != nil {
+		return err
+	}
+	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
+	subject := "Password Reset"
+	to := mail.NewEmail("User", email)
+	resetLink := "https://user-api-production-99c2.up.railway.app/users/reset/password?token=" + token
+	plainTextContent := resetLink
+	htmlContent := fmt.Sprintf(`
+	<html>
+		<body>
+			<p>Hello,</p>
+			<p>Click the link below to reset your password:</p>
+			<p><a href="%s">Reset password</a></p>
+		</body>
+	</html>`, resetLink)
+
+	message := mail.NewV3Mail()
+	message.SetFrom(from)
+	message.Subject = subject
+
+	p := mail.NewPersonalization()
+	p.AddTos(to)
+	message.AddPersonalizations(p)
+
+	message.AddContent(mail.NewContent("text/plain", plainTextContent))
+	message.AddContent(mail.NewContent("text/html", htmlContent))
+
+	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
+	_, err2 := client.Send(message)
+	return err2
+}
+
+func (s *userService) ValidatePasswordResetToken(ctx context.Context, token string) (*models.PasswordResetData, error) {
+	info, err := s.userRepo.GetPasswordResetTokenInfo(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+	if info.Exp.Before(time.Now()) {
+		return nil, errors.New("Token Expired")
+	}
+	return info, nil
+}
+
+func (s *userService) SetPasswordTokenUsed(ctx context.Context, token string) error {
+	return s.userRepo.SetPasswordTokenUsed(ctx, token)
+}
+
+func (s *userService) SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error {
+	return s.userRepo.SetNotificationPreference(ctx, id, preference)
+}
+
+func (s *userService) CheckPreference(ctx context.Context, id int, notificationType string) (bool, error) {
+	return s.userRepo.CheckPreference(ctx, id, notificationType)
+}
+
+func (s *userService) GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error) {
+	return s.userRepo.GetNotificationPreference(ctx, id)
 }

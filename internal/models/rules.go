@@ -26,3 +26,11 @@ type Audit struct {
 	ModificationDate     time.Time
 	NatureOfModification string
 }
+
+type AuditData struct {
+	Id                   int
+	RuleId               int
+	UserId               int
+	ModificationDate     time.Time
+	NatureOfModification string
+}
