@@ -248,6 +248,8 @@ func sendNotifExpo(userToken string, notification models.NotifyRequest) error {
 		return fmt.Errorf("non-200 response from Expo: %v\nBody: %s", resp.StatusCode, string(bodyBytes))
 	}
 	log.Printf("mando por expo sin problemas")
+	bodyBytes, err := io.ReadAll(resp.Body)
+	log.Printf("Response body: %s", string(bodyBytes))
 	return nil
 }
 
