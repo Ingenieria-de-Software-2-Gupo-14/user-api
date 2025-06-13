@@ -40,7 +40,11 @@ func (c ChatController) SendMessage(ctx *gin.Context) {
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 	}
-	ctx.JSON(http.StatusOK, nil)
+	aiMessage, err := c.chatService.SendToAi(ctx.Request.Context(), userId, message)
+	if err != nil {
+		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+	}
+	ctx.JSON(http.StatusOK, gin.H{"data": aiMessage})
 }
 
 func (c ChatController) GetMessages(ctx *gin.Context) {

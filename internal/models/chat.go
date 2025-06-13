@@ -15,8 +15,25 @@ type ChatFeedbackRequest struct {
 type ChatMessage struct {
 	MessageId int    `json:"message_id"`
 	UserId    int    `json:"user_id"`
+	Message   string `json:"message"`
 	Sender    string `json:"sender"`
 	TimeSent  string `json:"time_sent"`
 	Rating    int    `json:"rating"`
 	Feedback  string `json:"feedback"`
+}
+
+type OpenAIRequest struct {
+	Model    string    `json:"model"`
+	Messages []Message `json:"messages"`
+}
+
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type OpenAIResponse struct {
+	Choices []struct {
+		Message Message `json:"message"`
+	} `json:"choices"`
 }
