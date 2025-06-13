@@ -282,14 +282,14 @@ func (s *userService) StartPasswordReset(ctx context.Context, id int, email stri
 	from := mail.NewEmail("ClassConnect service", "bmorseletto@fi.uba.ar")
 	subject := "Password Reset"
 	to := mail.NewEmail("User", email)
-	resetLink := "https://user-api-production-99c2.up.railway.app/users/reset/password?token=" + token
+	resetLink := token
 	plainTextContent := resetLink
 	htmlContent := fmt.Sprintf(`
 	<html>
 		<body>
 			<p>Hello,</p>
-			<p>Click the link below to reset your password:</p>
-			<p><a href="%s">Reset password</a></p>
+			<p>Your Reset token is:</p>
+			<p>%s</p>
 		</body>
 	</html>`, resetLink)
 
