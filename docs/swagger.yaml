@@ -12,6 +12,46 @@ definitions:
       userId:
         type: integer
     type: object
+  models.ChatFeedbackRequest:
+    properties:
+      feedback:
+        type: string
+    required:
+    - feedback
+    type: object
+  models.ChatMessage:
+    properties:
+      feedback:
+        type: string
+      message:
+        type: string
+      message_id:
+        type: integer
+      rating:
+        type: integer
+      sender:
+        type: string
+      time_sent:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.ChatMessageRequest:
+    properties:
+      message:
+        type: string
+    required:
+    - message
+    type: object
+  models.ChatRatingRequest:
+    properties:
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+    required:
+    - rating
+    type: object
   models.CreateUserRequest:
     properties:
       email:
@@ -490,6 +530,116 @@ paths:
       summary: Sends a new Verification
       tags:
       - Auth
+  /chat:
+    get:
+      consumes:
+      - application/json
+      description: Gets The messages of the last 2 days
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: messages
+          schema:
+            items:
+              $ref: '#/definitions/models.ChatMessage'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Get recent messages
+      tags:
+      - Chat
+    post:
+      consumes:
+      - application/json
+      description: Send a new message to the assitant
+      parameters:
+      - description: User Registration Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChatMessageRequest'
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Ai assitant response
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Invalid request format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Send a new message to the assitant
+      tags:
+      - Chat
+  /chat/{message_id}/feedback:
+    put:
+      consumes:
+      - application/json
+      description: Add feedback to a message so the ai can better generate a response
+      parameters:
+      - description: Rating
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChatFeedbackRequest'
+      - description: Message Id
+        in: path
+        name: message_id
+        required: true
+        type: integer
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Add feedback to a message
+      tags:
+      - Chat
+  /chat/{message_id}/rate:
+    put:
+      consumes:
+      - application/json
+      description: Add rating to a message beteween 1 and 5
+      parameters:
+      - description: Rating
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChatRatingRequest'
+      - description: Message Id
+        in: path
+        name: message_id
+        required: true
+        type: integer
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Add rating to a message
+      tags:
+      - Chat
   /rules:
     get:
       consumes:

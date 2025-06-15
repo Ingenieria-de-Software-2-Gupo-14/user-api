@@ -19,6 +19,17 @@ func NewChatsController(chatService services.ChatService) *ChatController {
 	}
 }
 
+// SendMessage
+// @Summary      Send a new message to the assitant
+// @Description  Send a new message to the assitant
+// @Tags         Chat
+// @Accept       json
+// @Produce      plain
+// @Param        request body models.ChatMessageRequest true "User Registration Details"
+// @Success      200  {object}  map[models.ChatMessage]int  "Ai assitant response"
+// @Failure      400  {object}  utils.HTTPError "Invalid request format"
+// @Failure      500  {object}  utils.HTTPError "Internal server error"
+// @Router       /chat [post]
 func (c ChatController) SendMessage(ctx *gin.Context) {
 	tokenStr := GetAuthToken(ctx)
 	claims, err := models.ParseToken(tokenStr)
@@ -47,6 +58,15 @@ func (c ChatController) SendMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"data": aiMessage})
 }
 
+// GetMessages
+// @Summary      Get recent messages
+// @Description  Gets The messages of the last 2 days
+// @Tags         Chat
+// @Accept       json
+// @Produce      plain
+// @Success      200  {object}  []models.ChatMessage  "messages"
+// @Failure      500  {object}  utils.HTTPError "Internal server error"
+// @Router       /chat [get]
 func (c ChatController) GetMessages(ctx *gin.Context) {
 	tokenStr := GetAuthToken(ctx)
 	claims, err := models.ParseToken(tokenStr)
@@ -66,6 +86,17 @@ func (c ChatController) GetMessages(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, messages)
 }
 
+// RateMessage
+// @Summary      Add rating to a message
+// @Description  Add rating to a message beteween 1 and 5
+// @Tags         Chat
+// @Accept       json
+// @Produce      plain
+// @Param        request body models.ChatRatingRequest true "Rating"
+// @Param        message_id   path      int  true  "Message Id"
+// @Success      200  {object}  nil
+// @Failure      500  {object}  utils.HTTPError "Internal server error"
+// @Router       /chat/{message_id}/rate [put]
 func (c ChatController) RateMessage(ctx *gin.Context) {
 	tokenStr := GetAuthToken(ctx)
 	claims, err := models.ParseToken(tokenStr)
@@ -95,6 +126,17 @@ func (c ChatController) RateMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, nil)
 }
 
+// FeedbackMessage
+// @Summary      Add feedback to a message
+// @Description  Add feedback to a message so the ai can better generate a response
+// @Tags         Chat
+// @Accept       json
+// @Produce      plain
+// @Param        request body models.ChatFeedbackRequest true "Rating"
+// @Param        message_id   path      int  true  "Message Id"
+// @Success      200  {object}  nil
+// @Failure      500  {object}  utils.HTTPError "Internal server error"
+// @Router       /chat/{message_id}/feedback [put]
 func (c ChatController) FeedbackMessage(ctx *gin.Context) {
 	tokenStr := GetAuthToken(ctx)
 	claims, err := models.ParseToken(tokenStr)
