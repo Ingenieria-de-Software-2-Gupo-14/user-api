@@ -2,10 +2,10 @@ package router
 
 import (
 	"fmt"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	"net/http"
 	"strings"
 
-	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/middleware"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
@@ -86,6 +86,12 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.GET("/rules", deps.Controllers.UserController.GetRules)
 	r.PUT("/rules/:id", deps.Controllers.UserController.ModifyRule)
 	r.GET("/rules/audit", deps.Controllers.UserController.GetAudits)
+
+	//Ai Chat routes
+	r.POST("/chat", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.ChatController.SendMessage)
+	r.GET("/chat", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.ChatController.GetMessages)
+	r.PUT("/chat/:message_id/rate", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.ChatController.RateMessage)
+	r.PUT("/chat/:message_id/feedback", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.ChatController.FeedbackMessage)
 	return r, nil
 }
 
