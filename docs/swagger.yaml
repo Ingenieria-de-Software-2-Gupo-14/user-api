@@ -568,9 +568,7 @@ paths:
         "200":
           description: Ai assitant response
           schema:
-            additionalProperties:
-              type: integer
-            type: object
+            $ref: '#/definitions/models.ChatMessage'
         "400":
           description: Invalid request format
           schema:

@@ -26,7 +26,7 @@ func NewChatsController(chatService services.ChatService) *ChatController {
 // @Accept       json
 // @Produce      plain
 // @Param        request body models.ChatMessageRequest true "User Registration Details"
-// @Success      200  {object}  map[models.ChatMessage]int  "Ai assitant response"
+// @Success      200  {object}  models.ChatMessage  "Ai assitant response"
 // @Failure      400  {object}  utils.HTTPError "Invalid request format"
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /chat [post]
@@ -55,7 +55,7 @@ func (c ChatController) SendMessage(ctx *gin.Context) {
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 	}
-	ctx.JSON(http.StatusOK, gin.H{"data": aiMessage})
+	ctx.JSON(http.StatusOK, aiMessage)
 }
 
 // GetMessages

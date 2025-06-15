@@ -460,10 +460,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Ai assitant response",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "integer"
-                            }
+                            "$ref": "#/definitions/models.ChatMessage"
                         }
                     },
                     "400": {
