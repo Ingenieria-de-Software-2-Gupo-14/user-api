@@ -335,7 +335,7 @@ func (c UserController) PasswordReset(ctx *gin.Context) {
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /rules [post]
 func (c UserController) AddRule(ctx *gin.Context) {
-	tokenStr := getAuthToken(ctx)
+	tokenStr := GetAuthToken(ctx)
 	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
@@ -376,7 +376,7 @@ func (c UserController) DeleteRule(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	tokenStr := getAuthToken(ctx)
+	tokenStr := GetAuthToken(ctx)
 	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
@@ -448,7 +448,7 @@ func (c UserController) ModifyRule(ctx *gin.Context) {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	tokenStr := getAuthToken(ctx)
+	tokenStr := GetAuthToken(ctx)
 	claims, err := models.ParseToken(tokenStr)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
@@ -556,7 +556,7 @@ func (c UserController) PasswordResetRedirect(ctx *gin.Context) {
 	ctx.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
 }
 
-func getAuthToken(c *gin.Context) string {
+func GetAuthToken(c *gin.Context) string {
 	auth, _ := c.Cookie("Authorization")
 	if auth == "" {
 		if parts := strings.Fields(c.GetHeader("Authorization")); len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {

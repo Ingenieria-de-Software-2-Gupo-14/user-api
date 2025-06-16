@@ -23,6 +23,7 @@ type Dependencies struct {
 type Controllers struct {
 	AuthController *controller.AuthController
 	UserController *controller.UserController
+	ChatController *controller.ChatController
 }
 
 type Services struct {
@@ -52,15 +53,18 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	blockRepo := repositories.NewBlockedUserRepository(db)
 	verificationRepo := repositories.CreateVerificationRepo(db)
 	rulesRepo := repositories.CreateRulesRepo(db)
+	chatRepo := repositories.CreateChatsRepo(db)
 	// Services
 	userService := services.NewUserService(userRepo, blockRepo)
 	loginService := services.NewLoginAttemptService(loginRepo, blockRepo)
 	verificationService := services.NewVerificationService(verificationRepo, sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY")))
 	rulesService := services.NewRulesService(rulesRepo)
+	chatService := services.NewChatsService(chatRepo)
 
 	// Controllers
 	authController := controller.NewAuthController(userService, loginService, verificationService)
 	userController := controller.CreateController(userService, rulesService)
+	chatController := controller.NewChatsController(chatService)
 
 	// Clients
 	telemetryClient, err := cfg.CreateDatadogClient()
@@ -73,6 +77,7 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 		Controllers: Controllers{
 			AuthController: authController,
 			UserController: userController,
+			ChatController: chatController,
 		},
 		Services: Services{
 			UserService:  userService,
