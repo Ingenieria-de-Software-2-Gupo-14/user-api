@@ -6,7 +6,6 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
@@ -23,7 +22,7 @@ func TestCreateVerificationRepo(t *testing.T) {
 
 func TestVerificationRepository_AddPendingVerification(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
 	repo := CreateVerificationRepo(db)
@@ -47,15 +46,15 @@ func TestVerificationRepository_AddPendingVerification(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(expectedID))
 
 	id, err := repo.AddPendingVerification(ctx, verification)
-	require.NoError(t, err)
-	require.Equal(t, expectedID, id)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedID, id)
 
-	require.NoError(t, mock.ExpectationsWereMet())
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestVerificationRepository_DeleteByUserId(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
 	repo := CreateVerificationRepo(db)
@@ -68,14 +67,14 @@ func TestVerificationRepository_DeleteByUserId(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1)) // simulate 1 row deleted
 
 	err = repo.DeleteByUserId(ctx, userId)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
-	require.NoError(t, mock.ExpectationsWereMet())
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestVerificationRepository_GetVerificationByEmail(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
 	repo := CreateVerificationRepo(db)
@@ -107,14 +106,14 @@ func TestVerificationRepository_GetVerificationByEmail(t *testing.T) {
 		))
 
 	result, err := repo.GetVerificationByEmail(ctx, email)
-	require.NoError(t, err)
-	require.Equal(t, expected, result)
-	require.NoError(t, mock.ExpectationsWereMet())
+	assert.NoError(t, err)
+	assert.Equal(t, expected, result)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestVerificationRepository_GetVerificationByEmail_NotFound(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
 	repo := CreateVerificationRepo(db)
@@ -127,15 +126,15 @@ func TestVerificationRepository_GetVerificationByEmail_NotFound(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 
 	result, err := repo.GetVerificationByEmail(ctx, email)
-	require.Nil(t, result)
-	require.ErrorIs(t, err, ErrNotFound)
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, ErrNotFound)
 
-	require.NoError(t, mock.ExpectationsWereMet())
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestVerificationRepository_GetVerificationById(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
 	repo := CreateVerificationRepo(db)
@@ -164,15 +163,15 @@ func TestVerificationRepository_GetVerificationById(t *testing.T) {
 		))
 
 	result, err := repo.GetVerificationById(ctx, expected.Id)
-	require.NoError(t, err)
-	require.Equal(t, expected, result)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, result)
 
-	require.NoError(t, mock.ExpectationsWereMet())
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestVerificationRepository_GetVerificationById_NotFounf(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
 	repo := CreateVerificationRepo(db)
@@ -185,15 +184,15 @@ func TestVerificationRepository_GetVerificationById_NotFounf(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 
 	result, err := repo.GetVerificationById(ctx, id)
-	require.Nil(t, result)
-	require.ErrorIs(t, err, ErrNotFound)
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, ErrNotFound)
 
-	require.NoError(t, mock.ExpectationsWereMet())
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestVerificationRepository_UpdatePin(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
 	repo := CreateVerificationRepo(db)
@@ -206,13 +205,13 @@ func TestVerificationRepository_UpdatePin(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1)) // 1 row affected
 
 	err = repo.UpdatePin(ctx, id, pin)
-	require.NoError(t, err)
-	require.NoError(t, mock.ExpectationsWereMet())
+	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestVerificationRepository_UpdatePin_NoRowAffected(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 
 	repo := CreateVerificationRepo(db)
@@ -225,6 +224,6 @@ func TestVerificationRepository_UpdatePin_NoRowAffected(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows affected
 
 	err = repo.UpdatePin(ctx, id, pin)
-	require.ErrorIs(t, err, ErrNotFound)
-	require.NoError(t, mock.ExpectationsWereMet())
+	assert.ErrorIs(t, err, ErrNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
