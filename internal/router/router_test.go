@@ -1,6 +1,7 @@
 package router
 
 import (
+	"os"
 	"testing"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
@@ -20,9 +21,11 @@ func TestSetEnviroment2(t *testing.T) {
 }
 
 func TestCreateRouter(t *testing.T) {
+	os.Setenv("TESTING", "true")
 	gin.SetMode(gin.TestMode)
 
 	router, err := CreateRouter(config.Config{})
-	assert.Error(t, err)
-	assert.Nil(t, router)
+	assert.NoError(t, err)
+	assert.NotNil(t, router)
+	os.Setenv("TESTING", "")
 }

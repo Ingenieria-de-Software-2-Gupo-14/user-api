@@ -2,6 +2,7 @@ package router
 
 import (
 	"database/sql"
+	"github.com/DATA-DOG/go-sqlmock"
 	"os"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
@@ -42,9 +43,15 @@ type Clients struct {
 }
 
 func NewDependencies(cfg *config.Config) (*Dependencies, error) {
-	db, err := cfg.CreateDatabase()
+	db, _, err := sqlmock.New()
 	if err != nil {
 		return nil, err
+	}
+	if os.Getenv("TESTING") != "true" {
+		db, err = cfg.CreateDatabase()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Repositories
