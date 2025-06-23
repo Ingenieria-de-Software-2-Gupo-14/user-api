@@ -3,6 +3,7 @@ package controller_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -19,14 +20,14 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupTest(t *testing.T) (*s.MockUserService, *gin.Context, *httptest.ResponseRecorder, *controller.UserController) {
+func setupTest(t *testing.T) (*s.MockUserService, *s.MockRulesService, *gin.Context, *httptest.ResponseRecorder, *controller.UserController) {
 	gin.SetMode(gin.TestMode)
 	mockService := s.NewMockUserService(t)
 	mockRulesService := s.NewMockRulesService(t)
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
 	userController := controller.CreateController(mockService, mockRulesService)
-	return mockService, c, recorder, userController
+	return mockService, mockRulesService, c, recorder, userController
 }
 
 func TestCreateController(t *testing.T) {
@@ -37,7 +38,7 @@ func TestCreateController(t *testing.T) {
 }
 
 func TestUsersGet_Success(t *testing.T) {
-	mockService, c, recorder, userController := setupTest(t)
+	mockService, _, c, recorder, userController := setupTest(t)
 
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/users", nil)
 
@@ -76,7 +77,7 @@ func TestUsersGet_Success(t *testing.T) {
 }
 
 func TestUserGetById_Success(t *testing.T) {
-	mockService, c, recorder, userController := setupTest(t)
+	mockService, _, c, recorder, userController := setupTest(t)
 
 	userId := 1
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/users/"+strconv.Itoa(userId), nil)
@@ -107,7 +108,7 @@ func TestUserGetById_Success(t *testing.T) {
 }
 
 func TestUserGetById_NotFound(t *testing.T) {
-	mockService, c, recorder, userController := setupTest(t)
+	mockService, _, c, recorder, userController := setupTest(t)
 
 	userId := 999
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/users/"+strconv.Itoa(userId), nil)
@@ -123,7 +124,7 @@ func TestUserGetById_NotFound(t *testing.T) {
 }
 
 func TestUserDeleteById_Success(t *testing.T) {
-	mockService, c, recorder, userController := setupTest(t)
+	mockService, _, c, recorder, userController := setupTest(t)
 
 	userId := 1
 	c.Request = httptest.NewRequest(http.MethodDelete, "/api/users/"+strconv.Itoa(userId), nil)
@@ -139,7 +140,7 @@ func TestUserDeleteById_Success(t *testing.T) {
 }
 
 func TestModifyUser_Success(t *testing.T) {
-	mockService, c, recorder, userController := setupTest(t)
+	mockService, _, c, recorder, userController := setupTest(t)
 
 	updatedUserDto := models.UserUpdateDto{
 		Name:     "Updated",
@@ -166,7 +167,7 @@ func TestModifyUser_Success(t *testing.T) {
 }
 
 func TestBlockUserById_Success(t *testing.T) {
-	mockService, c, recorder, userController := setupTest(t)
+	mockService, _, c, recorder, userController := setupTest(t)
 
 	userId := 1
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/users/"+strconv.Itoa(userId)+"/block", nil)
@@ -183,7 +184,7 @@ func TestBlockUserById_Success(t *testing.T) {
 }
 
 func TestUserController_ModifyPassword(t *testing.T) {
-	mockService, c, recorder, controller := setupTest(t)
+	mockService, _, c, recorder, controller := setupTest(t)
 
 	newPassword := "TEST_PASSWORD"
 
@@ -216,7 +217,7 @@ func TestUserController_ModifyPassword(t *testing.T) {
 }
 
 func TestUserController_ModifyPassword_WrongParam(t *testing.T) {
-	_, c, recorder, controller := setupTest(t)
+	_, _, c, recorder, controller := setupTest(t)
 
 	newPassword := "TEST_PASSWORD"
 
@@ -243,4 +244,438 @@ func TestUserController_ModifyPassword_WrongParam(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestUserController_NotifyUsers(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	users := []int{1}
+
+	notifyRequest := models.NotifyRequest{
+		Users:             users,
+		NotificationTitle: "title",
+		NotificationText:  "text",
+		NotificationType:  "exam_notification",
+	}
+
+	jsonBody, _ := json.Marshal(notifyRequest)
+	req, _ := http.NewRequest(http.MethodPost, "/users/notify", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	c.Request = req
+
+	mock.EXPECT().CheckPreference(c.Request.Context(), users[0], notifyRequest.NotificationType).Return(true, nil)
+	mock.EXPECT().SendNotifByMobile(c.Request.Context(), users[0], notifyRequest).Return(nil)
+	mock.EXPECT().SendNotifByEmail(c.Request.Context(), users[0], notifyRequest).Return(nil)
+
+	controller.NotifyUsers(c)
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestNotifyUsers_InvalidJSON(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodPost, "/users/notify", bytes.NewBufferString("invalid_json"))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	controller.NotifyUsers(c)
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "Invalid request format")
+}
+
+func TestNotifyUsers_CheckPreferenceFalse(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	notifyRequest := models.NotifyRequest{
+		Users:             []int{1},
+		NotificationTitle: "title",
+		NotificationText:  "text",
+		NotificationType:  "exam_notification",
+	}
+
+	jsonBody, _ := json.Marshal(notifyRequest)
+	req := httptest.NewRequest(http.MethodPost, "/users/notify", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	mock.EXPECT().CheckPreference(c.Request.Context(), 1, "exam_notification").Return(false, nil)
+
+	controller.NotifyUsers(c)
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestNotifyUsers_PreferenceFalse(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	notifyRequest := models.NotifyRequest{
+		Users:             []int{1},
+		NotificationTitle: "title",
+		NotificationText:  "text",
+		NotificationType:  "exam_notification",
+	}
+
+	jsonBody, _ := json.Marshal(notifyRequest)
+	req := httptest.NewRequest(http.MethodPost, "/users/notify", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	mock.EXPECT().CheckPreference(c.Request.Context(), 1, "exam_notification").Return(false, nil)
+
+	controller.NotifyUsers(c)
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestNotifyUsers_SendNotifByMobileError(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	notifyRequest := models.NotifyRequest{
+		Users:             []int{1},
+		NotificationTitle: "title",
+		NotificationText:  "text",
+		NotificationType:  "exam_notification",
+	}
+
+	jsonBody, _ := json.Marshal(notifyRequest)
+	req := httptest.NewRequest(http.MethodPost, "/users/notify", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	mock.EXPECT().CheckPreference(c.Request.Context(), 1, "exam_notification").Return(true, nil)
+	mock.EXPECT().SendNotifByMobile(c.Request.Context(), 1, notifyRequest).Return(errors.New("mobile error"))
+
+	controller.NotifyUsers(c)
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "mobile error")
+}
+
+func TestNotifyUsers_SendNotifByEmailError(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	notifyRequest := models.NotifyRequest{
+		Users:             []int{1},
+		NotificationTitle: "title",
+		NotificationText:  "text",
+		NotificationType:  "exam_notification",
+	}
+
+	jsonBody, _ := json.Marshal(notifyRequest)
+	req := httptest.NewRequest(http.MethodPost, "/users/notify", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	mock.EXPECT().CheckPreference(c.Request.Context(), 1, "exam_notification").Return(true, nil)
+	mock.EXPECT().SendNotifByMobile(c.Request.Context(), 1, notifyRequest).Return(nil)
+	mock.EXPECT().SendNotifByEmail(c.Request.Context(), 1, notifyRequest).Return(errors.New("email error"))
+
+	controller.NotifyUsers(c)
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "email error")
+}
+
+func TestUserController_SetUserNotifications(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	token := "notification token"
+
+	setupRequest := models.NotificationSetUpRequest{Token: token}
+
+	jsonBody, _ := json.Marshal(setupRequest)
+	req, _ := http.NewRequest(http.MethodPost, "/users/1/notifications", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mock.EXPECT().AddNotificationToken(c.Request.Context(), 1, token).Return(nil)
+
+	controller.SetUserNotifications(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestUserController_GetUserNotifications(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/users/1/notifications", nil)
+
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+	token := models.NotificationToken{NotificationToken: "notification token"}
+	tokens := models.NotificationTokens{NotificationTokens: []models.NotificationToken{token}}
+
+	mock.EXPECT().GetUserNotificationsToken(c.Request.Context(), 1).Return(tokens, nil)
+
+	controller.GetUserNotifications(c)
+
+	var response models.NotificationTokens
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, tokens, response)
+}
+
+func TestUserController_PasswordReset(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	email := "test@email.com"
+
+	passwordResetRequest := models.PasswordResetRequest{Email: email}
+	user := models.User{
+		Id:    1,
+		Email: email,
+	}
+
+	jsonBody, _ := json.Marshal(passwordResetRequest)
+	req, _ := http.NewRequest(http.MethodPost, "/users/reset/password", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	c.Request = req
+
+	mock.EXPECT().GetUserByEmail(c.Request.Context(), email).Return(&user, nil)
+	mock.EXPECT().StartPasswordReset(c.Request.Context(), user.Id, user.Email).Return(nil)
+
+	controller.PasswordReset(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestUserController_AddRule(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	userId := 1
+	email := "test@test.com"
+	name := "test"
+	role := "user"
+	token, err := models.GenerateToken(userId, email, name, role)
+	assert.NoError(t, err)
+
+	request := models.Rule{
+		Id:                   userId,
+		Title:                "title test",
+		Description:          "description test",
+		EffectiveDate:        time.Time{},
+		ApplicationCondition: "condition",
+	}
+
+	jsonBody, _ := json.Marshal(request)
+	req := httptest.NewRequest(http.MethodPost, "/rules", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{
+		Name:  "Authorization",
+		Value: token,
+	})
+	c.Request = req
+
+	mockRulesService.EXPECT().CreateRule(c, request, userId).Return(nil)
+
+	controller.AddRule(c)
+
+	assert.Equal(t, http.StatusCreated, recorder.Code)
+	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestUserController_DeleteRule(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	userId := 1
+	email := "test@test.com"
+	name := "test"
+	role := "user"
+	token, err := models.GenerateToken(userId, email, name, role)
+	assert.NoError(t, err)
+
+	ruleId := 1
+
+	req := httptest.NewRequest(http.MethodDelete, "/rules/1", nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{
+		Name:  "Authorization",
+		Value: token,
+	})
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mockRulesService.EXPECT().DeleteRule(c, ruleId, userId).Return(nil)
+
+	controller.DeleteRule(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestUserController_GetRules(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/rules", nil)
+
+	c.Request = req
+
+	rule := models.Rule{
+		Id:                   1,
+		Title:                "title",
+		Description:          "description",
+		EffectiveDate:        time.Time{},
+		ApplicationCondition: "condition",
+	}
+
+	mockRulesService.EXPECT().GetRules(c).Return([]models.Rule{rule}, nil)
+
+	controller.GetRules(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	expected := map[string]interface{}{
+		"data": []interface{}{
+			map[string]interface{}{
+				"id":                   float64(rule.Id),
+				"Title":                rule.Title,
+				"Description":          rule.Description,
+				"effectiveDate":        rule.EffectiveDate.Format(time.RFC3339Nano), // if formatted as string
+				"ApplicationCondition": rule.ApplicationCondition,
+			},
+		},
+	}
+	assert.Equal(t, expected, response)
+}
+
+func TestUserController_GetAudits(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/rules/audit", nil)
+
+	c.Request = req
+
+	audit := models.Audit{
+		Id:                   2,
+		RuleId:               sql.NullInt64{1, true},
+		UserId:               sql.NullInt64{1, true},
+		ModificationDate:     time.Time{},
+		NatureOfModification: "modification",
+	}
+
+	mockRulesService.EXPECT().GetAudits(c).Return([]models.Audit{audit}, nil)
+
+	controller.GetAudits(c)
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var response map[string][]models.Audit
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	expected := []models.Audit{audit}
+	assert.Equal(t, expected, response["data"])
+}
+
+func TestUserController_ModifyRule(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	userId := 1
+	email := "test@test.com"
+	name := "test"
+	role := "user"
+	token, err := models.GenerateToken(userId, email, name, role)
+	assert.NoError(t, err)
+
+	ruleId := 1
+
+	request := models.RuleModify{
+		Title:                "title",
+		Description:          "description",
+		ApplicationCondition: "condition",
+	}
+
+	jsonBody, _ := json.Marshal(request)
+	req := httptest.NewRequest(http.MethodPut, "/rules/1", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{
+		Name:  "Authorization",
+		Value: token,
+	})
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mockRulesService.EXPECT().ModifyRule(c.Request.Context(), ruleId, request, userId).Return(nil)
+
+	controller.ModifyRule(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestUserController_ModifyNotifPreference(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	userId := 1
+
+	request := models.NotificationPreferenceRequest{
+		NotificationType:       "exam_notification",
+		NotificationPreference: false,
+	}
+
+	jsonBody, _ := json.Marshal(request)
+	req, _ := http.NewRequest(http.MethodPut, "/users/1/notifications/preference", bytes.NewBuffer(jsonBody))
+
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mock.EXPECT().SetNotificationPreference(c.Request.Context(), userId, request).Return(nil)
+
+	controller.ModifyNotifPreference(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestUserController_GetNotifPreferences(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	userId := 1
+
+	req, _ := http.NewRequest(http.MethodGet, "/users/1/notifications/preference", nil)
+
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	responseExpected := models.NotificationPreference{
+		ExamNotification:     true,
+		HomeworkNotification: false,
+		SocialNotification:   true,
+	}
+
+	mock.EXPECT().GetNotificationPreference(c.Request.Context(), userId).Return(&responseExpected, nil)
+
+	controller.GetNotifPreferences(c)
+
+	response := models.NotificationPreference{}
+
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, responseExpected, response)
+}
+
+func TestUserController_PasswordResetRedirect(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/password-reset-redirect?token=abc123", nil)
+	c.Request = req
+
+	controller.PasswordResetRedirect(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "myapp://reset-password?token=abc123")
+	assert.Contains(t, recorder.Body.String(), "<html>")
 }
