@@ -6,6 +6,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
+	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -772,6 +775,50 @@ func TestUserController_GetUserNotifications(t *testing.T) {
 	assert.Equal(t, tokens, response)
 }
 
+func TestGetUserNotifications_WrongPathParam(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/abc/notifications", nil)
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
+
+	controller.GetUserNotifications(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
+func TestGetUserNotifications_UserNotFound(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/404/notifications", nil)
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "404"}}
+
+	mock.EXPECT().
+		GetUserNotificationsToken(c.Request.Context(), 404).
+		Return(models.NotificationTokens{}, repositories.ErrNotFound)
+
+	controller.GetUserNotifications(c)
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+}
+
+func TestGetUserNotifications_ServiceError(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/1/notifications", nil)
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+
+	mock.EXPECT().
+		GetUserNotificationsToken(c.Request.Context(), 1).
+		Return(models.NotificationTokens{}, errors.New("db failure"))
+
+	controller.GetUserNotifications(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
 func TestUserController_PasswordReset(t *testing.T) {
 	mock, _, c, recorder, controller := setupTest(t)
 
@@ -796,6 +843,81 @@ func TestUserController_PasswordReset(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestPasswordReset_InvalidRequestBody(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	// Send bad JSON
+	body := []byte(`{invalid}`)
+	req := httptest.NewRequest(http.MethodPost, "/users/reset/password", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	controller.PasswordReset(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+
+	var resp utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, "Invalid request format", resp.Error)
+}
+
+func TestPasswordReset_GetUserByEmailFails(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	email := "test@test.com"
+	body := models.PasswordResetRequest{Email: email}
+	jsonBody, _ := json.Marshal(body)
+
+	req := httptest.NewRequest(http.MethodPost, "/users/reset/password", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	mock.EXPECT().
+		GetUserByEmail(c.Request.Context(), email).
+		Return(nil, errors.New("user not found"))
+
+	controller.PasswordReset(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, "user not found", resp.Error)
+}
+
+func TestPasswordReset_StartResetFails(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	email := "test@email.com"
+	user := &models.User{Id: 1, Email: email}
+	reqBody := models.PasswordResetRequest{Email: email}
+	jsonBody, _ := json.Marshal(reqBody)
+
+	req := httptest.NewRequest(http.MethodPost, "/users/reset/password", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	mock.EXPECT().
+		GetUserByEmail(c.Request.Context(), email).
+		Return(user, nil)
+
+	mock.EXPECT().
+		StartPasswordReset(c.Request.Context(), user.Id, user.Email).
+		Return(errors.New("email service down"))
+
+	controller.PasswordReset(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, "email service down", resp.Error)
 }
 
 func TestUserController_AddRule(t *testing.T) {
@@ -833,6 +955,105 @@ func TestUserController_AddRule(t *testing.T) {
 	assert.Equal(t, "null", recorder.Body.String())
 }
 
+func TestUserController_AddRule_InvalidToken(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/rules", nil)
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: "invalid.token.value"})
+	c.Request = req
+
+	controller.AddRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp.Error, "token") // depends on ParseToken behavior
+}
+
+func TestAddRule_InvalidUserIDInToken(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	claims := models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject:   "a",
+			Issuer:    "user-api",
+			ExpiresAt: time.Now().Add(2 * time.Minute).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+		Email: "test@test.com",
+		Name:  "test",
+		Role:  "admin",
+	}
+
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(models.GetJWTSecret()))
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/rules", nil)
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
+	c.Request = req
+
+	controller.AddRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
+func TestAddRule_InvalidJSONBody(t *testing.T) {
+	userId := 1
+	token, _ := models.GenerateToken(userId, "test@test.com", "test", "admin")
+
+	_, _, c, recorder, controller := setupTest(t)
+
+	badJSON := []byte(`{invalid}`)
+	req := httptest.NewRequest(http.MethodPost, "/rules", bytes.NewBuffer(badJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
+	c.Request = req
+
+	controller.AddRule(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+
+	var resp utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, "Invalid request format", resp.Error)
+}
+
+func TestAddRule_CreateRuleFails(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	userId := 1
+	token, _ := models.GenerateToken(userId, "test@test.com", "test", "user")
+
+	request := models.Rule{
+		Title:                "Test Rule",
+		Description:          "Test Desc",
+		ApplicationCondition: "Some condition",
+	}
+
+	body, _ := json.Marshal(request)
+	req := httptest.NewRequest(http.MethodPost, "/rules", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
+	c.Request = req
+
+	mockRulesService.EXPECT().
+		CreateRule(c, request, userId).
+		Return(errors.New("db insert failed"))
+
+	controller.AddRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, "db insert failed", resp.Error)
+}
+
 func TestUserController_DeleteRule(t *testing.T) {
 	_, mockRulesService, c, recorder, controller := setupTest(t)
 
@@ -860,6 +1081,98 @@ func TestUserController_DeleteRule(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestDeleteRule_InvalidRuleID(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodDelete, "/rules/abc", nil)
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: "valid.token"})
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
+
+	controller.DeleteRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp.Error, "invalid syntax")
+}
+
+func TestDeleteRule_InvalidToken(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodDelete, "/rules/1", nil)
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: "bad.token.value"})
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+
+	controller.DeleteRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Contains(t, resp.Error, "token") // Depends on `ParseToken` message
+}
+
+func TestDeleteRule_InvalidUserIDInToken(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	// Manually craft a token with invalid Subject if your token system supports it
+	claims := models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject:   "a",
+			Issuer:    "user-api",
+			ExpiresAt: time.Now().Add(2 * time.Minute).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+		Email: "test@test.com",
+		Name:  "test",
+		Role:  "admin",
+	}
+
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(models.GetJWTSecret()))
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodDelete, "/rules/1", nil)
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+
+	controller.DeleteRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
+func TestDeleteRule_ServiceFails(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	userId := 1
+	token, _ := models.GenerateToken(userId, "test@test.com", "test", "user")
+	ruleId := 1
+
+	req := httptest.NewRequest(http.MethodDelete, "/rules/1", nil)
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+
+	mockRulesService.
+		EXPECT().
+		DeleteRule(c, ruleId, userId).
+		Return(errors.New("deletion failed"))
+
+	controller.DeleteRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+	assert.Equal(t, "deletion failed", resp.Error)
 }
 
 func TestUserController_GetRules(t *testing.T) {
@@ -901,6 +1214,25 @@ func TestUserController_GetRules(t *testing.T) {
 	assert.Equal(t, expected, response)
 }
 
+func TestUserController_GetRules_Error(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/rules", nil)
+	c.Request = req
+
+	mockRulesService.EXPECT().GetRules(c).Return(nil, errors.New("database error"))
+
+	controller.GetRules(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var response utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, response.Code)
+	assert.Equal(t, "database error", response.Error)
+}
+
 func TestUserController_GetAudits(t *testing.T) {
 	_, mockRulesService, c, recorder, controller := setupTest(t)
 
@@ -927,6 +1259,25 @@ func TestUserController_GetAudits(t *testing.T) {
 
 	expected := []models.Audit{audit}
 	assert.Equal(t, expected, response["data"])
+}
+
+func TestUserController_GetAudits_Error(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/audits", nil)
+	c.Request = req
+
+	mockRulesService.EXPECT().GetAudits(c).Return(nil, errors.New("database error"))
+
+	controller.GetAudits(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var response utils.HTTPError
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusInternalServerError, response.Code)
+	assert.Equal(t, "database error", response.Error)
 }
 
 func TestUserController_ModifyRule(t *testing.T) {
@@ -965,6 +1316,101 @@ func TestUserController_ModifyRule(t *testing.T) {
 	assert.Equal(t, "null", recorder.Body.String())
 }
 
+func TestModifyRule_InvalidRuleID(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodPut, "/rules/abc", nil)
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: "token"})
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
+	c.Request = req
+
+	controller.ModifyRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
+func TestModifyRule_InvalidToken(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodPut, "/rules/1", nil)
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: "bad.token"})
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	controller.ModifyRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+func TestModifyRule_InvalidUserIDInToken(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	claims := models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject:   "a",
+			Issuer:    "user-api",
+			ExpiresAt: time.Now().Add(2 * time.Minute).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+		Email: "test@test.com",
+		Name:  "test",
+		Role:  "admin",
+	}
+
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(models.GetJWTSecret()))
+	assert.NoError(t, err) // or mock if needed
+
+	req := httptest.NewRequest(http.MethodPut, "/rules/1", bytes.NewBuffer([]byte(`{}`)))
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	controller.ModifyRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
+func TestModifyRule_InvalidJSON(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	token, _ := models.GenerateToken(1, "email", "name", "user")
+
+	req := httptest.NewRequest(http.MethodPut, "/rules/1", bytes.NewBuffer([]byte(`invalid-json`)))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	controller.ModifyRule(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestModifyRule_ServiceError(t *testing.T) {
+	_, mockRulesService, c, recorder, controller := setupTest(t)
+
+	token, _ := models.GenerateToken(1, "email", "name", "user")
+	ruleId := 1
+	userId := 1
+	body := models.RuleModify{
+		Title: "T", Description: "D", ApplicationCondition: "C",
+	}
+	jsonBody, _ := json.Marshal(body)
+
+	req := httptest.NewRequest(http.MethodPut, "/rules/1", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mockRulesService.EXPECT().
+		ModifyRule(c.Request.Context(), ruleId, body, userId).
+		Return(errors.New("db failure"))
+
+	controller.ModifyRule(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
 func TestUserController_ModifyNotifPreference(t *testing.T) {
 	mock, _, c, recorder, controller := setupTest(t)
 
@@ -987,6 +1433,55 @@ func TestUserController_ModifyNotifPreference(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestModifyNotifPreference_InvalidUserID(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/abc/notifications/preference", nil)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
+	c.Request = req
+
+	controller.ModifyNotifPreference(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestModifyNotifPreference_InvalidJSON(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/1/notifications/preference", bytes.NewBuffer([]byte("invalid-json")))
+	req.Header.Set("Content-Type", "application/json")
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	controller.ModifyNotifPreference(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestModifyNotifPreference_ServiceError(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	userId := 1
+	request := models.NotificationPreferenceRequest{
+		NotificationType:       "exam_notification",
+		NotificationPreference: false,
+	}
+	jsonBody, _ := json.Marshal(request)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/1/notifications/preference", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mock.EXPECT().
+		SetNotificationPreference(c.Request.Context(), userId, request).
+		Return(errors.New("internal error"))
+
+	controller.ModifyNotifPreference(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 }
 
 func TestUserController_GetNotifPreferences(t *testing.T) {
@@ -1016,6 +1511,32 @@ func TestUserController_GetNotifPreferences(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, responseExpected, response)
+}
+
+func TestGetNotifPreferences_InvalidUserID(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/users/abc/notifications/preference", nil)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
+	c.Request = req
+
+	controller.GetNotifPreferences(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestGetNotifPreferences_ServiceError(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/users/1/notifications/preference", nil)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mock.EXPECT().GetNotificationPreference(c.Request.Context(), 1).Return(nil, errors.New("db error"))
+
+	controller.GetNotifPreferences(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 }
 
 func TestUserController_PasswordResetRedirect(t *testing.T) {
