@@ -115,10 +115,10 @@ func checkForFeedbackAndRating(messagesToSend []models.Message, dbMessage models
 		return messagesToSend
 	}
 	var feedbackRating string
-	if dbMessage.Feedback != "" && dbMessage.Sender == "ai" {
+	if dbMessage.Feedback != "" && dbMessage.Sender == "assistant" {
 		feedbackRating = feedbackRating + "feedback: " + dbMessage.Feedback + ". "
 	}
-	if dbMessage.Rating != 0 && dbMessage.Sender == "ai" {
+	if dbMessage.Rating != 0 && dbMessage.Sender == "assistant" {
 		feedbackRating = feedbackRating + "rating: " + strconv.Itoa(dbMessage.Rating) + ". "
 	}
 	var messageToSend models.Message
