@@ -3,7 +3,10 @@ package services_test
 import (
 	"context"
 	"errors"
+	"github.com/jarcoal/httpmock"
+	"github.com/sendgrid/rest"
 	"testing"
+	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
@@ -16,7 +19,8 @@ func TestUserService_GetAllUsers(t *testing.T) {
 	// Arrange
 	mockRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-	service := services.NewUserService(mockRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
 
 	expectedUsers := []models.User{
 		{Id: 1, Name: "John", Surname: "Doe", Email: "john@example.com"},
@@ -38,7 +42,8 @@ func TestUserService_GetUserById(t *testing.T) {
 	// Arrange
 	mockRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-	service := services.NewUserService(mockRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
 
 	expectedUser := &models.User{
 		Id:      1,
@@ -62,7 +67,8 @@ func TestUserService_GetUserById_Error(t *testing.T) {
 	// Arrange
 	mockRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-	service := services.NewUserService(mockRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
 
 	expectedErr := errors.New("user not found")
 	ctx := context.Background()
@@ -81,7 +87,8 @@ func TestUserService_CreateUser(t *testing.T) {
 	// Arrange
 	mockRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-	service := services.NewUserService(mockRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
 
 	createRequest := models.CreateUserRequest{
 		Name:     "John",
@@ -107,7 +114,8 @@ func TestUserService_DeleteUser(t *testing.T) {
 	// Arrange
 	mockRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-	service := services.NewUserService(mockRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
 
 	ctx := context.Background()
 	mockRepo.EXPECT().DeleteUser(ctx, 1).Return(nil)
@@ -123,7 +131,8 @@ func TestUserService_ModifyUser(t *testing.T) {
 	// Arrange
 	mockRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-	service := services.NewUserService(mockRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
 
 	userId := 1
 	userToModify := models.UserUpdateDto{
@@ -159,7 +168,8 @@ func TestUserService_ModifyLocation(t *testing.T) {
 	// Arrange
 	mockRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-	service := services.NewUserService(mockRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
 
 	ctx := context.Background()
 	userId := 1
@@ -201,7 +211,8 @@ func TestUserService_GetUserByEmail(t *testing.T) {
 	// Arrange
 	mockRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-	service := services.NewUserService(mockRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
 
 	expectedUser := &models.User{
 		Id:      1,
@@ -225,8 +236,8 @@ func TestUserService_BlockUser(t *testing.T) {
 	// Arrange
 	mockUserRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-
-	service := services.NewUserService(mockUserRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockUserRepo, mockBlockedRepo, mockEmail)
 
 	expectedUser := &models.User{
 		Id:      1,
@@ -250,7 +261,8 @@ func TestUserService_IsUserBlocked(t *testing.T) {
 	// Arrange
 	mockUserRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
-	service := services.NewUserService(mockUserRepo, mockBlockedRepo)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockUserRepo, mockBlockedRepo, mockEmail)
 
 	ctx := context.Background()
 	userId := 1
@@ -270,12 +282,338 @@ func TestUserService_ModifyPassword(t *testing.T) {
 
 	mockUserRepo := repositories.NewMockUserRepository(t)
 	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockUserRepo, mockBlockedRepo, mockEmail)
 
-	service := services.NewUserService(mockUserRepo, mockBlockedRepo)
 	ctx := context.Background()
 
 	mockUserRepo.On("ModifyPassword", ctx, 1, mock.Anything).Return(nil)
 
 	err := service.ModifyPassword(ctx, 1, newPassword)
+	assert.NoError(t, err)
+}
+
+func TestUserService_AddNotificationToken(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	userID := 1
+	token := "123456"
+
+	mockRepo.EXPECT().
+		AddNotificationToken(ctx, userID, token).
+		Return(nil)
+
+	err := service.AddNotificationToken(ctx, userID, token)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_GetUserNotificationsToken(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	userID := 1
+	notificationToken := models.NotificationToken{
+		NotificationToken: "123456",
+		CreatedTime:       time.Time{},
+	}
+	expectedTokens := models.NotificationTokens{
+		NotificationTokens: []models.NotificationToken{notificationToken},
+	}
+
+	mockRepo.EXPECT().
+		GetUserNotificationsToken(ctx, userID).
+		Return(expectedTokens, nil)
+
+	tokens, err := service.GetUserNotificationsToken(ctx, userID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedTokens, tokens)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_VerifyUser(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	userID := 1
+
+	mockRepo.EXPECT().
+		SetVerifiedTrue(ctx, userID).
+		Return(nil)
+
+	err := service.VerifyUser(ctx, userID)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_SetPasswordTokenUsed(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	token := "123456"
+
+	mockRepo.EXPECT().
+		SetPasswordTokenUsed(ctx, token).
+		Return(nil)
+
+	err := service.SetPasswordTokenUsed(ctx, token)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_SetNotificationPreference(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	userID := 1
+	preference := models.NotificationPreferenceRequest{
+		NotificationType:       "exam_notification",
+		NotificationPreference: false,
+	}
+
+	mockRepo.EXPECT().
+		SetNotificationPreference(ctx, userID, preference).
+		Return(nil)
+
+	err := service.SetNotificationPreference(ctx, userID, preference)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_CheckPreference(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	userID := 1
+	notificationType := "email"
+
+	mockRepo.EXPECT().
+		CheckPreference(ctx, userID, notificationType).
+		Return(true, nil)
+
+	result, err := service.CheckPreference(ctx, userID, notificationType)
+
+	assert.NoError(t, err)
+	assert.True(t, result)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_GetNotificationPreference(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	userID := 1
+	expected := &models.NotificationPreference{
+		ExamNotification:     true,
+		HomeworkNotification: false,
+		SocialNotification:   false,
+	}
+
+	mockRepo.EXPECT().
+		GetNotificationPreference(ctx, userID).
+		Return(expected, nil)
+
+	result, err := service.GetNotificationPreference(ctx, userID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, result)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_ValidatePasswordResetToken_Valid(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	token := "valid-token"
+	expected := &models.PasswordResetData{
+		Email:  "test@email.com",
+		UserId: 1,
+		Exp:    time.Now().Add(1 * time.Hour),
+		Used:   false,
+	}
+
+	mockRepo.EXPECT().
+		GetPasswordResetTokenInfo(ctx, token).
+		Return(expected, nil)
+
+	result, err := service.ValidatePasswordResetToken(ctx, token)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, result)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_ValidatePasswordResetToken_Expired(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	token := "expired-token"
+	expired := &models.PasswordResetData{
+		Email:  "test@email.com",
+		UserId: 1,
+		Exp:    time.Now().Add(-1 * time.Hour),
+		Used:   false,
+	}
+
+	mockRepo.EXPECT().
+		GetPasswordResetTokenInfo(ctx, token).
+		Return(expired, nil)
+
+	result, err := service.ValidatePasswordResetToken(ctx, token)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.EqualError(t, err, "Token Expired")
+	mockRepo.AssertExpectations(t)
+}
+
+func TestSendNotifByEmail(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	userId := 1
+	email := "user@test.com"
+
+	user := &models.User{
+		Id:    userId,
+		Email: email,
+	}
+
+	mockRepo.EXPECT().
+		GetUser(ctx, userId).
+		Return(user, nil)
+
+	mockEmail.On("Send", mock.AnythingOfType("*mail.SGMailV3")).
+		Return(&rest.Response{StatusCode: 202}, nil)
+
+	req := models.NotifyRequest{
+		NotificationTitle: "test",
+		NotificationText:  "test message",
+	}
+
+	err := service.SendNotifByEmail(ctx, userId, req)
+	assert.NoError(t, err)
+
+	mockRepo.AssertExpectations(t)
+	mockEmail.AssertExpectations(t)
+}
+
+func TestStartPasswordReset(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	userID := 1
+	email := "user@example.com"
+
+	mockRepo.EXPECT().
+		AddPasswordResetToken(ctx, userID, email, mock.AnythingOfType("string"), mock.AnythingOfType("time.Time")).
+		Return(nil)
+
+	mockEmail.On("Send", mock.AnythingOfType("*mail.SGMailV3")).
+		Return(&rest.Response{StatusCode: 202}, nil)
+
+	err := service.StartPasswordReset(ctx, userID, email)
+	assert.NoError(t, err)
+
+	mockRepo.AssertExpectations(t)
+	mockEmail.AssertExpectations(t)
+}
+
+func TestSendNotifByMobile_Expo(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("POST", "https://exp.host/--/api/v2/push/send",
+		httpmock.NewStringResponder(200, `{"status":"ok"}`),
+	)
+
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	mockRepo.
+		EXPECT().
+		GetUserNotificationsToken(context.Background(), 1).
+		Return(models.NotificationTokens{
+			NotificationTokens: []models.NotificationToken{
+				{NotificationToken: "ExponentPushToken[1234567890]"},
+			},
+		}, nil)
+
+	err := service.SendNotifByMobile(context.Background(), 1, models.NotifyRequest{
+		NotificationTitle: "Test Title",
+		NotificationText:  "This is a test",
+	})
+
+	assert.NoError(t, err)
+
+}
+
+func TestSendNotifByMobile_FirebaseServiceAccountNotSet(t *testing.T) {
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	t.Setenv("FIREBASE_SERVICE_ACCOUNT", "")
+
+	userId := 1
+	notification := models.NotifyRequest{
+		NotificationTitle: "Test Title",
+		NotificationText:  "Test Body",
+	}
+
+	// Non-Expo token to trigger Firebase path
+	mockRepo.EXPECT().
+		GetUserNotificationsToken(context.Background(), userId).
+		Return(models.NotificationTokens{
+			NotificationTokens: []models.NotificationToken{
+				{NotificationToken: "firebase_token_123"},
+			},
+		}, nil).
+		Once()
+
+	err := service.SendNotifByMobile(context.Background(), userId, notification)
+
 	assert.NoError(t, err)
 }

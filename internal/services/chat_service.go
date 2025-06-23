@@ -60,7 +60,7 @@ func (s *chatService) SendToAi(ctx context.Context, id int, message models.ChatM
 		messageToSend.Role = dbMessage.Sender
 		messageToSend.Content = dbMessage.Message
 		messagesToSend = append(messagesToSend, messageToSend)
-		checkForFeedbackAndRating(messagesToSend, dbMessage)
+		messagesToSend = checkForFeedbackAndRating(messagesToSend, dbMessage)
 	}
 	url := "https://api.openai.com/v1/chat/completions"
 
@@ -109,19 +109,20 @@ func (s *chatService) SendToAi(ctx context.Context, id int, message models.ChatM
 	}
 	return nil, errors.New("Something went wrong with the Ai")
 }
-func checkForFeedbackAndRating(messagesToSend []models.Message, dbMessage models.ChatMessage) {
+
+func checkForFeedbackAndRating(messagesToSend []models.Message, dbMessage models.ChatMessage) []models.Message {
 	if dbMessage.Rating == 0 && dbMessage.Feedback == "" {
-		return
+		return messagesToSend
 	}
 	var feedbackRating string
-	if dbMessage.Feedback != "" && dbMessage.Sender == "ai" {
+	if dbMessage.Feedback != "" && dbMessage.Sender == "assistant" {
 		feedbackRating = feedbackRating + "feedback: " + dbMessage.Feedback + ". "
 	}
-	if dbMessage.Rating != 0 && dbMessage.Sender == "ai" {
+	if dbMessage.Rating != 0 && dbMessage.Sender == "assistant" {
 		feedbackRating = feedbackRating + "rating: " + strconv.Itoa(dbMessage.Rating) + ". "
 	}
 	var messageToSend models.Message
 	messageToSend.Role = "user"
 	messageToSend.Content = feedbackRating
-	messagesToSend = append(messagesToSend, messageToSend)
+	return append(messagesToSend, messageToSend)
 }

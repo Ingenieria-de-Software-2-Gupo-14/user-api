@@ -50,10 +50,12 @@ func (c ChatController) SendMessage(ctx *gin.Context) {
 	err = c.chatService.NewUserMessage(ctx.Request.Context(), userId, message)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
 	}
 	aiMessage, err := c.chatService.SendToAi(ctx.Request.Context(), userId, message)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
 	}
 	ctx.JSON(http.StatusOK, aiMessage)
 }
@@ -82,6 +84,7 @@ func (c ChatController) GetMessages(ctx *gin.Context) {
 	messages, err := c.chatService.GetMessages(ctx.Request.Context(), userId)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
 	}
 	ctx.JSON(http.StatusOK, messages)
 }
@@ -122,6 +125,7 @@ func (c ChatController) RateMessage(ctx *gin.Context) {
 	err = c.chatService.UpdateMessageRating(ctx.Request.Context(), userId, messageId, rating.Rating)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
 	}
 	ctx.JSON(http.StatusOK, nil)
 }
@@ -162,6 +166,7 @@ func (c ChatController) FeedbackMessage(ctx *gin.Context) {
 	err = c.chatService.UpdateMessageFeedback(ctx.Request.Context(), userId, messageId, feedback.Feedback)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+		return
 	}
 	ctx.JSON(http.StatusOK, nil)
 }

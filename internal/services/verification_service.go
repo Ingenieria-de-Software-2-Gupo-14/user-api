@@ -4,16 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/sendgrid/rest"
 	"time"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	repo "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
-	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/sethvargo/go-password/password"
 )
 
 const PinLifeTime = 5
+
+type EmailSender interface {
+	Send(email *mail.SGMailV3) (*rest.Response, error)
+}
 
 type VerificationService interface {
 	SendVerificationEmail(ctx context.Context, userId int, email string) error
@@ -24,10 +28,10 @@ type VerificationService interface {
 
 type verificationService struct {
 	verificationRepo repo.VerificationRepository
-	emailClient      *sendgrid.Client
+	emailClient      EmailSender
 }
 
-func NewVerificationService(verificationRepo repo.VerificationRepository, emailClient *sendgrid.Client) *verificationService {
+func NewVerificationService(verificationRepo repo.VerificationRepository, emailClient EmailSender) *verificationService {
 	return &verificationService{
 		verificationRepo: verificationRepo,
 		emailClient:      emailClient,

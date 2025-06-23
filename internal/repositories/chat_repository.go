@@ -42,7 +42,6 @@ func (db chatRepository) GetMessages(ctx context.Context, id int, date string) (
 	var messages []models.ChatMessage
 	for rows.Next() {
 		var message models.ChatMessage
-		// Scan sin bad_login_attempts ni blocked
 		err := rows.Scan(
 			&message.MessageId, &message.UserId, &message.Sender, &message.Message, &message.TimeSent, &message.Rating, &message.Feedback,
 		)
