@@ -62,7 +62,7 @@ func NewDependencies(cfg *config.Config) (*Dependencies, error) {
 	rulesRepo := repositories.CreateRulesRepo(db)
 	chatRepo := repositories.CreateChatsRepo(db)
 	// Services
-	userService := services.NewUserService(userRepo, blockRepo)
+	userService := services.NewUserService(userRepo, blockRepo, sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY")))
 	loginService := services.NewLoginAttemptService(loginRepo, blockRepo)
 	verificationService := services.NewVerificationService(verificationRepo, sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY")))
 	rulesService := services.NewRulesService(rulesRepo)
