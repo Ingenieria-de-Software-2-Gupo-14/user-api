@@ -37,7 +37,7 @@ func TestCreateController(t *testing.T) {
 	assert.NotNil(t, result)
 }
 
-func TestUsersGet_Success(t *testing.T) {
+func TestUsersGet(t *testing.T) {
 	mockService, _, c, recorder, userController := setupTest(t)
 
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/users", nil)
@@ -76,11 +76,37 @@ func TestUsersGet_Success(t *testing.T) {
 	assert.Equal(t, expectedUsers[0].Name, response.Data[0].Name)
 }
 
+func TestUsersGet_Error(t *testing.T) {
+	mockService, _, c, recorder, userController := setupTest(t)
+
+	c.Request = httptest.NewRequest(http.MethodGet, "/users", nil)
+
+	mockService.EXPECT().
+		GetAllUsers(mock.Anything).
+		Return(nil, errors.New("database error"))
+
+	userController.UsersGet(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp struct {
+		Code  int    `json:"code"`
+		Title string `json:"title"`
+		Error string `json:"error"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 500, resp.Code)
+	assert.Equal(t, "Internal Server Error", resp.Title)
+	assert.Equal(t, "database error", resp.Error)
+}
+
 func TestUserGetById_Success(t *testing.T) {
 	mockService, _, c, recorder, userController := setupTest(t)
 
 	userId := 1
-	c.Request = httptest.NewRequest(http.MethodGet, "/api/users/"+strconv.Itoa(userId), nil)
+	c.Request = httptest.NewRequest(http.MethodGet, "/users/"+strconv.Itoa(userId), nil)
 	c.AddParam("id", strconv.Itoa(userId))
 
 	expectedUser := &models.User{
@@ -111,7 +137,7 @@ func TestUserGetById_NotFound(t *testing.T) {
 	mockService, _, c, recorder, userController := setupTest(t)
 
 	userId := 999
-	c.Request = httptest.NewRequest(http.MethodGet, "/api/users/"+strconv.Itoa(userId), nil)
+	c.Request = httptest.NewRequest(http.MethodGet, "/users/"+strconv.Itoa(userId), nil)
 	c.AddParam("id", strconv.Itoa(userId))
 
 	mockService.EXPECT().GetUserById(mock.Anything, userId).Return(nil, errors.New("not found"))
@@ -123,20 +149,80 @@ func TestUserGetById_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 }
 
+func TestUserGetById_WrongPathParam(t *testing.T) {
+	_, _, c, recorder, userController := setupTest(t)
+
+	c.Request = httptest.NewRequest(http.MethodGet, "/users/wrong_param", nil)
+	c.AddParam("id", "wromg_param")
+
+	// Call the function
+	userController.UserGetById(c)
+
+	// Check response
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
 func TestUserDeleteById_Success(t *testing.T) {
 	mockService, _, c, recorder, userController := setupTest(t)
 
 	userId := 1
-	c.Request = httptest.NewRequest(http.MethodDelete, "/api/users/"+strconv.Itoa(userId), nil)
+	c.Request = httptest.NewRequest(http.MethodDelete, "/users/"+strconv.Itoa(userId), nil)
 	c.AddParam("id", strconv.Itoa(userId))
 
 	mockService.EXPECT().DeleteUser(mock.Anything, userId).Return(nil)
 
-	// Call the function
 	userController.UserDeleteById(c)
 
-	// Check response
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
+}
+
+func TestUserDeleteById_WrongPathParam(t *testing.T) {
+	_, _, c, recorder, userController := setupTest(t)
+
+	c.Request = httptest.NewRequest(http.MethodDelete, "/users/abc", nil)
+	c.AddParam("id", "abc")
+
+	userController.UserDeleteById(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+
+	var resp struct {
+		Code  int    `json:"code"`
+		Title string `json:"title"`
+		Error string `json:"error"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, "Invalid user ID format", resp.Error)
+}
+
+func TestUserDeleteById_ServiceError(t *testing.T) {
+	mockService, _, c, recorder, userController := setupTest(t)
+
+	userId := 1
+	c.Request = httptest.NewRequest(http.MethodDelete, "/users/"+strconv.Itoa(userId), nil)
+	c.AddParam("id", strconv.Itoa(userId))
+
+	mockService.EXPECT().
+		DeleteUser(mock.Anything, userId).
+		Return(errors.New("delete failed"))
+
+	userController.UserDeleteById(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp struct {
+		Code  int    `json:"code"`
+		Title string `json:"title"`
+		Error string `json:"error"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, "delete failed", resp.Error)
 }
 
 func TestModifyUser_Success(t *testing.T) {
@@ -149,7 +235,7 @@ func TestModifyUser_Success(t *testing.T) {
 	}
 
 	jsonValue, _ := json.Marshal(updatedUserDto)
-	c.Request = httptest.NewRequest(http.MethodPut, "/api/users/1", bytes.NewBuffer(jsonValue))
+	c.Request = httptest.NewRequest(http.MethodPut, "/users/1", bytes.NewBuffer(jsonValue))
 	c.Request.Header.Set("Content-Type", "application/json")
 	c.AddParam("id", "1")
 
@@ -164,6 +250,84 @@ func TestModifyUser_Success(t *testing.T) {
 
 	// Check response
 	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestModifyUser_WrongPathParam(t *testing.T) {
+	_, _, c, recorder, userController := setupTest(t)
+
+	c.Request = httptest.NewRequest(http.MethodPut, "/users/abc", nil)
+	c.AddParam("id", "abc")
+
+	userController.ModifyUser(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+
+	var resp struct {
+		Code  int    `json:"code"`
+		Title string `json:"title"`
+		Error string `json:"error"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, "Invalid user ID format", resp.Error)
+}
+
+func TestModifyUser_InvalidRequestFormat(t *testing.T) {
+	_, _, c, recorder, userController := setupTest(t)
+
+	c.Request = httptest.NewRequest(http.MethodPut, "/users/1", bytes.NewBufferString("{invalid json"))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.AddParam("id", "1")
+
+	userController.ModifyUser(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+
+	var resp struct {
+		Code  int    `json:"code"`
+		Title string `json:"title"`
+		Error string `json:"error"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, "Invalid request format", resp.Error)
+}
+
+func TestModifyUser_ServiceError(t *testing.T) {
+	mockService, _, c, recorder, userController := setupTest(t)
+
+	updatedUserDto := models.UserUpdateDto{
+		Name:     "Updated",
+		Surname:  "User",
+		Location: "New Location",
+	}
+	jsonValue, _ := json.Marshal(updatedUserDto)
+	c.Request = httptest.NewRequest(http.MethodPut, "/api/users/1", bytes.NewBuffer(jsonValue))
+	c.Request.Header.Set("Content-Type", "application/json")
+	c.AddParam("id", "1")
+
+	mockService.EXPECT().
+		ModifyUser(mock.Anything, 1, updatedUserDto).
+		Return(errors.New("update failed"))
+
+	userController.ModifyUser(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp struct {
+		Code  int    `json:"code"`
+		Title string `json:"title"`
+		Error string `json:"error"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, "update failed", resp.Error)
 }
 
 func TestBlockUserById_Success(t *testing.T) {
@@ -181,6 +345,56 @@ func TestBlockUserById_Success(t *testing.T) {
 
 	// Check response
 	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestBlockUserById_WrongPathParam(t *testing.T) {
+	_, _, c, recorder, userController := setupTest(t)
+
+	c.Request = httptest.NewRequest(http.MethodPut, "/users/abc/block", nil)
+	c.AddParam("id", "abc")
+
+	userController.BlockUserById(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+
+	var resp struct {
+		Code  int    `json:"code"`
+		Title string `json:"title"`
+		Error string `json:"error"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, "Invalid user ID format", resp.Error)
+}
+
+func TestBlockUserById_ServiceError(t *testing.T) {
+	mockService, _, c, recorder, userController := setupTest(t)
+
+	userId := 5
+	c.Request = httptest.NewRequest(http.MethodPut, "/users/5/block", nil)
+	c.AddParam("id", "5")
+	c.Request = c.Request.WithContext(context.Background())
+
+	mockService.EXPECT().
+		BlockUser(mock.Anything, userId, "", mock.AnythingOfType("*int"), mock.AnythingOfType("*time.Time")).
+		Return(errors.New("block failed"))
+
+	userController.BlockUserById(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var resp struct {
+		Code  int    `json:"code"`
+		Title string `json:"title"`
+		Error string `json:"error"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, "block failed", resp.Error)
 }
 
 func TestUserController_ModifyPassword(t *testing.T) {
@@ -236,7 +450,6 @@ func TestUserController_ModifyPassword_WrongParam(t *testing.T) {
 
 	controller.ModifyUserPasssword(c)
 
-	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	var result models.ErrorResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &result)
 	if err != nil {
@@ -244,6 +457,101 @@ func TestUserController_ModifyPassword_WrongParam(t *testing.T) {
 	}
 
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestUserController_ModifyPassword_InvalidToken(t *testing.T) {
+	mockService, _, c, recorder, controller := setupTest(t)
+
+	request := models.PasswordModifyRequest{
+		Token:    "333333",
+		Password: "newPassword123",
+	}
+	body, _ := json.Marshal(request)
+
+	req := httptest.NewRequest(http.MethodPut, "/users/password", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	mockService.On("ValidatePasswordResetToken", c.Request.Context(), request.Token).
+		Return(nil, errors.New("invalid or expired token"))
+
+	controller.ModifyUserPasssword(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var result models.ErrorResponse
+	err := json.Unmarshal(recorder.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, "Internal Server Error", result.Title)
+}
+
+func TestUserController_ModifyPassword_ModifyFail(t *testing.T) {
+	mockService, _, c, recorder, controller := setupTest(t)
+
+	reqBody := models.PasswordModifyRequest{
+		Token:    "123456",
+		Password: "password",
+	}
+	resetData := &models.PasswordResetData{
+		Email:  "test@example.com",
+		UserId: 1,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPut, "/users/password", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	mockService.On("ValidatePasswordResetToken", c.Request.Context(), reqBody.Token).
+		Return(resetData, nil)
+
+	mockService.On("ModifyPassword", c.Request.Context(), resetData.UserId, reqBody.Password).
+		Return(errors.New("update failed"))
+
+	controller.ModifyUserPasssword(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var result models.ErrorResponse
+	err := json.Unmarshal(recorder.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, "Internal Server Error", result.Title)
+}
+
+func TestUserController_ModifyPassword_SetTokenUsedFail(t *testing.T) {
+	mockService, _, c, recorder, controller := setupTest(t)
+
+	reqBody := models.PasswordModifyRequest{
+		Token:    "123456",
+		Password: "password",
+	}
+	resetData := &models.PasswordResetData{
+		Email:  "test@example.com",
+		UserId: 1,
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPut, "/users/password", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+
+	mockService.On("ValidatePasswordResetToken", c.Request.Context(), reqBody.Token).
+		Return(resetData, nil)
+
+	mockService.On("ModifyPassword", c.Request.Context(), resetData.UserId, reqBody.Password).
+		Return(nil)
+
+	mockService.On("SetPasswordTokenUsed", c.Request.Context(), reqBody.Token).
+		Return(errors.New("failed to mark token as used"))
+
+	controller.ModifyUserPasssword(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+
+	var result models.ErrorResponse
+	err := json.Unmarshal(recorder.Body.Bytes(), &result)
+	assert.NoError(t, err)
+	assert.Equal(t, "Internal Server Error", result.Title)
 }
 
 func TestUserController_NotifyUsers(t *testing.T) {
@@ -396,6 +704,50 @@ func TestUserController_SetUserNotifications(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Equal(t, "null", recorder.Body.String())
+}
+
+func TestSetUserNotifications_InvalidUserID(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/users/abc/notifications", nil)
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
+
+	controller.SetUserNotifications(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+}
+
+func TestSetUserNotifications_InvalidJSON(t *testing.T) {
+	_, _, c, recorder, controller := setupTest(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/users/1/notifications", bytes.NewBufferString("{invalid-json"))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+
+	controller.SetUserNotifications(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+}
+
+func TestSetUserNotifications_AddTokenFails(t *testing.T) {
+	mock, _, c, recorder, controller := setupTest(t)
+
+	body := models.NotificationSetUpRequest{Token: "some-token"}
+	jsonBody, _ := json.Marshal(body)
+
+	req := httptest.NewRequest(http.MethodPost, "/users/1/notifications", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	c.Request = req
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+
+	mock.EXPECT().AddNotificationToken(c.Request.Context(), 1, body.Token).Return(errors.New("db error"))
+
+	controller.SetUserNotifications(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 }
 
 func TestUserController_GetUserNotifications(t *testing.T) {
