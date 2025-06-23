@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"github.com/sethvargo/go-password/password"
 	"golang.org/x/oauth2/google"
@@ -48,10 +47,11 @@ type UserService interface {
 type userService struct {
 	userRepo      repo.UserRepository
 	blockUserRepo repo.BlockedUserRepository
+	emailClient   EmailSender
 }
 
-func NewUserService(userRepo repo.UserRepository, blockedUserRepo repo.BlockedUserRepository) *userService {
-	return &userService{userRepo: userRepo, blockUserRepo: blockedUserRepo}
+func NewUserService(userRepo repo.UserRepository, blockedUserRepo repo.BlockedUserRepository, emailClient EmailSender) *userService {
+	return &userService{userRepo: userRepo, blockUserRepo: blockedUserRepo, emailClient: emailClient}
 }
 
 func (s *userService) DeleteUser(ctx context.Context, id int) error {
@@ -161,18 +161,6 @@ func sendNotifToDevice(userToken string, notification models.NotifyRequest) erro
 	if strings.Contains(userToken, "ExponentPushToken[") {
 		return sendNotifExpo(userToken, notification)
 	}
-	svcJSON := os.Getenv("FIREBASE_SERVICE_ACCOUNT")
-	if svcJSON == "" {
-		return fmt.Errorf("FIREBASE_SERVICE_ACCOUNT not set")
-	}
-	creds := []byte(svcJSON)
-
-	conf, err := google.JWTConfigFromJSON(creds, "https://www.googleapis.com/auth/firebase.messaging")
-	if err != nil {
-		return fmt.Errorf("invalid service account JSON: %v", err)
-	}
-
-	client := conf.Client(context.Background())
 
 	url := fmt.Sprintf("https://fcm.googleapis.com/v1/projects/%s/messages:send", os.Getenv("FCM_PROJECT_ID"))
 	payload := map[string]interface{}{
@@ -196,6 +184,19 @@ func sendNotifToDevice(userToken string, notification models.NotifyRequest) erro
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+
+	svcJSON := os.Getenv("FIREBASE_SERVICE_ACCOUNT")
+	if svcJSON == "" {
+		return fmt.Errorf("FIREBASE_SERVICE_ACCOUNT not set")
+	}
+	creds := []byte(svcJSON)
+
+	conf, err := google.JWTConfigFromJSON(creds, "https://www.googleapis.com/auth/firebase.messaging")
+	if err != nil {
+		return fmt.Errorf("invalid service account JSON: %v", err)
+	}
+
+	client := conf.Client(context.Background())
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -265,8 +266,7 @@ func (s *userService) SendNotifByEmail(cont context.Context, userId int, request
 	content := mail.NewContent("text/plain", request.NotificationText)
 	message := mail.NewV3MailInit(from, subject, to, content)
 
-	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
-	_, err2 := client.Send(message)
+	_, err2 := s.emailClient.Send(message)
 	return err2
 }
 
@@ -304,8 +304,7 @@ func (s *userService) StartPasswordReset(ctx context.Context, id int, email stri
 	message.AddContent(mail.NewContent("text/plain", plainTextContent))
 	message.AddContent(mail.NewContent("text/html", htmlContent))
 
-	client := sendgrid.NewSendClient(os.Getenv("EMAIL_API_KEY"))
-	_, err2 := client.Send(message)
+	_, err2 := s.emailClient.Send(message)
 	return err2
 }
 

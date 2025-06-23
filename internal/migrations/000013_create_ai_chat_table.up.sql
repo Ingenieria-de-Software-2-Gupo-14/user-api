@@ -12,4 +12,3 @@ CREATE TABLE IF NOT EXISTS ai_chat (
     );
 -- +goose StatementEnd
 -- +goose Down
-DROP TABLE ai_chat;
