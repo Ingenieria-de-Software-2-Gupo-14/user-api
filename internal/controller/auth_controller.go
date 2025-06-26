@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
+	"google.golang.org/api/idtoken"
 
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
@@ -240,26 +242,93 @@ func (ac *AuthController) Login(c *gin.Context) {
 	ac.finishAuth(c, *user)
 }
 
-// BeginAuth godoc
+const GoogleId = "652300787712-178nsm16d8e7o6ia6a763c5unjvhudss.apps.googleusercontent.com"
+
+type AuthRequest struct {
+	Token string `json:"token"`
+}
+
+func (ac *AuthController) validateGoogleToken(ctx context.Context, token string) (models.CreateUserRequest, error) {
+	var ok bool
+	user := models.CreateUserRequest{
+		Role:     "student",
+		Verified: true,
+	}
+
+	payload, err := idtoken.Validate(ctx, token, GoogleId)
+	if err != nil {
+		return user, fmt.Errorf("failed to validate token: %w", err)
+	}
+
+	user.Email, ok = payload.Claims["email"].(string)
+	if !ok {
+		return user, fmt.Errorf("invalid token: missing email claim")
+	}
+
+	user.Name, ok = payload.Claims["given_name"].(string)
+	if !ok {
+		return user, fmt.Errorf("invalid token: missing given_name claim")
+	}
+
+	user.Surname, ok = payload.Claims["family_name"].(string)
+	if !ok {
+		return user, fmt.Errorf("invalid token: missing family_name claim")
+	}
+
+	return user, nil
+}
+
+// GoogleAuth godoc
 //
-// @Summary      Begin authentication
-// @Description  Begin authentication with the specified provider
+// @Summary      Authenticate with Google
+// @Description  Authenticate a user using Google OAuth2
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        provider  path      string  true  "Provider name"
+// @Param        request body AuthRequest true "Google OAuth2 Token"
 // @Success      200  {object}   map[string]interface{}
 // @Failure      400  {object}   utils.HTTPError
 // @Failure      401  {object}   utils.HTTPError
 // @Failure      500  {object}   utils.HTTPError
-// @Router       /auth/{provider} [get]
-func (ac *AuthController) BeginAuth(c *gin.Context) {
-	provider := c.Param("provider")
-	ctx := context.WithValue(c.Request.Context(), "provider", provider)
-	r := c.Request.WithContext(ctx)
+// @Router       /auth/google [post]
+func (ac *AuthController) GoogleAuth(c *gin.Context) {
+	fmt.Println("Testing Auth")
+	var request AuthRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusBadRequest, err)
+		return
+	}
 
-	gothic.BeginAuthHandler(c.Writer, r)
+	ctx := c.Request.Context()
 
+	userInfo, err := ac.validateGoogleToken(ctx, request.Token)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	existingUser, err := ac.userRepo.GetUserByEmail(ctx, userInfo.Email)
+	if err != nil {
+		// User not found, create a new one
+		if errors.Is(err, repositories.ErrNotFound) {
+
+			id, err := ac.userRepo.CreateUser(ctx, userInfo)
+			if err != nil {
+				utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+				return
+			}
+
+			existingUser.Id = id
+			existingUser.Name = userInfo.Name
+			existingUser.Surname = userInfo.Surname
+			existingUser.Email = userInfo.Email
+		} else {
+			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	ac.finishAuth(c, *existingUser)
 }
 
 // CompleteAuth godoc

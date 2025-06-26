@@ -2,10 +2,10 @@ package router
 
 import (
 	"fmt"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	"net/http"
 	"strings"
 
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/telemetry"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/middleware"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
@@ -20,7 +20,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 
 	r.Use(cors.New(cors.Config{
 		AllowOriginFunc: func(origin string) bool {
-			return strings.HasSuffix(origin, ".vercel.app") || origin == "http://localhost:8081" || origin == "https://backoffice-seven-fawn.vercel.app"
+			return strings.HasSuffix(origin, ".vercel.app") || origin == "http://localhost:8081"
 		},
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin",
@@ -56,8 +56,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 
 	// Auth routes
 	auth := r.Group("/auth")
-	auth.GET("/:provider", deps.Controllers.AuthController.BeginAuth)
-	auth.GET("/:provider/callback", deps.Controllers.AuthController.CompleteAuth)
+	auth.GET("/google", deps.Controllers.AuthController.GoogleAuth)
 	auth.POST("/users", deps.Controllers.AuthController.Register)
 	auth.POST("/users/verify", deps.Controllers.AuthController.VerifyRegistration)
 	auth.POST("/admins", deps.Controllers.AuthController.RegisterAdmin)
@@ -70,15 +69,10 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.PUT("/users/:id", middleware.UserOrAdminMiddleware(deps.Services.UserService), deps.Controllers.UserController.ModifyUser)
 	r.GET("/users/:id", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.UserController.UserGetById)
 	r.GET("/users/:id/notifications", deps.Controllers.UserController.GetUserNotifications)
-	r.POST("/users/:id/notifications", deps.Controllers.UserController.SetUserNotifications)
 	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
 	r.PUT("/users/:id/block", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.BlockUserById)
-	r.PUT("/users/password", deps.Controllers.UserController.ModifyUserPasssword)
-	r.POST("/users/reset/password", deps.Controllers.UserController.PasswordReset)
-	r.GET("/users/reset/password", deps.Controllers.UserController.PasswordResetRedirect)
+	r.PUT("/users/:id/password", deps.Controllers.UserController.ModifyUserPasssword)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)
-	r.PUT("/users/:id/notifications/preference", deps.Controllers.UserController.ModifyNotifPreference)
-	r.GET("/users/:id/notifications/preference", deps.Controllers.UserController.GetNotifPreferences)
 
 	// Rules routes
 	r.POST("/rules", deps.Controllers.UserController.AddRule)
@@ -86,12 +80,6 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.GET("/rules", deps.Controllers.UserController.GetRules)
 	r.PUT("/rules/:id", deps.Controllers.UserController.ModifyRule)
 	r.GET("/rules/audit", deps.Controllers.UserController.GetAudits)
-
-	//Ai Chat routes
-	r.POST("/chat", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.ChatController.SendMessage)
-	r.GET("/chat", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.ChatController.GetMessages)
-	r.PUT("/chat/:message_id/rate", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.ChatController.RateMessage)
-	r.PUT("/chat/:message_id/feedback", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.ChatController.FeedbackMessage)
 	return r, nil
 }
 

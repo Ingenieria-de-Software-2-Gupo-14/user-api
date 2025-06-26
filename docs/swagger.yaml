@@ -1,4 +1,9 @@
 definitions:
+  controller.AuthRequest:
+    properties:
+      token:
+        type: string
+    type: object
   models.AuditData:
     properties:
       id:
@@ -279,40 +284,6 @@ info:
   title: User API
   version: "1.0"
 paths:
-  /auth/{provider}:
-    get:
-      consumes:
-      - application/json
-      description: Begin authentication with the specified provider
-      parameters:
-      - description: Provider name
-        in: path
-        name: provider
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-      summary: Begin authentication
-      tags:
-      - Auth
   /auth/{provider}/callback:
     get:
       consumes:
@@ -381,6 +352,41 @@ paths:
           schema:
             $ref: '#/definitions/utils.HTTPError'
       summary: Register a new Admin
+      tags:
+      - Auth
+  /auth/google:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a user using Google OAuth2
+      parameters:
+      - description: Google OAuth2 Token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Authenticate with Google
       tags:
       - Auth
   /auth/login:

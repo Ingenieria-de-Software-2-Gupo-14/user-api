@@ -97,6 +97,6 @@ func (config *Config) CreateDatadogClient() (telemetry.Client, error) {
 		return telemetry.NewDatadog(config.DatadogHost+":"+config.DatadogStatsdPort, statsd.WithTags([]string{"application:" + "user-api"}))
 
 	default:
-		return nil, nil
+		return telemetry.DefaultClient, nil
 	}
 }
