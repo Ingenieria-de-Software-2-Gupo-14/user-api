@@ -1,20 +1,64 @@
 package models
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"google.golang.org/api/idtoken"
 )
 
+const GoogleId = "652300787712-178nsm16d8e7o6ia6a763c5unjvhudss.apps.googleusercontent.com"
+
+func GetJWTSecret() string {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "secret"
+	}
+	return secret
+}
+
 var (
+	JWT_SECRET          = GetJWTSecret()
 	ErrInvalidToken     = errors.New("invalid token")
 	ErrExpiredToken     = errors.New("token expired")
 	ErrMissingDataField = errors.New("missing data field")
 	ErrJWTValidation    = jwt.NewValidationError("invalid signing method", jwt.ValidationErrorSignatureInvalid)
 )
+
+func ValidateGoogleToken(ctx context.Context, token string) (CreateUserRequest, error) {
+	var ok bool
+	user := CreateUserRequest{
+		Role:     "student",
+		Verified: true,
+	}
+
+	payload, err := idtoken.Validate(ctx, token, GoogleId)
+	if err != nil {
+		return user, fmt.Errorf("failed to validate token: %w", err)
+	}
+
+	user.Email, ok = payload.Claims["email"].(string)
+	if !ok {
+		return user, fmt.Errorf("invalid token: missing email claim")
+	}
+
+	user.Name, ok = payload.Claims["given_name"].(string)
+	if !ok {
+		return user, fmt.Errorf("invalid token: missing given_name claim")
+	}
+
+	user.Surname, ok = payload.Claims["family_name"].(string)
+	if !ok {
+		return user, fmt.Errorf("invalid token: missing family_name claim")
+	}
+
+	return user, nil
+}
 
 type Claims struct {
 	jwt.StandardClaims
@@ -22,14 +66,6 @@ type Claims struct {
 	Name  string `json:"full_name"`
 	Role  string `json:"role"`
 	Admin bool   `json:"admin"`
-}
-
-func GetJWTSecret() string {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "secret" // valor por defecto
-	}
-	return secret
 }
 
 // GenerateToken genera un token JWT para el usuario.
@@ -53,7 +89,7 @@ func GenerateToken(id int, email string, name string, role string) (string, erro
 }
 
 func ParseToken(tokenStr string) (*Claims, error) {
-	secret := []byte(GetJWTSecret())
+	secret := []byte(JWT_SECRET)
 	var claims Claims
 	token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

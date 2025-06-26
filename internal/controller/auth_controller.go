@@ -2,7 +2,6 @@ package controller
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
-	"google.golang.org/api/idtoken"
 
 	"github.com/gin-gonic/gin"
 	"github.com/markbates/goth/gothic"
@@ -131,7 +129,6 @@ func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
 	}
 
-	println(request.VerificationPin)
 	parts := strings.Split(request.VerificationPin, "-")
 	if len(parts) != 2 {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid verification pin format")
@@ -242,42 +239,6 @@ func (ac *AuthController) Login(c *gin.Context) {
 	ac.finishAuth(c, *user)
 }
 
-const GoogleId = "652300787712-178nsm16d8e7o6ia6a763c5unjvhudss.apps.googleusercontent.com"
-
-type AuthRequest struct {
-	Token string `json:"token"`
-}
-
-func (ac *AuthController) validateGoogleToken(ctx context.Context, token string) (models.CreateUserRequest, error) {
-	var ok bool
-	user := models.CreateUserRequest{
-		Role:     "student",
-		Verified: true,
-	}
-
-	payload, err := idtoken.Validate(ctx, token, GoogleId)
-	if err != nil {
-		return user, fmt.Errorf("failed to validate token: %w", err)
-	}
-
-	user.Email, ok = payload.Claims["email"].(string)
-	if !ok {
-		return user, fmt.Errorf("invalid token: missing email claim")
-	}
-
-	user.Name, ok = payload.Claims["given_name"].(string)
-	if !ok {
-		return user, fmt.Errorf("invalid token: missing given_name claim")
-	}
-
-	user.Surname, ok = payload.Claims["family_name"].(string)
-	if !ok {
-		return user, fmt.Errorf("invalid token: missing family_name claim")
-	}
-
-	return user, nil
-}
-
 // GoogleAuth godoc
 //
 // @Summary      Authenticate with Google
@@ -292,7 +253,10 @@ func (ac *AuthController) validateGoogleToken(ctx context.Context, token string)
 // @Failure      500  {object}   utils.HTTPError
 // @Router       /auth/google [post]
 func (ac *AuthController) GoogleAuth(c *gin.Context) {
-	fmt.Println("Testing Auth")
+	type AuthRequest struct {
+		Token string `json:"token"`
+	}
+
 	var request AuthRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		utils.ErrorResponseWithErr(c, http.StatusBadRequest, err)
@@ -301,7 +265,7 @@ func (ac *AuthController) GoogleAuth(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	userInfo, err := ac.validateGoogleToken(ctx, request.Token)
+	userInfo, err := models.ValidateGoogleToken(ctx, request.Token)
 	if err != nil {
 		utils.ErrorResponseWithErr(c, http.StatusUnauthorized, err)
 		return

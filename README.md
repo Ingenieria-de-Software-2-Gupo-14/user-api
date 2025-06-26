@@ -9,6 +9,39 @@ go-template es un proyecto de ejemplo de go que utiliza Docker y Docker Compose 
 
 ## Guía de Uso
 
+### ENV
+
+```bash
+PORT = "8080"
+HOST = "0.0.0.0"
+ENVIRONMENT = "development"
+
+JWT_SECRET = "jwt-secret"
+
+DATABASE_URL="postgres://postgres:postgres123@postgres:5432/postgres?sslmode=disable"
+
+DD_CLIENT_TYPE=""
+DD_SITE="us5.datadoghq.com"
+DD_API_KEY=""
+DD_AGENT_HOST=""
+DD_AGENT_STATSD_PORT=""
+```
+
+- PORT: Puerto en el que se ejecutará el servidor.
+- HOST: Host en el que se ejecutará el servidor.
+- ENVIRONMENT: Entorno en el que se ejecutará el servidor.
+- JWT_SECRET: Secret para generar y validar tokens JWT.
+- DATABASE_URL: URL de la base de datos.
+  - Corriendo con docker-compose: postgres://postgres:postgres123@postgres:5432/postgres?sslmode=disable
+- DD_CLIENT_TYPE: Tipo de cliente de Datadog.
+  - "api": Usa la API de Datadog. Requiere DD_API_KEY.
+  - "statsd","agent": Usa el agente de Datadog. Requiere DD_AGENT_HOST y DD_AGENT_STATSD_PORT.
+  - Cualquier otro valor: Usa el cliente mock que no hace nada.
+- DD_SITE: Sitio de Datadog.
+- DD_API_KEY: API Key de Datadog.
+- DD_AGENT_HOST: Host del agente de Datadog.
+- DD_AGENT_STATSD_PORT: Puerto del agente de Datadog.
+
 ### Correr local
 
 Para correr el proyecto local:
