@@ -56,7 +56,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 
 	// Auth routes
 	auth := r.Group("/auth")
-	auth.GET("/google", deps.Controllers.AuthController.GoogleAuth)
+	auth.POST("/google", deps.Controllers.AuthController.GoogleAuth)
 	auth.POST("/users", deps.Controllers.AuthController.Register)
 	auth.POST("/users/verify", deps.Controllers.AuthController.VerifyRegistration)
 	auth.POST("/admins", deps.Controllers.AuthController.RegisterAdmin)
