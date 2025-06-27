@@ -281,11 +281,14 @@ func (ac *AuthController) GoogleAuth(c *gin.Context) {
 				utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 				return
 			}
-
-			existingUser.Id = id
-			existingUser.Name = userInfo.Name
-			existingUser.Surname = userInfo.Surname
-			existingUser.Email = userInfo.Email
+			existingUser = &models.User{
+				Id:       id,
+				Name:     userInfo.Name,
+				Surname:  userInfo.Surname,
+				Email:    userInfo.Email,
+				Role:     "student",
+				Verified: true,
+			}
 		} else {
 			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 			return
