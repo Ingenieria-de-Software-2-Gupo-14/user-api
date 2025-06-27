@@ -1243,8 +1243,8 @@ func TestUserController_GetAudits(t *testing.T) {
 
 	audit := models.Audit{
 		Id:                   2,
-		RuleId:               sql.NullInt64{1, true},
-		UserId:               sql.NullInt64{1, true},
+		RuleId:               sql.NullInt64{Int64: 1, Valid: true},
+		UserId:               sql.NullInt64{Int64: 1, Valid: true},
 		ModificationDate:     time.Time{},
 		NatureOfModification: "modification",
 	}

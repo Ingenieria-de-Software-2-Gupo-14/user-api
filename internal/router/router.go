@@ -69,10 +69,15 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.PUT("/users/:id", middleware.UserOrAdminMiddleware(deps.Services.UserService), deps.Controllers.UserController.ModifyUser)
 	r.GET("/users/:id", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.UserController.UserGetById)
 	r.GET("/users/:id/notifications", deps.Controllers.UserController.GetUserNotifications)
+	r.POST("/users/:id/notifications", deps.Controllers.UserController.SetUserNotifications)
 	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
 	r.PUT("/users/:id/block", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.BlockUserById)
-	r.PUT("/users/:id/password", deps.Controllers.UserController.ModifyUserPasssword)
+	r.PUT("/users/password", deps.Controllers.UserController.ModifyUserPasssword)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)
+	r.PUT("/users/:id/notifications/preference", deps.Controllers.UserController.ModifyNotifPreference)
+	r.GET("/users/:id/notifications/preference", deps.Controllers.UserController.GetNotifPreferences)
+	r.POST("/users/reset/password", deps.Controllers.UserController.PasswordReset)
+	r.GET("/users/reset/password", deps.Controllers.UserController.PasswordResetRedirect)
 
 	// Rules routes
 	r.POST("/rules", deps.Controllers.UserController.AddRule)
