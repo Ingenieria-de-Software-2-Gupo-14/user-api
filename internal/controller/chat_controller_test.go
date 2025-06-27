@@ -2,10 +2,13 @@ package controller
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	s "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -14,6 +17,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func setupTest(t *testing.T) (*s.MockChatService, *gin.Context, *httptest.ResponseRecorder, *ChatController) {
@@ -720,4 +724,74 @@ func TestChatController_RateMessage_Service_Fails(t *testing.T) {
 	err = json.Unmarshal(recorder.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedResponse, response)
+}
+
+// integration tests
+
+func setupIntegrationTest(db *sql.DB, t *testing.T) (*gin.Context, *httptest.ResponseRecorder, *ChatController) {
+	gin.SetMode(gin.TestMode)
+	service := s.NewChatsService(repositories.CreateChatsRepo(db))
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	userChat := NewChatsController(service)
+	return c, recorder, userChat
+}
+
+func TestChatController_GetMessages_IntegrationTest(t *testing.T) {
+	db, mockDb, _ := sqlmock.New()
+	c, recorder, userChat := setupIntegrationTest(db, t)
+	userId := 1
+	email := "test@test.com"
+	name := "test"
+	role := "user"
+	token, err := models.GenerateToken(userId, email, name, role)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/chat", nil)
+	req.AddCookie(&http.Cookie{
+		Name:  "Authorization",
+		Value: token,
+	})
+
+	// Assign request to context
+	c.Request = req
+
+	sinceDate := "2024-01-01"
+
+	expectedMessages := []models.ChatMessage{
+		{
+			MessageId: 1,
+			UserId:    userId,
+			Sender:    "user",
+			Message:   "test",
+			TimeSent:  sinceDate,
+			Rating:    0,
+			Feedback:  "",
+		},
+	}
+
+	rows := sqlmock.NewRows([]string{
+		"id", "user_id", "sender", "message", "time_sent", "rating", "feedback",
+	}).
+		AddRow(
+			expectedMessages[0].MessageId,
+			expectedMessages[0].UserId,
+			expectedMessages[0].Sender,
+			expectedMessages[0].Message,
+			expectedMessages[0].TimeSent,
+			expectedMessages[0].Rating,
+			expectedMessages[0].Feedback,
+		)
+
+	mockDb.ExpectQuery(`SELECT id, user_id, sender, message, time_sent, rating, feedback FROM ai_chat WHERE user_id = \$1 AND DATE\(time_sent\) >= \$2`).
+		WithArgs(userId, time.Now().AddDate(0, 0, -1).Format("2006-01-02")).
+		WillReturnRows(rows)
+
+	userChat.GetMessages(c)
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var response []models.ChatMessage
+	err = json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedMessages, response)
 }
