@@ -28,6 +28,7 @@ type UserRepository interface {
 	SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error
 	CheckPreference(ctx context.Context, id int, notificationType string) (bool, error)
 	GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error)
+	MakeTeacher(ctx context.Context, id int) error
 }
 
 type userRepository struct {
@@ -37,6 +38,11 @@ type userRepository struct {
 // CreateUserRepo creates and returns a database
 func CreateUserRepo(db *sql.DB) *userRepository {
 	return &userRepository{DB: db}
+}
+
+func (db userRepository) MakeTeacher(ctx context.Context, id int) error {
+	_, err := db.DB.ExecContext(ctx, "UPDATE users SET role = $1 where id = $2", "teacher", id)
+	return err
 }
 
 func (db userRepository) GetUser(ctx context.Context, id int) (*models.User, error) {

@@ -127,6 +127,23 @@ func TestUserService_DeleteUser(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestUserService_MakeTeacher(t *testing.T) {
+	// Arrange
+	mockRepo := repositories.NewMockUserRepository(t)
+	mockBlockedRepo := repositories.NewMockBlockedUserRepository(t)
+	mockEmail := services.NewMockEmailSender(t)
+	service := services.NewUserService(mockRepo, mockBlockedRepo, mockEmail)
+
+	ctx := context.Background()
+	mockRepo.EXPECT().MakeTeacher(ctx, 1).Return(nil)
+
+	// Act
+	err := service.MakeTeacher(ctx, 1)
+
+	// Assert
+	assert.NoError(t, err)
+}
+
 func TestUserService_ModifyUser(t *testing.T) {
 	// Arrange
 	mockRepo := repositories.NewMockUserRepository(t)

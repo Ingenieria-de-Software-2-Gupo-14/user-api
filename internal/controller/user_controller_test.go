@@ -1554,6 +1554,51 @@ func TestUserController_PasswordResetRedirect(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "<html>")
 }
 
+func TestMakeTeacher(t *testing.T) {
+	mockService, _, c, recorder, userController := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/users/1/teacher", nil)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mockService.On("MakeTeacher", c.Request.Context(), 1).Return(nil)
+
+	userController.MakeTeacher(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "User made teacher successfully", recorder.Body.String())
+}
+
+func TestMakeTeacher_InvalidID(t *testing.T) {
+	_, _, c, recorder, userController := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/users/a/teacher", nil)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "a"}}
+	c.Request = req
+
+	userController.MakeTeacher(c)
+
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "Invalid user ID format")
+}
+
+func TestMakeTeacher_ServiceError(t *testing.T) {
+	mockService, _, c, recorder, userController := setupTest(t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/users/1/teacher", nil)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Request = req
+
+	mockService.
+		On("MakeTeacher", c.Request.Context(), 1).
+		Return(errors.New("failed to promote user"))
+
+	userController.MakeTeacher(c)
+
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	mockService.AssertExpectations(t)
+}
+
 //integration tests
 
 func setupIntegrationTest(db *sql.DB, t *testing.T) (*s.MockEmailSender, *gin.Context, *httptest.ResponseRecorder, *controller.UserController) {
