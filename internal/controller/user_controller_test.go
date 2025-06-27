@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 	"github.com/dgrijalva/jwt-go"
@@ -1551,4 +1552,105 @@ func TestUserController_PasswordResetRedirect(t *testing.T) {
 	assert.Equal(t, http.StatusOK, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), "myapp://reset-password?token=abc123")
 	assert.Contains(t, recorder.Body.String(), "<html>")
+}
+
+//integration tests
+
+func setupIntegrationTest(db *sql.DB, t *testing.T) (*s.MockEmailSender, *gin.Context, *httptest.ResponseRecorder, *controller.UserController) {
+	gin.SetMode(gin.TestMode)
+	email := s.NewMockEmailSender(t)
+	userService := s.NewUserService(repositories.CreateUserRepo(db), repositories.NewBlockedUserRepository(db), email)
+	rulesService := s.NewRulesService(repositories.CreateRulesRepo(db))
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	userController := controller.CreateController(userService, rulesService)
+	return email, c, recorder, userController
+}
+
+func TestUsersGet_IntegrationTest(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	_, c, recorder, userController := setupIntegrationTest(db, t)
+
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/users", nil)
+
+	// Setup expected users
+	expectedUsers := []models.User{
+		{
+			Id:      1,
+			Name:    "Test1",
+			Surname: "User1",
+			Email:   "test1@example.com",
+		},
+	}
+
+	mock.ExpectQuery(`SELECT id, name, surname, password, email, location, role, profile_photo, description, created_at, updated_at FROM users`).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "name", "surname", "password", "email", "location", "role",
+			"profile_photo", "description", "created_at", "updated_at"}).
+			AddRow(expectedUsers[0].Id, expectedUsers[0].Name, expectedUsers[0].Surname, expectedUsers[0].Password, expectedUsers[0].Email, expectedUsers[0].Location, expectedUsers[0].Role,
+				expectedUsers[0].ProfilePhoto, expectedUsers[0].Description, expectedUsers[0].CreatedAt, expectedUsers[0].UpdatedAt))
+
+	// Call the function
+	userController.UsersGet(c)
+
+	// Check response
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var response struct {
+		Data []models.User `json:"data"`
+	}
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, len(expectedUsers), len(response.Data))
+	assert.Equal(t, expectedUsers[0].Id, response.Data[0].Id)
+	assert.Equal(t, expectedUsers[0].Name, response.Data[0].Name)
+}
+
+func TestUserController_GetRules_IntegrationTest(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	_, c, recorder, userController := setupIntegrationTest(db, t)
+
+	req, _ := http.NewRequest(http.MethodGet, "/rules", nil)
+
+	c.Request = req
+
+	now := time.Now()
+	expectedRules := []models.Rule{
+		{
+			Id:                   1,
+			Title:                "Rule A",
+			Description:          "First rule",
+			EffectiveDate:        now,
+			ApplicationCondition: "If condition A",
+		},
+	}
+
+	rows := sqlmock.NewRows([]string{
+		"id", "title", "description", "effective_date", "application_condition",
+	}).
+		AddRow(expectedRules[0].Id, expectedRules[0].Title, expectedRules[0].Description, expectedRules[0].EffectiveDate, expectedRules[0].ApplicationCondition)
+
+	mock.ExpectQuery(`SELECT id, title, description, effective_date, application_condition FROM rules`).
+		WillReturnRows(rows)
+
+	userController.GetRules(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var response map[string]interface{}
+	err := json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	expected := map[string]interface{}{
+		"data": []interface{}{
+			map[string]interface{}{
+				"id":                   float64(expectedRules[0].Id),
+				"Title":                expectedRules[0].Title,
+				"Description":          expectedRules[0].Description,
+				"effectiveDate":        expectedRules[0].EffectiveDate.Format(time.RFC3339Nano), // if formatted as string
+				"ApplicationCondition": expectedRules[0].ApplicationCondition,
+			},
+		},
+	}
+	assert.Equal(t, expected, response)
 }
