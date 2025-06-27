@@ -60,7 +60,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 
 	r.Use(telemetry.MetricsMiddleware(deps.Clients.TelemetryClient))
 
-	r.GET("/health")
+	r.GET("/health", Health(deps))
 
 	//preflight options route
 	r.OPTIONS("/*path", func(c *gin.Context) {
