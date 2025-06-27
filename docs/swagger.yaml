@@ -502,7 +502,7 @@ paths:
       summary: Sends a new Verification
       tags:
       - Auth
-  /auth/verify-token:
+  /auth/verify:
     get:
       consumes:
       - application/json

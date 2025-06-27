@@ -353,7 +353,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/verify-token": {
+        "/auth/verify": {
             "get": {
                 "description": "Verifies the JWT token and returns a success message if valid",
                 "consumes": [

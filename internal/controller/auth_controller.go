@@ -353,7 +353,7 @@ func (ac *AuthController) ResendPin(c *gin.Context) {
 // @Produce      json
 // @Success      200  {object}  map[string]string  "Token is valid"
 // @Failure      401  {object}  utils.HTTPError "Invalid or expired token"
-// @Router       /auth/verify-token [get]
+// @Router       /auth/verify [get]
 func (ac *AuthController) VerifyToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Token is valid"})
 }
