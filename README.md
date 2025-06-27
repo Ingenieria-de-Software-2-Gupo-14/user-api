@@ -4,7 +4,14 @@
 
 ## Descripción
 
-go-template es un proyecto de ejemplo de go que utiliza Docker y Docker Compose para crear un entorno de desarrollo y despliegue.
+Api enfocada en manejo de data relacionada a usuario de una aplicacion 
+
+Para correr esta aplciacion es necesario:
+
+- Goland 1.24
+- Docker
+- DockerCompose
+- Posgresql
 
 
 ## Guía de Uso
