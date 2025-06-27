@@ -30,6 +30,10 @@ var (
 	ErrJWTValidation    = jwt.NewValidationError("invalid signing method", jwt.ValidationErrorSignatureInvalid)
 )
 
+type AuthRequest struct {
+	Token string `json:"token"`
+}
+
 func ValidateGoogleToken(ctx context.Context, token string) (CreateUserRequest, error) {
 	var ok bool
 	user := CreateUserRequest{

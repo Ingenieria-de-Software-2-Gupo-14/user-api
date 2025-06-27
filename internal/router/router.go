@@ -14,6 +14,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Health godoc
+// @Summary      Health check
+// @Description  Check the health of the service and database connection
+// @Tags         Health
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Router       /health [get]
+func Health(deps *Dependencies) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if err := deps.DB.Ping(); err != nil {
+			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{"stats": deps.DB.Stats()})
+	}
+}
+
 // CreateRouter creates and return a Router with its corresponding end points
 func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r := gin.Default()
@@ -40,14 +60,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 
 	r.Use(telemetry.MetricsMiddleware(deps.Clients.TelemetryClient))
 
-	r.GET("/health", func(ctx *gin.Context) {
-		if err := deps.DB.Ping(); err != nil {
-			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
-			return
-		}
-
-		ctx.JSON(http.StatusOK, gin.H{"stats": deps.DB.Stats()})
-	})
+	r.GET("/health")
 
 	//preflight options route
 	r.OPTIONS("/*path", func(c *gin.Context) {
@@ -63,6 +76,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	auth.POST("/login", deps.Controllers.AuthController.Login)
 	auth.GET("/logout", deps.Controllers.AuthController.Logout)
 	auth.PUT("/users/verify/resend", deps.Controllers.AuthController.ResendPin)
+	auth.GET("/verify", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.AuthController.VerifyToken)
 
 	// User routes
 	r.GET("/users", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.UserController.UsersGet)

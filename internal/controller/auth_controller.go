@@ -13,8 +13,6 @@ import (
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 
 	"github.com/gin-gonic/gin"
-	"github.com/markbates/goth/gothic"
-	"golang.org/x/net/context"
 )
 
 type AuthController struct {
@@ -246,18 +244,15 @@ func (ac *AuthController) Login(c *gin.Context) {
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        request body AuthRequest true "Google OAuth2 Token"
+// @Param        request body models.AuthRequest true "Google OAuth2 Token"
 // @Success      200  {object}   map[string]interface{}
 // @Failure      400  {object}   utils.HTTPError
 // @Failure      401  {object}   utils.HTTPError
 // @Failure      500  {object}   utils.HTTPError
 // @Router       /auth/google [post]
 func (ac *AuthController) GoogleAuth(c *gin.Context) {
-	type AuthRequest struct {
-		Token string `json:"token"`
-	}
 
-	var request AuthRequest
+	var request models.AuthRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		utils.ErrorResponseWithErr(c, http.StatusBadRequest, err)
 		return
@@ -289,58 +284,6 @@ func (ac *AuthController) GoogleAuth(c *gin.Context) {
 				Role:     "student",
 				Verified: true,
 			}
-		} else {
-			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	ac.finishAuth(c, *existingUser)
-}
-
-// CompleteAuth godoc
-//
-// @Summary      Complete authentication
-// @Description  Complete authentication with the specified provider
-// @Tags         Auth
-// @Accept       json
-// @Produce      json
-// @Param        provider  path      string  true  "Provider name"
-// @Success      200  {object}   map[string]interface{}
-// @Failure      400  {object}   utils.HTTPError
-// @Failure      401  {object}   utils.HTTPError
-// @Failure      500  {object}   utils.HTTPError
-// @Router       /auth/{provider}/callback [get]
-func (ac *AuthController) CompleteAuth(c *gin.Context) {
-	ctx := context.WithValue(c.Request.Context(), "provider", c.Param("provider"))
-	user, err := gothic.CompleteUserAuth(c.Writer, c.Request.WithContext(ctx))
-	if err != nil {
-		utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	existingUser, err := ac.userRepo.GetUserByEmail(ctx, user.Email)
-	if err != nil {
-		// User not found, create a new one
-		if errors.Is(err, repositories.ErrNotFound) {
-			newUser := models.CreateUserRequest{
-				Name:     user.Name,
-				Surname:  user.LastName,
-				Email:    user.Email,
-				Role:     "student",
-				Verified: true,
-			}
-
-			id, err := ac.userRepo.CreateUser(ctx, newUser)
-			if err != nil {
-				utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
-				return
-			}
-
-			existingUser.Id = id
-			existingUser.Name = user.Name
-			existingUser.Surname = user.LastName
-			existingUser.Email = user.Email
 		} else {
 			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
 			return
@@ -400,4 +343,17 @@ func (ac *AuthController) ResendPin(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, nil)
+}
+
+// VerifyToken godoc
+// @Summary      Verify a JWT token
+// @Description  Verifies the JWT token and returns a success message if valid
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  map[string]string  "Token is valid"
+// @Failure      401  {object}  utils.HTTPError "Invalid or expired token"
+// @Router       /auth/verify-token [get]
+func (ac *AuthController) VerifyToken(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{"message": "Token is valid"})
 }

@@ -1,9 +1,4 @@
 definitions:
-  controller.AuthRequest:
-    properties:
-      token:
-        type: string
-    type: object
   models.AuditData:
     properties:
       id:
@@ -16,6 +11,11 @@ definitions:
         type: integer
       userId:
         type: integer
+    type: object
+  models.AuthRequest:
+    properties:
+      token:
+        type: string
     type: object
   models.ChatFeedbackRequest:
     properties:
@@ -284,40 +284,6 @@ info:
   title: User API
   version: "1.0"
 paths:
-  /auth/{provider}/callback:
-    get:
-      consumes:
-      - application/json
-      description: Complete authentication with the specified provider
-      parameters:
-      - description: Provider name
-        in: path
-        name: provider
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.HTTPError'
-      summary: Complete authentication
-      tags:
-      - Auth
   /auth/admins:
     post:
       consumes:
@@ -365,7 +331,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/controller.AuthRequest'
+          $ref: '#/definitions/models.AuthRequest'
       produces:
       - application/json
       responses:
@@ -536,6 +502,27 @@ paths:
       summary: Sends a new Verification
       tags:
       - Auth
+  /auth/verify-token:
+    get:
+      consumes:
+      - application/json
+      description: Verifies the JWT token and returns a success message if valid
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token is valid
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid or expired token
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Verify a JWT token
+      tags:
+      - Auth
   /chat:
     get:
       consumes:
@@ -644,6 +631,27 @@ paths:
       summary: Add rating to a message
       tags:
       - Chat
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Check the health of the service and database connection
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+      - Health
   /rules:
     get:
       consumes:
@@ -1005,6 +1013,35 @@ paths:
           schema:
             $ref: '#/definitions/utils.HTTPError'
       summary: Set a notification token to users
+      tags:
+      - Users
+  /users/{id}/teacher:
+    put:
+      consumes:
+      - application/json
+      description: makes the user role "teacher"
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: User blocked successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid user ID format
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.HTTPError'
+      summary: Make a user a "teacher"
       tags:
       - Users
   /users/block/{id}:
