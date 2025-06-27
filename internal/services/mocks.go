@@ -1332,6 +1332,52 @@ func (_c *MockUserService_IsUserBlocked_Call) RunAndReturn(run func(ctx context.
 	return _c
 }
 
+// MakeTeacher provides a mock function for the type MockUserService
+func (_mock *MockUserService) MakeTeacher(ctx context.Context, id int) error {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MakeTeacher")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockUserService_MakeTeacher_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MakeTeacher'
+type MockUserService_MakeTeacher_Call struct {
+	*mock.Call
+}
+
+// MakeTeacher is a helper method to define mock.On call
+//   - ctx
+//   - id
+func (_e *MockUserService_Expecter) MakeTeacher(ctx interface{}, id interface{}) *MockUserService_MakeTeacher_Call {
+	return &MockUserService_MakeTeacher_Call{Call: _e.mock.On("MakeTeacher", ctx, id)}
+}
+
+func (_c *MockUserService_MakeTeacher_Call) Run(run func(ctx context.Context, id int)) *MockUserService_MakeTeacher_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockUserService_MakeTeacher_Call) Return(err error) *MockUserService_MakeTeacher_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockUserService_MakeTeacher_Call) RunAndReturn(run func(ctx context.Context, id int) error) *MockUserService_MakeTeacher_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ModifyPassword provides a mock function for the type MockUserService
 func (_mock *MockUserService) ModifyPassword(ctx context.Context, id int, password string) error {
 	ret := _mock.Called(ctx, id, password)

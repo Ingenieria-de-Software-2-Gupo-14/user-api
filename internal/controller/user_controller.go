@@ -156,6 +156,31 @@ func (c UserController) BlockUserById(context *gin.Context) {
 	context.String(http.StatusOK, "User blocked successfully")
 }
 
+// MakeTeacher godoc
+// @Summary      Make a user a "teacher"
+// @Description  makes the user role "teacher"
+// @Tags         Users
+// @Accept       json
+// @Produce      plain
+// @Param        id   path      int  true  "User ID"
+// @Success      200  {string}  string  "User blocked successfully"
+// @Failure      400  {object}  utils.HTTPError  "Invalid user ID format"
+// @Failure      500  {object}  utils.HTTPError  "Internal server error"
+// @Router       /users/{id}/teacher [put]
+func (c UserController) MakeTeacher(context *gin.Context) {
+	var id, err = strconv.Atoi(context.Param("id"))
+	if err != nil {
+		utils.ErrorResponse(context, http.StatusBadRequest, "Invalid user ID format")
+		return
+	}
+
+	if err := c.service.MakeTeacher(context.Request.Context(), id); err != nil {
+		utils.ErrorResponseWithErr(context, http.StatusInternalServerError, err)
+		return
+	}
+	context.String(http.StatusOK, "User made teacher successfully")
+}
+
 // ModifyUserPasssword godoc
 // @Summary      Modify user password
 // @Description  Updates the password of a specific user

@@ -327,6 +327,21 @@ func TestDatabase_ModifyPassword(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestDatabase_MakeTeacher(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectExec(`UPDATE users SET role = \$1 where id = \$2`).WithArgs("teacher", 1).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	ctx := context.Background()
+
+	database := CreateUserRepo(db)
+
+	err = database.MakeTeacher(ctx, 1)
+	assert.NoError(t, err)
+}
+
 func TestUserRepository_AddNotificationToken(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)

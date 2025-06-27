@@ -42,6 +42,7 @@ type UserService interface {
 	SetNotificationPreference(ctx context.Context, id int, preference models.NotificationPreferenceRequest) error
 	CheckPreference(ctx context.Context, id int, notificationType string) (bool, error)
 	GetNotificationPreference(ctx context.Context, id int) (*models.NotificationPreference, error)
+	MakeTeacher(ctx context.Context, id int) error
 }
 
 type userService struct {
@@ -52,6 +53,10 @@ type userService struct {
 
 func NewUserService(userRepo repo.UserRepository, blockedUserRepo repo.BlockedUserRepository, emailClient EmailSender) *userService {
 	return &userService{userRepo: userRepo, blockUserRepo: blockedUserRepo, emailClient: emailClient}
+}
+
+func (s *userService) MakeTeacher(ctx context.Context, id int) error {
+	return s.userRepo.MakeTeacher(ctx, id)
 }
 
 func (s *userService) DeleteUser(ctx context.Context, id int) error {

@@ -72,6 +72,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.POST("/users/:id/notifications", deps.Controllers.UserController.SetUserNotifications)
 	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
 	r.PUT("/users/:id/block", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.BlockUserById)
+	r.PUT("/users/:id/teacher", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.MakeTeacher)
 	r.PUT("/users/password", deps.Controllers.UserController.ModifyUserPasssword)
 	r.POST("/users/notify", deps.Controllers.UserController.NotifyUsers)
 	r.PUT("/users/:id/notifications/preference", deps.Controllers.UserController.ModifyNotifPreference)
