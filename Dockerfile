@@ -11,9 +11,6 @@ RUN go mod download
 # Copiar el código fuente
 COPY . .
 
-# Copiar el archivo .env
-COPY .env .env
-
 # Construir el binario
 RUN go build -o main ./cmd/api
 

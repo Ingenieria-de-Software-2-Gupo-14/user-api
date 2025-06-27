@@ -8,8 +8,6 @@ import (
 	_ "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/docs"
 	apiconfig "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/config"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/router"
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/providers/google"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -38,9 +36,6 @@ import (
 func main() {
 	config := apiconfig.LoadConfig() // lee las variables de entorno
 	ctx := context.Background()
-	goth.UseProviders(
-		google.New(config.GoogleKey, config.GoogleSecret, "http://localhost:8080/auth/google/callback"),
-	)
 
 	router.SetEnviroment(config.Environment)
 

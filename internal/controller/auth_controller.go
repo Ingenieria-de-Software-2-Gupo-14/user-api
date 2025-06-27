@@ -129,7 +129,6 @@ func (ac *AuthController) VerifyRegistration(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request format")
 	}
 
-	println(request.VerificationPin)
 	parts := strings.Split(request.VerificationPin, "-")
 	if len(parts) != 2 {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid verification pin format")
@@ -240,26 +239,60 @@ func (ac *AuthController) Login(c *gin.Context) {
 	ac.finishAuth(c, *user)
 }
 
-// BeginAuth godoc
+// GoogleAuth godoc
 //
-// @Summary      Begin authentication
-// @Description  Begin authentication with the specified provider
+// @Summary      Authenticate with Google
+// @Description  Authenticate a user using Google OAuth2
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        provider  path      string  true  "Provider name"
+// @Param        request body AuthRequest true "Google OAuth2 Token"
 // @Success      200  {object}   map[string]interface{}
 // @Failure      400  {object}   utils.HTTPError
 // @Failure      401  {object}   utils.HTTPError
 // @Failure      500  {object}   utils.HTTPError
-// @Router       /auth/{provider} [get]
-func (ac *AuthController) BeginAuth(c *gin.Context) {
-	provider := c.Param("provider")
-	ctx := context.WithValue(c.Request.Context(), "provider", provider)
-	r := c.Request.WithContext(ctx)
+// @Router       /auth/google [post]
+func (ac *AuthController) GoogleAuth(c *gin.Context) {
+	type AuthRequest struct {
+		Token string `json:"token"`
+	}
 
-	gothic.BeginAuthHandler(c.Writer, r)
+	var request AuthRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusBadRequest, err)
+		return
+	}
 
+	ctx := c.Request.Context()
+
+	userInfo, err := models.ValidateGoogleToken(ctx, request.Token)
+	if err != nil {
+		utils.ErrorResponseWithErr(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	existingUser, err := ac.userRepo.GetUserByEmail(ctx, userInfo.Email)
+	if err != nil {
+		// User not found, create a new one
+		if errors.Is(err, repositories.ErrNotFound) {
+
+			id, err := ac.userRepo.CreateUser(ctx, userInfo)
+			if err != nil {
+				utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+				return
+			}
+
+			existingUser.Id = id
+			existingUser.Name = userInfo.Name
+			existingUser.Surname = userInfo.Surname
+			existingUser.Email = userInfo.Email
+		} else {
+			utils.ErrorResponseWithErr(c, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	ac.finishAuth(c, *existingUser)
 }
 
 // CompleteAuth godoc

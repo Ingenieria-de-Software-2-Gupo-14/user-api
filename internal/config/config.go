@@ -45,7 +45,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 // LoadConfig loads environment variables a Config Struct containing relevant variables
 func LoadConfig() Config {
 	if err := godotenv.Load(); err != nil {
-		log.Warn(context.Background(), "No .env file found, loading environment variables from the system")
+		log.Debug(context.Background(), "No .env file found, loading environment variables from the system")
 	}
 
 	dbUrl := os.Getenv("DATABASE_URL")
@@ -97,6 +97,6 @@ func (config *Config) CreateDatadogClient() (telemetry.Client, error) {
 		return telemetry.NewDatadog(config.DatadogHost+":"+config.DatadogStatsdPort, statsd.WithTags([]string{"application:" + "user-api"}))
 
 	default:
-		return nil, nil
+		return telemetry.DefaultClient, nil
 	}
 }
