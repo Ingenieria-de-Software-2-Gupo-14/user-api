@@ -6,12 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	repo "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/sendgrid/rest"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
@@ -39,6 +42,140 @@ func setupTestAuth(t *testing.T) (*services.MockUserService, *services.MockLogin
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
 	return mockUserService, mockLoginAttemptService, mockVerificationService, c, recorder, controller
+}
+
+func setupIntegrationTestAuth(db *sql.DB, t *testing.T) (*gin.Context, *httptest.ResponseRecorder, *AuthController, *services.MockEmailSender) {
+	gin.SetMode(gin.TestMode)
+	email := services.NewMockEmailSender(t)
+	repoBlocked := repo.NewBlockedUserRepository(db)
+	userService := services.NewUserService(repo.CreateUserRepo(db), repoBlocked, email)
+	loginAttemptService := services.NewLoginAttemptService(repo.NewLoginAttemptRepository(db), repoBlocked)
+	verificationService := services.NewVerificationService(repo.CreateVerificationRepo(db), email)
+
+	controller := NewAuthController(userService, loginAttemptService, verificationService)
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	return c, recorder, controller, email
+}
+
+func TestLogin_IntegrationTest(t *testing.T) {
+	db, mock, _ := sqlmock.New()
+	c, recorder, controller, _ := setupIntegrationTestAuth(db, t)
+
+	password := "testsPassword"
+	hashedPassword, err := utils.HashPassword(password)
+	require.NoError(t, err)
+
+	user := &models.User{
+		Id:       1,
+		Email:    "test@example.com",
+		Password: hashedPassword,
+		Name:     "Test User",
+		Role:     "user",
+		Blocked:  false,
+		Verified: true,
+	}
+
+	request := models.LoginRequest{
+		Email:    user.Email,
+		Password: password,
+	}
+
+	jsonBody, _ := json.Marshal(request)
+	req := httptest.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.RemoteAddr = "127.0.0.1"
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+
+	c.Request = req
+
+	mock.ExpectQuery(`SELECT\s+u\.id,\s*u\.name`).
+		WithArgs(user.Email).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "name", "surname", "password", "email", "location", "role", "verified",
+			"profile_photo", "description", "created_at", "updated_at", "blocked"}).
+			AddRow(user.Id, user.Name, user.Name, user.Password, user.Email, user.Location, user.Role, user.Verified,
+				user.ProfilePhoto, user.Description, user.CreatedAt, user.UpdatedAt, user.Blocked))
+
+	mock.ExpectExec(`INSERT INTO login_attempts \(user_id, ip_address, user_agent, successful, created_at\) VALUES \(\$1, \$2, \$3, \$4, \$5\)`).
+		WithArgs(user.Id, "127.0.0.1", "Mozilla/5.0", true, sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	controller.Login(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+
+	var response map[string]string
+	err = json.Unmarshal(recorder.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, response["token"])
+}
+
+func TestResendPin_IntegrationTest(t *testing.T) {
+	db, mockDb, _ := sqlmock.New()
+	c, recorder, controller, mockEmail := setupIntegrationTestAuth(db, t)
+
+	password := "testsPassword"
+	hashedPassword, err := utils.HashPassword(password)
+	require.NoError(t, err)
+
+	user := &models.User{
+		Id:       1,
+		Email:    "test@example.com",
+		Password: hashedPassword,
+		Name:     "Test User",
+		Role:     "user",
+		Blocked:  false,
+		Verified: true,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/users/verify/resend?email="+"test@example.com", nil)
+	c.Request = req
+
+	mockDb.ExpectQuery(`SELECT\s+u\.id,\s*u\.name`).
+		WithArgs(user.Email).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "name", "surname", "password", "email", "location", "role", "verified",
+			"profile_photo", "description", "created_at", "updated_at", "blocked"}).
+			AddRow(user.Id, user.Name, user.Name, user.Password, user.Email, user.Location, user.Role, user.Verified,
+				user.ProfilePhoto, user.Description, user.CreatedAt, user.UpdatedAt, user.Blocked))
+
+	now := time.Now()
+	expected := &models.UserVerification{
+		Id:              1,
+		UserId:          user.Id,
+		UserEmail:       user.Email,
+		VerificationPin: "123456",
+		PinExpiration:   now.Add(10 * time.Minute),
+		CreatedAt:       now,
+	}
+
+	mockDb.ExpectQuery(`SELECT id, user_id, user_email, verification_pin, pin_expiration, created_at FROM verification
+		WHERE user_email ILIKE \$1`).
+		WithArgs(user.Email).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "user_id", "user_email", "verification_pin", "pin_expiration", "created_at",
+		}).AddRow(
+			expected.Id,
+			expected.UserId,
+			expected.UserEmail,
+			expected.VerificationPin,
+			expected.PinExpiration,
+			expected.CreatedAt,
+		))
+
+	mockDb.ExpectExec(`UPDATE verification SET verification_pin = \$2, pin_expiration = \$3 WHERE id = \$1`).
+		WithArgs(expected.Id, sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	mockEmail.On("Send", mock.AnythingOfType("*mail.SGMailV3")).
+		Return(&rest.Response{StatusCode: 202}, nil)
+
+	controller.ResendPin(c)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, "application/json; charset=utf-8", recorder.Header().Get("Content-Type"))
+	assert.JSONEq(t, `null`, recorder.Body.String())
 }
 
 func TestRegister(t *testing.T) {
