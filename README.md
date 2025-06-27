@@ -25,6 +25,10 @@ DD_SITE="us5.datadoghq.com"
 DD_API_KEY=""
 DD_AGENT_HOST=""
 DD_AGENT_STATSD_PORT=""
+EMAIL_API_KEY = ""
+CHAT_GPT_KEY = ""
+FCM_PROJECT_ID = ""
+FIREBASE_SERVICE_ACCOUNT = ""
 ```
 
 - PORT: Puerto en el que se ejecutará el servidor.
@@ -41,6 +45,10 @@ DD_AGENT_STATSD_PORT=""
 - DD_API_KEY: API Key de Datadog.
 - DD_AGENT_HOST: Host del agente de Datadog.
 - DD_AGENT_STATSD_PORT: Puerto del agente de Datadog.
+- EMAIL_API_KEY: API Key para el servicio de emails
+- CHAT_GPT_KEY: API Key de ChatGPT
+- FCM_PROJECT_ID: id del projecto en Firebase
+- FIREBASE_SERVICE_ACCOUNT: secrets necesarios para el uso del sistema de messaging de firebase
 
 ### Correr local
 
