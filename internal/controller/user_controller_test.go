@@ -6,15 +6,16 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
-	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/controller"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
@@ -947,6 +948,14 @@ func TestUserController_AddRule(t *testing.T) {
 		Value: token,
 	})
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	mockRulesService.EXPECT().CreateRule(c, request, userId).Return(nil)
 
@@ -967,11 +976,6 @@ func TestUserController_AddRule_InvalidToken(t *testing.T) {
 	controller.AddRule(c)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-
-	var resp utils.HTTPError
-	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
-	assert.NoError(t, err)
-	assert.Contains(t, resp.Error, "token") // depends on ParseToken behavior
 }
 
 func TestAddRule_InvalidUserIDInToken(t *testing.T) {
@@ -1012,6 +1016,14 @@ func TestAddRule_InvalidJSONBody(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: "email",
+		Name:  "name",
+		Role:  "role",
+	})
 
 	controller.AddRule(c)
 
@@ -1040,6 +1052,14 @@ func TestAddRule_CreateRuleFails(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: "email",
+		Name:  "name",
+		Role:  "role",
+	})
 
 	mockRulesService.EXPECT().
 		CreateRule(c, request, userId).
@@ -1075,6 +1095,14 @@ func TestUserController_DeleteRule(t *testing.T) {
 	})
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	mockRulesService.EXPECT().DeleteRule(c, ruleId, userId).Return(nil)
 
@@ -1113,11 +1141,6 @@ func TestDeleteRule_InvalidToken(t *testing.T) {
 	controller.DeleteRule(c)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-
-	var resp utils.HTTPError
-	err := json.Unmarshal(recorder.Body.Bytes(), &resp)
-	assert.NoError(t, err)
-	assert.Contains(t, resp.Error, "token") // Depends on `ParseToken` message
 }
 
 func TestDeleteRule_InvalidUserIDInToken(t *testing.T) {
@@ -1160,6 +1183,11 @@ func TestDeleteRule_ServiceFails(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
 	c.Request = req
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+	})
 
 	mockRulesService.
 		EXPECT().
@@ -1308,6 +1336,14 @@ func TestUserController_ModifyRule(t *testing.T) {
 	})
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	mockRulesService.EXPECT().ModifyRule(c.Request.Context(), ruleId, request, userId).Return(nil)
 
@@ -1380,6 +1416,11 @@ func TestModifyRule_InvalidJSON(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(1),
+		},
+	})
 
 	controller.ModifyRule(c)
 
@@ -1402,6 +1443,11 @@ func TestModifyRule_ServiceError(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: "Authorization", Value: token})
 	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+	})
 
 	mockRulesService.EXPECT().
 		ModifyRule(c.Request.Context(), ruleId, body, userId).

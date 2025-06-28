@@ -2,11 +2,11 @@ package controller
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
-	"strings"
 
+	"github.com/Ingenieria-de-Software-2-Gupo-14/go-core/pkg/log"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
 	services "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
@@ -34,6 +34,7 @@ func CreateController(service services.UserService, ruleService services.RulesSe
 // @Success      200  {object}  map[string][]models.User  "List of users"
 // @Failure      500  {object}  utils.HTTPError          "Internal server error"
 // @Router       /users [get]
+// @Security Bearer
 func (c UserController) UsersGet(context *gin.Context) {
 	users, err := c.service.GetAllUsers(context.Request.Context())
 	if err != nil {
@@ -55,6 +56,7 @@ func (c UserController) UsersGet(context *gin.Context) {
 // @Failure      400  {object}  utils.HTTPError        "Invalid user ID format"
 // @Failure      404  {object}  utils.HTTPError        "User not found"
 // @Router       /users/{id} [get]
+// @Security Bearer
 func (c UserController) UserGetById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
@@ -82,6 +84,7 @@ func (c UserController) UserGetById(context *gin.Context) {
 // @Failure      400  {object}  utils.HTTPError  "Invalid user ID format"
 // @Failure      500  {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/{id} [delete]
+// @Security Bearer
 func (controller UserController) UserDeleteById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
@@ -108,6 +111,7 @@ func (controller UserController) UserDeleteById(context *gin.Context) {
 // @Failure      400   {object}  utils.HTTPError        "Invalid user ID format or request format"
 // @Failure      500   {object}  utils.HTTPError        "Internal server error"
 // @Router       /users/{id} [put]
+// @Security Bearer
 func (c UserController) ModifyUser(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
@@ -140,6 +144,7 @@ func (c UserController) ModifyUser(context *gin.Context) {
 // @Failure      400  {object}  utils.HTTPError  "Invalid user ID format"
 // @Failure      500  {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/block/{id} [put]
+// @Security Bearer
 func (c UserController) BlockUserById(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
@@ -167,6 +172,7 @@ func (c UserController) BlockUserById(context *gin.Context) {
 // @Failure      400  {object}  utils.HTTPError  "Invalid user ID format"
 // @Failure      500  {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/{id}/teacher [put]
+// @Security Bearer
 func (c UserController) MakeTeacher(context *gin.Context) {
 	var id, err = strconv.Atoi(context.Param("id"))
 	if err != nil {
@@ -224,7 +230,7 @@ func (c UserController) ModifyUserPasssword(ctx *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        NotificationToken  body  models.NotifyRequest true  "NotificationToken payload"
-// @Success      200       {object}  nil          "Users notified successfully"
+// @Success      204       {object}  nil          "Users notified successfully"
 // @Failure      400       {object}  utils.HTTPError  "Invalid request"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
 // @Router       /users/notify [post]
@@ -235,12 +241,11 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 		return
 	}
 	cont := ctx.Request.Context()
-	log.Println("notification")
-	log.Println(notifyRequest.Users)
+	log.Debug(ctx, "notification", slog.Any("request", notifyRequest.Users))
 	for _, userID := range notifyRequest.Users {
-		log.Printf("user id: %d", userID)
 		preference, err := c.service.CheckPreference(cont, userID, notifyRequest.NotificationType)
-		if preference == false || err != nil {
+		if !preference || err != nil {
+			log.Debug(ctx, "user preference not set or error", slog.Int("userID", userID), slog.Any("error", err))
 			continue
 		}
 		errMobile := c.service.SendNotifByMobile(cont, userID, notifyRequest)
@@ -248,14 +253,14 @@ func (c UserController) NotifyUsers(ctx *gin.Context) {
 			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMobile)
 			continue
 		}
-		log.Printf("notif")
-		errMail := c.service.SendNotifByEmail(cont, userID, notifyRequest)
 
+		log.Debug(ctx, "notification sent to mobile", slog.Int("userID", userID))
+		errMail := c.service.SendNotifByEmail(cont, userID, notifyRequest)
 		if errMail != nil {
 			utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, errMail)
 			continue
 		}
-		log.Printf("email")
+		log.Debug(ctx, "notification sent to email", slog.Int("userID", userID))
 	}
 	ctx.JSON(http.StatusOK, nil)
 }
@@ -359,9 +364,9 @@ func (c UserController) PasswordReset(ctx *gin.Context) {
 // @Failure      400  {object}  utils.HTTPError "Invalid request format"
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /rules [post]
+// @Security Bearer
 func (c UserController) AddRule(ctx *gin.Context) {
-	tokenStr := GetAuthToken(ctx)
-	claims, err := models.ParseToken(tokenStr)
+	claims, err := models.GetClaimsFromGinContext(ctx)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -395,14 +400,15 @@ func (c UserController) AddRule(ctx *gin.Context) {
 // @Failure      400  {object}  utils.HTTPError  "Invalid user ID format"
 // @Failure      500  {object}  utils.HTTPError  "Internal server error"
 // @Router       /rules/{id} [delete]
+// @Security Bearer
 func (c UserController) DeleteRule(ctx *gin.Context) {
 	var id, err = strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	tokenStr := GetAuthToken(ctx)
-	claims, err := models.ParseToken(tokenStr)
+
+	claims, err := models.GetClaimsFromGinContext(ctx)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -429,6 +435,7 @@ func (c UserController) DeleteRule(ctx *gin.Context) {
 // @Success      200  {object}  map[string][]models.Rule  "List of rules"
 // @Failure      500  {object}  utils.HTTPError          "Internal server error"
 // @Router       /rules [get]
+// @Security Bearer
 func (c UserController) GetRules(ctx *gin.Context) {
 	rules, err := c.ruleService.GetRules(ctx)
 	if err != nil {
@@ -447,6 +454,7 @@ func (c UserController) GetRules(ctx *gin.Context) {
 // @Success      200  {object}  map[string][]models.AuditData  "List of audits"
 // @Failure      500  {object}  utils.HTTPError          "Internal server error"
 // @Router       /rules/audit [get]
+// @Security Bearer
 func (c UserController) GetAudits(ctx *gin.Context) {
 	audits, err := c.ruleService.GetAudits(ctx)
 	if err != nil {
@@ -467,14 +475,15 @@ func (c UserController) GetAudits(ctx *gin.Context) {
 // @Failure      400       {object}  utils.HTTPError  "Invalid user ID format or request"
 // @Failure      500       {object}  utils.HTTPError  "Internal server error"
 // @Router       /rules/{id} [put]
+// @Security Bearer
 func (c UserController) ModifyRule(ctx *gin.Context) {
 	var id, err = strconv.Atoi(ctx.Param("id"))
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	tokenStr := GetAuthToken(ctx)
-	claims, err := models.ParseToken(tokenStr)
+
+	claims, err := models.GetClaimsFromGinContext(ctx)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -579,14 +588,4 @@ func (c UserController) PasswordResetRedirect(ctx *gin.Context) {
 	`, deepLink, deepLink, deepLink)
 
 	ctx.Data(http.StatusOK, "text/html; charset=utf-8", []byte(html))
-}
-
-func GetAuthToken(c *gin.Context) string {
-	auth, _ := c.Cookie("Authorization")
-	if auth == "" {
-		if parts := strings.Fields(c.GetHeader("Authorization")); len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-			auth = parts[1]
-		}
-	}
-	return auth
 }

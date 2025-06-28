@@ -26,6 +26,11 @@ const docTemplate = `{
     "paths": {
         "/auth/admins": {
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Registers a new Admin",
                 "consumes": [
                     "application/json"
@@ -355,10 +360,12 @@ const docTemplate = `{
         },
         "/auth/verify": {
             "get": {
-                "description": "Verifies the JWT token and returns a success message if valid",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "Bearer": []
+                    }
                 ],
+                "description": "Verifies the JWT token and returns a success message if valid",
                 "produces": [
                     "application/json"
                 ],
@@ -366,6 +373,15 @@ const docTemplate = `{
                     "Auth"
                 ],
                 "summary": "Verify a JWT token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Token is valid",
@@ -387,6 +403,11 @@ const docTemplate = `{
         },
         "/chat": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Gets The messages of the last 2 days",
                 "consumes": [
                     "application/json"
@@ -417,6 +438,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Send a new message to the assitant",
                 "consumes": [
                     "application/json"
@@ -463,6 +489,11 @@ const docTemplate = `{
         },
         "/chat/{message_id}/feedback": {
             "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Add feedback to a message so the ai can better generate a response",
                 "consumes": [
                     "application/json"
@@ -507,6 +538,11 @@ const docTemplate = `{
         },
         "/chat/{message_id}/rate": {
             "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Add rating to a message beteween 1 and 5",
                 "consumes": [
                     "application/json"
@@ -582,6 +618,11 @@ const docTemplate = `{
         },
         "/rules": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Returns a list of all rules in the system",
                 "consumes": [
                     "application/json"
@@ -615,6 +656,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Create a new rule",
                 "consumes": [
                     "application/json"
@@ -658,6 +704,11 @@ const docTemplate = `{
         },
         "/rules/audit": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Returns a list of all audits in the system",
                 "consumes": [
                     "application/json"
@@ -693,6 +744,11 @@ const docTemplate = `{
         },
         "/rules/{id}": {
             "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Updates the contents of a rule",
                 "consumes": [
                     "application/json"
@@ -738,6 +794,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Removes a user from the database",
                 "consumes": [
                     "application/json"
@@ -779,6 +840,11 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Returns a list of all users in the system",
                 "consumes": [
                     "application/json"
@@ -906,6 +972,11 @@ const docTemplate = `{
         },
         "/users/block/{id}": {
             "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Blocks a user by ID",
                 "consumes": [
                     "application/json"
@@ -973,7 +1044,7 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "204": {
                         "description": "Users notified successfully"
                     },
                     "400": {
@@ -1080,6 +1151,11 @@ const docTemplate = `{
         },
         "/users/{id}": {
             "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Returns a specific user by their ID",
                 "consumes": [
                     "application/json"
@@ -1125,6 +1201,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Updates user information",
                 "consumes": [
                     "application/json"
@@ -1179,6 +1260,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "Removes a user from the database",
                 "consumes": [
                     "application/json"
@@ -1300,6 +1386,11 @@ const docTemplate = `{
         },
         "/users/{id}/teacher": {
             "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "description": "makes the user role \"teacher\"",
                 "consumes": [
                     "application/json"
@@ -1742,8 +1833,11 @@ const docTemplate = `{
         }
     },
     "securityDefinitions": {
-        "BasicAuth": {
-            "type": "basic"
+        "Bearer": {
+            "description": "\"Type 'Bearer TOKEN' to correctly set the API Key\"",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     },
     "externalDocs": {
@@ -1755,7 +1849,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "https://user-api-production-99c2.up.railway.app/",
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "User API",

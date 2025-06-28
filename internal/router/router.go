@@ -50,7 +50,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 			"X-Requested-With",
 			"X-CSRF-Token"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true, // if you need cookies or auth headers
+		AllowCredentials: true,
 	}))
 
 	deps, err := NewDependencies(&config)
@@ -72,10 +72,10 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	auth.POST("/google", deps.Controllers.AuthController.GoogleAuth)
 	auth.POST("/users", deps.Controllers.AuthController.Register)
 	auth.POST("/users/verify", deps.Controllers.AuthController.VerifyRegistration)
-	auth.POST("/admins", deps.Controllers.AuthController.RegisterAdmin)
+	auth.PUT("/users/verify/resend", deps.Controllers.AuthController.ResendPin)
+	auth.POST("/admins", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.AuthController.RegisterAdmin)
 	auth.POST("/login", deps.Controllers.AuthController.Login)
 	auth.GET("/logout", deps.Controllers.AuthController.Logout)
-	auth.PUT("/users/verify/resend", deps.Controllers.AuthController.ResendPin)
 	auth.GET("/verify", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.AuthController.VerifyToken)
 
 	// User routes
@@ -84,7 +84,7 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.GET("/users/:id", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.UserController.UserGetById)
 	r.GET("/users/:id/notifications", deps.Controllers.UserController.GetUserNotifications)
 	r.POST("/users/:id/notifications", deps.Controllers.UserController.SetUserNotifications)
-	r.DELETE("/users/:id", deps.Controllers.UserController.UserDeleteById)
+	r.DELETE("/users/:id", middleware.UserOrAdminMiddleware(deps.Services.UserService), deps.Controllers.UserController.UserDeleteById)
 	r.PUT("/users/:id/block", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.BlockUserById)
 	r.PUT("/users/:id/teacher", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.MakeTeacher)
 	r.PUT("/users/password", deps.Controllers.UserController.ModifyUserPasssword)
@@ -95,11 +95,11 @@ func CreateRouter(config config.Config) (*gin.Engine, error) {
 	r.GET("/users/reset/password", deps.Controllers.UserController.PasswordResetRedirect)
 
 	// Rules routes
-	r.POST("/rules", deps.Controllers.UserController.AddRule)
-	r.DELETE("/rules/:id", deps.Controllers.UserController.DeleteRule)
-	r.GET("/rules", deps.Controllers.UserController.GetRules)
-	r.PUT("/rules/:id", deps.Controllers.UserController.ModifyRule)
-	r.GET("/rules/audit", deps.Controllers.UserController.GetAudits)
+	r.POST("/rules", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.AddRule)
+	r.DELETE("/rules/:id", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.DeleteRule)
+	r.GET("/rules", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.GetRules)
+	r.PUT("/rules/:id", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.ModifyRule)
+	r.GET("/rules/audit", middleware.AdminOnlyMiddleware(deps.Services.UserService), deps.Controllers.UserController.GetAudits)
 
 	//Ai Chat routes
 	r.POST("/chat", middleware.AuthMiddleware(deps.Services.UserService), deps.Controllers.ChatController.SendMessage)

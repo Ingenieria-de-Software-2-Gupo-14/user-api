@@ -6,18 +6,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
-	s "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
-	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/repositories"
+	s "github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
+	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 )
 
 func setupTest(t *testing.T) (*s.MockChatService, *gin.Context, *httptest.ResponseRecorder, *ChatController) {
@@ -58,6 +60,15 @@ func TestChatController_SendMessage(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	ai_response := models.ChatMessage{
 		MessageId: 1,
@@ -104,6 +115,14 @@ func TestChatController_SendMessage_Bad_Request(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	userChat.SendMessage(c)
 
@@ -140,16 +159,6 @@ func TestChatController_SendMessage_Incorrect_Token(t *testing.T) {
 	userChat.SendMessage(c)
 
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	expectedResponse := utils.HTTPError{
-		Code:  http.StatusInternalServerError,
-		Title: http.StatusText(http.StatusInternalServerError),
-		Error: "invalid token",
-	}
-
-	response := utils.HTTPError{}
-	err = json.Unmarshal(recorder.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedResponse, response)
 }
 
 func TestChatController_SendMessage_Service_Fails1(t *testing.T) {
@@ -175,6 +184,14 @@ func TestChatController_SendMessage_Service_Fails1(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	expectedErr := errors.New("database error")
 
@@ -218,6 +235,14 @@ func TestChatController_SendMessage_Service_Fails2(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	expectedErr := errors.New("database error")
 
@@ -256,6 +281,14 @@ func TestChatController_GetMessages(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	message := models.ChatMessage{
 		MessageId: 1,
@@ -293,16 +326,6 @@ func TestChatController_GetMessages_Incorrect_Token(t *testing.T) {
 
 	userChat.GetMessages(c)
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	expectedResponse := utils.HTTPError{
-		Code:  http.StatusInternalServerError,
-		Title: http.StatusText(http.StatusInternalServerError),
-		Error: "invalid token",
-	}
-
-	response := utils.HTTPError{}
-	err := json.Unmarshal(recorder.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedResponse, response)
 }
 
 func TestChatController_GetMessages_Service_Fails(t *testing.T) {
@@ -322,6 +345,14 @@ func TestChatController_GetMessages_Service_Fails(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	expectedErr := errors.New("database error")
 
@@ -366,6 +397,14 @@ func TestChatController_FeedbackMessage(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 	c.AddParam("message_id", strconv.Itoa(messageId))
 
 	mockService.EXPECT().UpdateMessageFeedback(c.Request.Context(), userId, messageId, feedback).Return(nil)
@@ -397,16 +436,6 @@ func TestChatController_FeedbackMessage_Incorrect_Token(t *testing.T) {
 
 	userChat.FeedbackMessage(c)
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	expectedResponse := utils.HTTPError{
-		Code:  http.StatusInternalServerError,
-		Title: http.StatusText(http.StatusInternalServerError),
-		Error: "invalid token",
-	}
-
-	response := utils.HTTPError{}
-	err = json.Unmarshal(recorder.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedResponse, response)
 }
 
 func TestChatController_FeedbackMessage_Incorrect_Path_Variable(t *testing.T) {
@@ -433,6 +462,14 @@ func TestChatController_FeedbackMessage_Incorrect_Path_Variable(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	userChat.FeedbackMessage(c)
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -473,6 +510,14 @@ func TestChatController_FeedbackMessage_Bad_Request(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 	c.AddParam("message_id", strconv.Itoa(messageId))
 
 	userChat.FeedbackMessage(c)
@@ -514,6 +559,14 @@ func TestChatController_FeedbackMessage_Service_Fails(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 	c.AddParam("message_id", strconv.Itoa(messageId))
 
 	expectedErr := errors.New("database error")
@@ -559,6 +612,14 @@ func TestChatController_RateMessage(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 	c.AddParam("message_id", strconv.Itoa(messageId))
 
 	mockService.EXPECT().UpdateMessageRating(c.Request.Context(), userId, messageId, rating).Return(nil)
@@ -590,16 +651,6 @@ func TestChatController_RateMessage_Incorrect_Token(t *testing.T) {
 
 	userChat.RateMessage(c)
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	expectedResponse := utils.HTTPError{
-		Code:  http.StatusInternalServerError,
-		Title: http.StatusText(http.StatusInternalServerError),
-		Error: "invalid token",
-	}
-
-	response := utils.HTTPError{}
-	err = json.Unmarshal(recorder.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedResponse, response)
 }
 
 func TestChatController_RateMessage_Incorrect_Path_Variable(t *testing.T) {
@@ -625,6 +676,14 @@ func TestChatController_RateMessage_Incorrect_Path_Variable(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	userChat.RateMessage(c)
 	assert.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -665,6 +724,14 @@ func TestChatController_RateMessage_Bad_Request(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 	c.AddParam("message_id", strconv.Itoa(messageId))
 
 	userChat.RateMessage(c)
@@ -706,6 +773,14 @@ func TestChatController_RateMessage_Service_Fails(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 	c.AddParam("message_id", strconv.Itoa(messageId))
 
 	expectedErr := errors.New("database error")
@@ -755,6 +830,14 @@ func TestChatController_GetMessages_IntegrationTest(t *testing.T) {
 
 	// Assign request to context
 	c.Request = req
+	c.Set("claims", &models.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Subject: strconv.Itoa(userId),
+		},
+		Email: email,
+		Name:  name,
+		Role:  role,
+	})
 
 	sinceDate := "2024-01-01"
 

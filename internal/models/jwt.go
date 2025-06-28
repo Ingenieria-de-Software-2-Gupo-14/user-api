@@ -117,3 +117,11 @@ func ParseToken(tokenStr string) (*Claims, error) {
 
 	return &claims, nil
 }
+
+func GetClaimsFromGinContext(ctx context.Context) (*Claims, error) {
+	claims, ok := ctx.Value("claims").(*Claims)
+	if !ok {
+		return nil, fmt.Errorf("claims not found in context")
+	}
+	return claims, nil
+}

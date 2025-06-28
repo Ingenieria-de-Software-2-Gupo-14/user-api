@@ -86,6 +86,7 @@ func (ac *AuthController) Register(c *gin.Context) {
 // @Failure      409  {object}  utils.HTTPError "Email already exists"
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /auth/admins [post]
+// @Security Bearer
 func (ac *AuthController) RegisterAdmin(c *gin.Context) {
 	var request models.CreateUserRequest
 	ctx := c.Request.Context()
@@ -349,11 +350,12 @@ func (ac *AuthController) ResendPin(c *gin.Context) {
 // @Summary      Verify a JWT token
 // @Description  Verifies the JWT token and returns a success message if valid
 // @Tags         Auth
-// @Accept       json
 // @Produce      json
+// @Param        Authorization header string true "Bearer token"
 // @Success      200  {object}  map[string]string  "Token is valid"
 // @Failure      401  {object}  utils.HTTPError "Invalid or expired token"
 // @Router       /auth/verify [get]
+// @Security Bearer
 func (ac *AuthController) VerifyToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Token is valid"})
 }

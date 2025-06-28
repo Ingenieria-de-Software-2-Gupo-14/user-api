@@ -270,7 +270,7 @@ definitions:
 externalDocs:
   description: OpenAPI
   url: https://swagger.io/resources/open-api/
-host: localhost:8080
+host: https://user-api-production-99c2.up.railway.app/
 info:
   contact:
     email: support@swagger.io
@@ -317,6 +317,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Register a new Admin
       tags:
       - Auth
@@ -504,9 +506,13 @@ paths:
       - Auth
   /auth/verify:
     get:
-      consumes:
-      - application/json
       description: Verifies the JWT token and returns a success message if valid
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -520,6 +526,8 @@ paths:
           description: Invalid or expired token
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Verify a JWT token
       tags:
       - Auth
@@ -541,6 +549,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Get recent messages
       tags:
       - Chat
@@ -570,6 +580,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Send a new message to the assitant
       tags:
       - Chat
@@ -599,6 +611,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Add feedback to a message
       tags:
       - Chat
@@ -628,6 +642,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Add rating to a message
       tags:
       - Chat
@@ -672,6 +688,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Get all rules
       tags:
       - Rules
@@ -699,6 +717,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Create a new rule
       tags:
       - Rules
@@ -726,6 +746,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Delete user by ID
       tags:
       - Rules
@@ -756,6 +778,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Modify rule password
       tags:
       - Rules
@@ -779,6 +803,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Get all audits
       tags:
       - Rules
@@ -802,6 +828,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Get all users
       tags:
       - Users
@@ -892,6 +920,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Delete user by ID
       tags:
       - Users
@@ -922,6 +952,8 @@ paths:
           description: User not found
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Get user by ID
       tags:
       - Users
@@ -958,6 +990,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Modify user
       tags:
       - Users
@@ -1041,6 +1075,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Make a user a "teacher"
       tags:
       - Users
@@ -1070,6 +1106,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.HTTPError'
+      security:
+      - Bearer: []
       summary: Block user
       tags:
       - Users
@@ -1088,7 +1126,7 @@ paths:
       produces:
       - application/json
       responses:
-        "200":
+        "204":
           description: Users notified successfully
         "400":
           description: Invalid request
@@ -1160,6 +1198,9 @@ paths:
       tags:
       - Users
 securityDefinitions:
-  BasicAuth:
-    type: basic
+  Bearer:
+    description: '"Type ''Bearer TOKEN'' to correctly set the API Key"'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

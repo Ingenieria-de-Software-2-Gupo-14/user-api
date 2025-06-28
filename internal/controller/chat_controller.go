@@ -1,12 +1,13 @@
 package controller
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/models"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/services"
 	"github.com/Ingenieria-de-Software-2-Gupo-14/user-api/internal/utils"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"strconv"
 )
 
 type ChatController struct {
@@ -30,9 +31,9 @@ func NewChatsController(chatService services.ChatService) *ChatController {
 // @Failure      400  {object}  utils.HTTPError "Invalid request format"
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /chat [post]
+// @Security Bearer
 func (c ChatController) SendMessage(ctx *gin.Context) {
-	tokenStr := GetAuthToken(ctx)
-	claims, err := models.ParseToken(tokenStr)
+	claims, err := models.GetClaimsFromGinContext(ctx)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -69,9 +70,9 @@ func (c ChatController) SendMessage(ctx *gin.Context) {
 // @Success      200  {object}  []models.ChatMessage  "messages"
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /chat [get]
+// @Security Bearer
 func (c ChatController) GetMessages(ctx *gin.Context) {
-	tokenStr := GetAuthToken(ctx)
-	claims, err := models.ParseToken(tokenStr)
+	claims, err := models.GetClaimsFromGinContext(ctx)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -100,9 +101,9 @@ func (c ChatController) GetMessages(ctx *gin.Context) {
 // @Success      200  {object}  nil
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /chat/{message_id}/rate [put]
+// @Security Bearer
 func (c ChatController) RateMessage(ctx *gin.Context) {
-	tokenStr := GetAuthToken(ctx)
-	claims, err := models.ParseToken(tokenStr)
+	claims, err := models.GetClaimsFromGinContext(ctx)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
@@ -141,9 +142,9 @@ func (c ChatController) RateMessage(ctx *gin.Context) {
 // @Success      200  {object}  nil
 // @Failure      500  {object}  utils.HTTPError "Internal server error"
 // @Router       /chat/{message_id}/feedback [put]
+// @Security Bearer
 func (c ChatController) FeedbackMessage(ctx *gin.Context) {
-	tokenStr := GetAuthToken(ctx)
-	claims, err := models.ParseToken(tokenStr)
+	claims, err := models.GetClaimsFromGinContext(ctx)
 	if err != nil {
 		utils.ErrorResponseWithErr(ctx, http.StatusInternalServerError, err)
 		return
