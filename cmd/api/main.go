@@ -17,25 +17,17 @@ import (
 
 // @title           User API
 // @version         1.0
-// @description     This is a sample server celler server.
-// @termsOfService  http://swagger.io/terms/
+// @description     This is the User API for managing user accounts, authentication, and related operations.
 
-// @contact.name   API Support
-// @contact.url    http://www.swagger.io/support
-// @contact.email  support@swagger.io
-
-// @license.name  Apache 2.0
-// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
-
-// @host      https://user-api-production-99c2.up.railway.app/
+// @host     user-api-production-99c2.up.railway.app/
 
 // @securityDefinitions.apikey Bearer
 // @in header
 // @name Authorization
 // @description "Type 'Bearer TOKEN' to correctly set the API Key"
 
-// @externalDocs.description  OpenAPI
-// @externalDocs.url          https://swagger.io/resources/open-api/
+// @externalDocs.description  User API Documentation
+// @externalDocs.url          https://docs.google.com/document/d/1uDNY5pHNrR1YQpE2YbsyZawDvMV-9mEekDRtLomjBlk/edit?usp=sharing
 func main() {
 	config := apiconfig.LoadConfig() // lee las variables de entorno
 	ctx := context.Background()
